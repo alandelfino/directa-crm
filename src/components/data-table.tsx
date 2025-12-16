@@ -1,6 +1,6 @@
 import React from 'react'
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter, type DragEndEvent, type UniqueIdentifier } from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { restrictToVerticalAxis, restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -52,7 +52,6 @@ export function DataTable<T extends { id?: number | string }>({
   onChange,
   onReorder,
   onRowClick,
-  rowIsSelected,
   skeletonCount,
   rowClassName,
   hideFooter = false,
@@ -61,6 +60,7 @@ export function DataTable<T extends { id?: number | string }>({
 }: DataTableProps<T>) {
   const mainScrollerRef = React.useRef<HTMLDivElement | null>(null)
   const [ordered, setOrdered] = React.useState<T[]>(() => data)
+  const [isDraggingTable, setIsDraggingTable] = React.useState(false)
   React.useEffect(() => {
     setOrdered(data)
   }, [data])
@@ -113,7 +113,7 @@ export function DataTable<T extends { id?: number | string }>({
     const listeners = disabled ? {} : sortable.listeners
     return (
       <Button {...attributes} {...listeners} variant='ghost' size='icon' className='text-muted-foreground size-7 hover:bg-transparent'>
-        <IconGripVertical className='text-muted-foreground size-3' />
+        <IconGripVertical className='text-muted-foreground size-4' />
         <span className='sr-only'>Reordenar</span>
       </Button>
     )
@@ -138,13 +138,13 @@ export function DataTable<T extends { id?: number | string }>({
     <div className='flex flex-col w-full h-full min-h-0 overflow-y-auto overflow-x-hidden'>
 
       <div className='relative h-full'>
-        <div className='w-full overflow-x-auto overflow-y-auto' data-slot='datatable-scroller' ref={mainScrollerRef}>
+        <div className={`w-full overflow-x-auto ${isDraggingTable ? 'overflow-y-hidden' : 'overflow-y-auto'}`} data-slot='datatable-scroller' ref={mainScrollerRef}>
         {enableReorder ? (
-          <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]} onDragEnd={handleDragEnd} sensors={sensors}>
+          <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]} onDragStart={() => setIsDraggingTable(true)} onDragCancel={() => setIsDraggingTable(false)} onDragEnd={(e) => { setIsDraggingTable(false); handleDragEnd(e) }} sensors={sensors}>
           <Table className='border-b table-fixed'>
             <TableHeader className='sticky top-0 bg-neutral-50 z-10 border-b'>
               <TableRow className='bg-neutral-50'>
-                <TableHead className='border-r w-[60px]' />
+                <TableHead className='border-r w-[50px]' />
                 {columns.map((col) => (
                   <TableHead
                     key={col.id}

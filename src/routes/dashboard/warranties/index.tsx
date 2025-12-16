@@ -89,14 +89,14 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r',
-      className: 'font-medium border-r p-2!'
+      headerClassName: 'w-[60px] border-r !px-4',
+      className: 'font-medium border-r'
     },
-    { id: 'name', header: 'Nome', cell: (w) => w.name, className: 'border-r p-2!' },
-    { id: 'store_name', header: 'Loja', cell: (w) => w.store_name, className: 'border-r p-2!' },
-    { id: 'period', header: 'Período', cell: (w) => ({ day: 'Dia', month: 'Mês', year: 'Ano' }[w.period]), headerClassName: 'w-[90px] border-r', className: 'w-[120px] p-2!' },
-    { id: 'amount', header: 'Qtd.', cell: (w) => w.amount, headerClassName: 'w-[70px] border-r', className: 'w-[90px] p-2!' },
-    { id: 'price', header: 'Preço', cell: (w) => formatCurrencyBRL(w.price), headerClassName: 'w-[90px] border-r', className: 'w-[140px] p-2!' },
+    { id: 'name', header: 'Nome', cell: (w) => w.name, headerClassName: 'border-r !px-4', className: 'border-r' },
+    { id: 'store_name', header: 'Nome na loja', cell: (w) => w.store_name, headerClassName: 'border-r !px-4', className: 'border-r' },
+    { id: 'period', header: 'Período', cell: (w) => ({ day: 'Dia', month: 'Mês', year: 'Ano' }[w.period]), headerClassName: 'w-[90px] border-r !px-4', className: 'w-[120px] border-r' },
+    { id: 'amount', header: 'Qtd.', cell: (w) => w.amount, headerClassName: 'w-[70px] border-r !px-4', className: 'w-[90px] border-r' },
+    { id: 'price', header: 'Preço', cell: (w) => formatCurrencyBRL(w.price), headerClassName: 'w-[90px] border-r !px-4', className: 'w-[140px] border-r' },
   ]
 
   useEffect(() => {

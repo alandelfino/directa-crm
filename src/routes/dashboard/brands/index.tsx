@@ -26,6 +26,7 @@ type Brand = {
   updated_at: number
   name: string
   company_id: number
+  products?: number
 }
 
 type BrandsResponse = {
@@ -42,7 +43,7 @@ type BrandsResponse = {
 
 function RouteComponent() {
   const [currentPage, setCurrentPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
+  const [perPage, setPerPage] = useState(20)
   const [selectedBrands, setSelectedBrands] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -61,6 +62,36 @@ function RouteComponent() {
   })
 
   const [brands, setBrands] = useState<Brand[]>([])
+
+  const normalizeEpoch = (v?: number): number | undefined => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return undefined
+    const abs = Math.abs(v)
+    if (abs < 1e11) return Math.round(v * 1000)
+    if (abs > 1e14) return Math.round(v / 1000)
+    return v
+  }
+  const fmtDateOnly = (v?: number) => {
+    const ms = normalizeEpoch(v)
+    if (!ms) return '-'
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const d = new Date(ms)
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(d)
+      const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+      const dd = get('day')
+      const MM = get('month')
+      const yyyy = get('year')
+      return `${dd}/${MM}/${yyyy}`
+    } catch {
+      return new Date(ms).toLocaleDateString('pt-BR')
+    }
+  }
 
   const columns: ColumnDef<Brand>[] = [
     {
@@ -82,21 +113,34 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r',
-      className: 'font-medium border-r p-2!'
+      headerClassName: 'w-[60px] min-w-[60px] border-r',
+      className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
     },
     {
       id: 'name',
       header: 'Nome',
-      cell: (brand) => brand.name,
-      className: 'border-r p-2!'
+      cell: (brand) => <span className='block truncate min-w-0' title={brand.name}>{brand.name}</span>,
+      width: '280px',
+      headerClassName: 'w-[280px] min-w-[280px] border-r',
+      className: 'w-[280px] min-w-[280px] p-2!'
+    },
+    {
+      id: 'created_at',
+      header: 'Data de criação',
+      cell: (brand) => (
+        <span className='text-sm'>{fmtDateOnly(brand.created_at)}</span>
+      ),
+      width: '180px',
+      headerClassName: 'w-[180px] min-w-[180px] border-r',
+      className: 'w-[180px] min-w-[180px] p-2!'
     },
     {
       id: 'products',
       header: 'Produtos',
-      cell: (_brand) => 0,
-      headerClassName: 'w-[70px] border-r',
-      className: 'w-[120px] p-2!'
+      cell: (brand) => (typeof brand.products === 'number' ? brand.products : 0),
+      width: '90px',
+      headerClassName: 'w-[90px] min-w-[90px] border-r',
+      className: 'w-[90px] min-w-[90px] p-2!'
     },
   ]
 

@@ -56,6 +56,36 @@ function RouteComponent() {
     return typeof cid === 'number' && cid > 0
   }, [selectedItem])
 
+  const normalizeEpoch = (v?: number): number | undefined => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return undefined
+    const abs = Math.abs(v)
+    if (abs < 1e11) return Math.round(v * 1000)
+    if (abs > 1e14) return Math.round(v / 1000)
+    return v
+  }
+  const fmtDateOnly = (v?: number) => {
+    const ms = normalizeEpoch(v)
+    if (!ms) return '-'
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const d = new Date(ms)
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(d)
+      const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+      const dd = get('day')
+      const MM = get('month')
+      const yyyy = get('year')
+      return `${dd}/${MM}/${yyyy}`
+    } catch {
+      return new Date(ms).toLocaleDateString('pt-BR')
+    }
+  }
+
   const columns: ColumnDef<PriceTable>[] = useMemo(() => [
     {
       id: 'select',
@@ -70,6 +100,14 @@ function RouteComponent() {
       className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
     },
     { id: 'name', header: 'Nome', cell: (p) => p.name ?? '—', className: 'border-r p-2!' },
+    {
+      id: 'created_at',
+      header: 'Data de criação',
+      cell: (p) => (<span className='text-sm'>{fmtDateOnly(p.created_at)}</span>),
+      width: '180px',
+      headerClassName: 'w-[180px] min-w-[180px] border-r',
+      className: 'w-[180px] min-w-[180px] p-2!'
+    },
   ], [items, selected])
 
   useEffect(() => {

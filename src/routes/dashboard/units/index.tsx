@@ -24,6 +24,7 @@ type Unit = {
   type: 'integer' | 'decimal'
   name: string
   company_id?: number
+  products?: number
 }
 
 type UnitsResponse = {
@@ -90,6 +91,13 @@ function RouteComponent() {
       cell: (unit) => unit.type,
       headerClassName: 'w-[140px] border-r',
       className: 'w-[140px] p-2!'
+    },
+    {
+      id: 'products',
+      header: 'Produtos',
+      cell: (unit) => (typeof unit.products === 'number' ? unit.products : 0),
+      headerClassName: 'w-[90px] border-r',
+      className: 'w-[100px] p-2!'
     },
   ]
 

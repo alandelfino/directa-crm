@@ -152,8 +152,8 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
         </Button>
       </SheetTrigger>
       {/* Sheet com largura ajustada e layout em coluna ocupando toda a altura */}
-      <SheetContent className='w-lg sm:max-w-[1000px]'>
-        <SheetHeader>
+      <SheetContent className='w-lg sm:max-w-[1000px] p-0'>
+        <SheetHeader className='px-4 py-4'>
           <SheetTitle>Itens da derivação</SheetTitle>
           <SheetDescription>Gerencie os itens da derivação selecionada.</SheetDescription>
         </SheetHeader>
@@ -176,7 +176,7 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
             <DerivationItemCreateDialog derivationId={derivationId} derivationType={derivationType} itemsCount={itemsLocal.length} onCreated={() => refetch()} />
           </div>
 
-          <div className='mt-2 mb-0 flex-1 flex flex-col overflow-hidden px-4'>
+          <div className='mt-2 mb-0 flex-1 flex flex-col overflow-hidden border-t'>
             <DataTable<DerivationItem>
               columns={columns}
               data={itemsLocal}

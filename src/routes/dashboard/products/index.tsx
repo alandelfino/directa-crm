@@ -171,7 +171,7 @@ function RouteComponent() {
               <ProductPricesSheet productId={selected[0]} />
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
-                <BadgeDollarSign className="size-[0.85rem] mr-2" /> Preços
+                <BadgeDollarSign className="size-4" /> Preços
               </Button>
             )}
 

@@ -224,7 +224,7 @@ function RouteComponent() {
       setPreviewUrl(croppedDataUrl)
       setRemoveImage(false)
       setCropOpen(false)
-    } catch (e) {
+    } catch {
       toast.error('Não foi possível aplicar o recorte. Tente novamente.')
     }
   }

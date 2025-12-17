@@ -76,7 +76,7 @@ export function EditProfileSheet({
             const updatedItems = items.map((p: any) => p?.id === profileId ? { ...p, ...(updatedProfile ?? {}), name: nextName } : p)
             return { ...oldData, items: updatedItems }
           })
-        } catch (e) {
+        } catch {
         }
 
         closeSheet()

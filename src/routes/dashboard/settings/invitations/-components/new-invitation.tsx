@@ -32,7 +32,6 @@ export function NewInvitationSheet({ onCreated }: { onCreated?: () => void }) {
   // Resetar ao fechar o sheet
   // Mantém o comportamento consistente mesmo quando fecha via overlay, esc ou botão Cancelar
   // Sem modificar os valores enquanto estiver aberto
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onOpenChange = (next: boolean) => {
     setOpen(next)
     if (!next) resetForm()

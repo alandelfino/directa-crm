@@ -140,7 +140,7 @@ export function DataTable<T extends { id?: number | string }>({
       <div className='relative h-full'>
         <div className={`w-full overflow-x-auto ${isDraggingTable ? 'overflow-y-hidden' : 'overflow-y-auto'}`} data-slot='datatable-scroller' ref={mainScrollerRef}>
         {enableReorder ? (
-          <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]} onDragStart={() => setIsDraggingTable(true)} onDragCancel={() => setIsDraggingTable(false)} onDragEnd={(e) => { setIsDraggingTable(false); handleDragEnd(e) }} sensors={sensors}>
+          <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]} onDragStart={() => setIsDraggingTable(true)} onDragCancel={() => setIsDraggingTable(false)} onDragEnd={(e: DragEndEvent) => { setIsDraggingTable(false); handleDragEnd(e) }} sensors={sensors}>
           <Table className='border-b table-fixed'>
             <TableHeader className='sticky top-0 bg-neutral-50 z-10 border-b'>
               <TableRow className='bg-neutral-50'>

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, RefreshCcw, Trash, Package, GitFork, RefreshCw } from 'lucide-react'
+import { Edit, RefreshCcw, Trash, Package, GitFork, RefreshCw, BadgeDollarSign } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -14,6 +14,7 @@ import { NewProductSheet } from './-components/new-product'
 import { EditProductSheet } from './-components/edit-product'
 import { DeleteProductDialog } from './-components/delete-product'
 import { ChildProductsSheet } from './-components/child-products'
+import { ProductPricesSheet } from './-components/product-prices/product-prices-sheet'
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: RouteComponent,
@@ -165,6 +166,14 @@ function RouteComponent() {
             <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }} size={'sm'}>
               {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
             </Button>
+
+            {selected.length === 1 ? (
+              <ProductPricesSheet productId={selected[0]} />
+            ) : (
+              <Button variant={'outline'} disabled size={'sm'}>
+                <BadgeDollarSign className="size-[0.85rem] mr-2" /> Preços
+              </Button>
+            )}
 
             {selected.length === 1 ? (
               <DeleteProductDialog productId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />

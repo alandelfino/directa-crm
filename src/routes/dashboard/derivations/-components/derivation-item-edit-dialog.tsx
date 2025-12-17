@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { ImagePickerDialog } from '@/components/image-picker-dialog'
-import { Edit, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
+import { IconEdit } from '@tabler/icons-react'
 
 type DerivationItem = { id: number; order: number; value: string; name?: string; nome?: string }
 
@@ -72,7 +73,7 @@ export function DerivationItemEditDialog({ derivationId, derivationType, item, o
       }
     }}>
       <DialogTrigger asChild>
-        <Button size={'sm'} variant={'ghost'}><Edit /> Editar</Button>
+        <Button size={'sm'} variant={'outline'}><IconEdit className="size-4" /> Editar</Button>
       </DialogTrigger>
       <DialogContent>
         <Form {...form}>

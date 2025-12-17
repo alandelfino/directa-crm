@@ -19,3 +19,14 @@ export function getAvatarAbbrev(name: string): string {
   }
   return safe.slice(0, 2).toUpperCase()
 }
+
+export function formatMoneyFromCents(cents: number | undefined | null, currency = 'BRL'): string {
+  if (cents === undefined || cents === null) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(cents / 100)
+}
+
+export function maskMoneyInput(value: string): string {
+  const onlyDigits = value.replace(/\D/g, '')
+  const numberValue = Number(onlyDigits) / 100
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numberValue)
+}

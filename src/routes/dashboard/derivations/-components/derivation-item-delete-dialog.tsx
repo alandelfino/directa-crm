@@ -1,10 +1,11 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Trash, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
+import { IconTrash } from '@tabler/icons-react'
 
 export function DerivationItemDeleteDialog({ itemId, onDeleted }: { itemId: number, onDeleted?: () => void }) {
   const [open, setOpen] = useState(false)
@@ -19,13 +20,21 @@ export function DerivationItemDeleteDialog({ itemId, onDeleted }: { itemId: numb
       setOpen(false)
       onDeleted?.()
     },
-    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Erro ao excluir item')
+    onError: (error: any) => {
+      const title = error?.response?.data?.payload?.title
+      const message = error?.response?.data?.message ?? 'Erro ao excluir item'
+      if (title) {
+        toast.error(title, { description: message })
+      } else {
+        toast.error(message)
+      }
+    }
   })
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size={'sm'} variant={'ghost'}><Trash /> Excluir</Button>
+        <Button size={'sm'} variant={'outline'}><IconTrash className="size-4" /> Excluir</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

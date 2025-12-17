@@ -10,6 +10,7 @@ import { DerivationItemEditDialog } from './derivation-item-edit-dialog'
 import { DerivationItemDeleteDialog } from './derivation-item-delete-dialog'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
+import { IconEdit, IconTrash } from '@tabler/icons-react'
 
 type DerivationItem = {
   id: number
@@ -65,7 +66,7 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
         <div className='flex items-center justify-center text-xs text-muted-foreground'>Sel.</div>
       ),
       cell: (i) => (
-        <div className='flex items-center justify-center'>
+        <div className='flex items-center justify-center' onClick={(e) => e.stopPropagation()}>
           <Checkbox
             checked={selectedId === i.id}
             onCheckedChange={() => setSelectedId(selectedId === i.id ? null : i.id)}
@@ -169,8 +170,8 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
               </>
             ) : (
               <>
-                <Button size={'sm'} variant={'outline'} disabled>Editar</Button>
-                <Button size={'sm'} variant={'outline'} disabled>Excluir</Button>
+                <Button size={'sm'} variant={'outline'} disabled> <IconEdit className="size-4" /> Editar</Button>
+                <Button size={'sm'} variant={'outline'} disabled> <IconTrash className="size-4" /> Excluir</Button>
               </>
             )}
             <DerivationItemCreateDialog derivationId={derivationId} derivationType={derivationType} itemsCount={itemsLocal.length} onCreated={() => refetch()} />

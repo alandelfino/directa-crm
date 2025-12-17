@@ -4,27 +4,15 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import { Loader, Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { maskMoneyInput } from '@/lib/utils'
 
 const formSchema = z.object({
   price_table_id: z.string().min(1, { message: 'Selecione uma tabela de preço' }),
-  price: z.string().min(1, { message: 'Preço é obrigatório' }),
-  sale_price: z.string().optional(),
-}).refine((data) => {
-  if (!data.sale_price) return true
-  const price = parseInt(data.price.replace(/\D/g, '')) || 0
-  const salePrice = parseInt(data.sale_price.replace(/\D/g, '')) || 0
-  return salePrice <= price
-}, {
-  message: 'O preço promocional não pode ser maior que o preço',
-  path: ['sale_price'],
 })
 
 export function ProductPriceCreateSheet({ productId, onCreated }: { productId: number, onCreated?: () => void }) {
@@ -32,7 +20,7 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { price_table_id: '', price: 'R$ 0,00', sale_price: 'R$ 0,00' },
+    defaultValues: { price_table_id: '' },
   })
 
   // Fetch price tables
@@ -50,13 +38,9 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
       const payload = {
         product_id: productId,
-        price_table_id: Number(values.price_table_id),
-        price: priceCents,
-        sale_price: salePriceCents
+        price_table_id: Number(values.price_table_id)
       }
       const response = await privateInstance.post('/api:c3X9fE5j/derivated_product_price', payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao adicionar preço')
@@ -65,7 +49,7 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
     onSuccess: () => {
       toast.success('Preço adicionado com sucesso!')
       setOpen(false)
-      form.reset({ price_table_id: '', price: 'R$ 0,00', sale_price: 'R$ 0,00' })
+      form.reset({ price_table_id: '' })
       onCreated?.()
     },
     onError: (error: any) => {
@@ -80,15 +64,15 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button size='sm' variant='outline'>
-          <Plus className='mr-2 h-4 w-4' /> Adicionar preço
+          <Plus className='mr-2 h-4 w-4' /> Adicionar tabela
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-[420px]'>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(async (v) => await mutateAsync(v))} className='flex flex-col h-full'>
             <SheetHeader>
-              <SheetTitle>Adicionar Preço</SheetTitle>
-              <SheetDescription>Defina o preço deste produto para uma tabela específica.</SheetDescription>
+              <SheetTitle>Inserir tabela no produto</SheetTitle>
+              <SheetDescription>Vincule uma tabela de preço a este produto.</SheetDescription>
             </SheetHeader>
             
             <div className='flex-1 overflow-y-auto px-4 py-4'>
@@ -101,7 +85,7 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
                       <FormLabel>Tabela de Preço</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
@@ -115,45 +99,6 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            onChange={(e) => {
-                              field.onChange(maskMoneyInput(e.target.value))
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sale_price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço Promocional</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="R$ 0,00" 
-                            {...field} 
-                            onChange={(e) => {
-                              field.onChange(maskMoneyInput(e.target.value))
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
             </div>
 

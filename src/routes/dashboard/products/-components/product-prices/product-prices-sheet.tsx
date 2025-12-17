@@ -31,7 +31,7 @@ function EditablePriceCell({
 }: { 
   row: ProductPriceItem, 
   field: 'price' | 'sale_price',
-  onSaved: () => void,
+  onSaved: (value: number) => void,
   className?: string
 }) {
   const initialPrice = row[field]

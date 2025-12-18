@@ -6,7 +6,7 @@ import { NewCategorySheet } from './-components/new-category'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
-import { Edit, RefreshCcw, Trash, List, RefreshCw } from 'lucide-react'
+import { Edit, Trash, List, RefreshCw } from 'lucide-react'
 import { EditCategorySheet } from './-components/edit-category'
 import { useEffect, useMemo, useState } from 'react'
 import { DeleteCategory } from './-components/delete-category'
@@ -218,8 +218,8 @@ function RouteComponent() {
             <Button className='font-normal' variant={'ghost'} size={'sm'} disabled={isLoading || isRefetching} onClick={() => { setSelectedCategories([]); refetch() }}>
               {
                 (isLoading || isRefetching)
-                  ? <><RefreshCw className='animate-spin w-4 h-4' /> Atualizando...</>
-                  : <><RefreshCw className='size-[0.85rem]' /> Atualizar</>
+                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
+                  : <RefreshCw className='size-[0.85rem]' />
               }
             </Button>
 
@@ -227,7 +227,7 @@ function RouteComponent() {
               <DeleteCategory categoryId={selectedCategories[0]} />
             ) : (
               <Button className='font-normal' variant={'outline'} disabled size={'sm'}>
-                <Trash className='size-[0.85rem]' />Excluir
+                <Trash className='size-[0.85rem]' /> Excluir
               </Button>
             )}
 
@@ -268,8 +268,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewCategorySheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedCategories([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedCategories([]); refetch() }}>
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

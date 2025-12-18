@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, Funnel, RefreshCcw, Trash, Tag } from 'lucide-react'
+import { Edit, Funnel, RefreshCw, Trash, Tag } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -217,34 +217,34 @@ function RouteComponent() {
           {/* Filters */}
           <div className='flex items-center gap-2 flex-1'>
 
-            <Button variant={'outline'}>
-              <Funnel /> Filtros
+            <Button variant={'outline'} size="sm">
+              <Funnel className="size-[0.85rem]" /> Filtros
             </Button>
 
           </div>
 
           <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
               {
                 (isLoading || isRefetching)
-                  ? <><RefreshCcw className='animate-spin' /> Atualizando...</>
-                  : <><RefreshCcw /> Atualizar</>
+                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
+                  : <RefreshCw className="size-[0.85rem]" />
               }
             </Button>
 
             {selectedBrands.length === 1 ? (
               <DeleteBrand brandId={selectedBrands[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Trash /> Exluir
+              <Button variant={'outline'} disabled size="sm">
+                <Trash className="size-[0.85rem]" /> Excluir
               </Button>
             )}
 
             {selectedBrands.length === 1 ? (
               <EditBrandSheet brandId={selectedBrands[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Edit /> Editar
+              <Button variant={'outline'} disabled size="sm">
+                <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
             <NewBrandSheet />
@@ -275,8 +275,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewBrandSheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

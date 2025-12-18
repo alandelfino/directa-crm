@@ -112,8 +112,8 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4" /> Novo cliente
+        <Button size="sm">
+          <Plus className="size-[0.85rem]" /> Novo cliente
         </Button>
       </SheetTrigger>
       <SheetContent className="sm:max-w-lg md:max-w-2xl lg:max-w-xl w-full">
@@ -306,10 +306,10 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending} className="w-full">
-                  {isPending ? <Loader className="animate-spin" /> : "Salvar"}
+                <Button type="submit" size="sm" disabled={isPending} className="w-full">
+                  {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Salvar"}
                 </Button>
               </div>
             </div>

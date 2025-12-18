@@ -170,8 +170,8 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
               </>
             ) : (
               <>
-                <Button size={'sm'} variant={'outline'} disabled> <IconEdit className="size-4" /> Editar</Button>
-                <Button size={'sm'} variant={'outline'} disabled> <IconTrash className="size-4" /> Excluir</Button>
+                <Button size={'sm'} variant={'outline'} disabled> <IconEdit className="size-[0.85rem]" /> Editar</Button>
+                <Button size={'sm'} variant={'outline'} disabled> <IconTrash className="size-[0.85rem]" /> Excluir</Button>
               </>
             )}
             <DerivationItemCreateDialog derivationId={derivationId} derivationType={derivationType} itemsCount={itemsLocal.length} onCreated={() => refetch()} />
@@ -203,7 +203,7 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
               {itemsLocal.length} {itemsLocal.length === 1 ? 'item cadastrado' : 'itens cadastrados'}
             </span>
             <SheetClose asChild>
-              <Button variant='outline' className='w-fit'>Fechar</Button>
+              <Button variant='outline' size="sm" className='w-fit'>Fechar</Button>
             </SheetClose>
           </div>
         </SheetFooter>

@@ -34,7 +34,7 @@ export function DerivationItemDeleteDialog({ itemId, onDeleted }: { itemId: numb
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size={'sm'} variant={'outline'}><IconTrash className="size-4" /> Excluir</Button>
+        <Button size={'sm'} variant={'outline'}><IconTrash className="size-[0.85rem]" /> Excluir</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -43,9 +43,9 @@ export function DerivationItemDeleteDialog({ itemId, onDeleted }: { itemId: numb
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant='outline'>Cancelar</Button>
+            <Button variant='outline' size="sm">Cancelar</Button>
           </DialogClose>
-          <Button onClick={() => deleteItem()} disabled={deleting}>{deleting ? <Loader className='animate-spin' /> : 'Confirmar'}</Button>
+          <Button size="sm" onClick={() => deleteItem()} disabled={deleting}>{deleting ? <Loader className='animate-spin size-[0.85rem]' /> : 'Confirmar'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

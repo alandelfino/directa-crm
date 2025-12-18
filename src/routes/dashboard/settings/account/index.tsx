@@ -152,8 +152,8 @@ export function CompanyProfileContent() {
                   )}
                 </div>
               </div>
-              <Button onClick={() => setEditOpen(true)}>
-                <Edit className='h-4 w-4' />
+              <Button size="sm" onClick={() => setEditOpen(true)}>
+                <Edit className='size-[0.85rem]' />
                 Editar
               </Button>
             </div>

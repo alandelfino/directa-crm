@@ -62,7 +62,7 @@ export function NewDerivationSheet({ onCreated }: { onCreated?: () => void }) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button size={'sm'}>
-          <Plus /> Cadastrar
+          <Plus className="size-[0.85rem]" /> Cadastrar
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -144,14 +144,14 @@ export function NewDerivationSheet({ onCreated }: { onCreated?: () => void }) {
             </div>
 
             <div className='mt-auto border-t p-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <SheetClose asChild>
-                  <Button variant='outline' className='w-full'>Cancelar</Button>
-                </SheetClose>
-                <Button type='submit' disabled={isPending} className='w-full'>
-                  {isPending ? <Loader className='animate-spin' /> : 'Cadastrar'}
-                </Button>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+            <SheetClose asChild>
+              <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
+            </SheetClose>
+            <Button type='submit' size="sm" disabled={isPending} className='w-full'>
+              {isPending ? <Loader className='animate-spin size-[0.85rem]' /> : 'Cadastrar'}
+            </Button>
+          </div>
             </div>
           </form>
         </Form>

@@ -248,7 +248,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant={'default'} size={'sm'}>
-          <PackagePlus /> Novo produto
+          <PackagePlus className="size-[0.85rem]" /> Novo produto
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-[800px] md:max-w-[700px] lg:max-w-[600px]'>
@@ -563,9 +563,9 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
             <div className='mt-auto border-t p-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <SheetClose asChild>
-                  <Button variant='outline' className='w-full'>Cancelar</Button>
+                  <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
                 </SheetClose>
-                <Button type='submit' disabled={isPending} className='w-full'>
+                <Button type='submit' size="sm" disabled={isPending} className='w-full'>
                   {isPending ? <Loader className='animate-spin' /> : 'Salvar produto'}
                 </Button>
               </div>

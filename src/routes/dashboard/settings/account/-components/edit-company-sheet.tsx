@@ -250,7 +250,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
                   </button>
                   <input ref={fileInputRef} type='file' accept='image/jpeg,image/png,image/webp' className='hidden' onChange={handleFileChange} />
                   {(previewUrl || (company?.image?.url && !removedLogo)) && (
-                    <Button variant='ghost' type='button' className='text-xs font-light text-muted-foreground' onClick={handleRemoveLogo}>Remover logo</Button>
+                    <Button variant='ghost' size="sm" type='button' className='text-xs font-light text-muted-foreground' onClick={handleRemoveLogo}>Remover logo</Button>
                   )}
                 </div>
               </div>
@@ -300,10 +300,10 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
                         <ImageCropContent className='max-h-[300px]' />
                         <div className='flex justify-end gap-2'>
                           <ImageCropReset asChild>
-                            <Button variant={'ghost'}>Resetar</Button>
+                            <Button variant={'ghost'} size="sm">Resetar</Button>
                           </ImageCropReset>
                           <ImageCropApply asChild>
-                            <Button>Aplicar recorte</Button>
+                            <Button size="sm">Aplicar recorte</Button>
                           </ImageCropApply>
                         </div>
                       </div>

@@ -54,7 +54,7 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline"><Edit className="w-4 h-4" />Editar</Button>
+        <Button variant="outline" size="sm"><Edit className="size-[0.85rem]" /> Editar</Button>
       </SheetTrigger>
       <SheetContent>
         <Form {...form}>
@@ -62,7 +62,7 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
             <SheetHeader>
               <SheetTitle>Editar centro de distribuição</SheetTitle>
               <SheetDescription>
-                {loading ? (<span className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" />Carregando dados...</span>) : (<>Atualize os campos abaixo e salve as alterações.</>)}
+                {loading ? (<span className="flex items-center gap-2"><Loader className="animate-spin size-[0.85rem]" /> Carregando dados...</span>) : (<>Atualize os campos abaixo e salve as alterações.</>)}
               </SheetDescription>
             </SheetHeader>
             <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4">
@@ -79,9 +79,9 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending || loading} className="w-full">{isPending ? <Loader className="animate-spin" /> : "Salvar"}</Button>
+                <Button type="submit" size="sm" disabled={isPending || loading} className="w-full">{isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Salvar"}</Button>
               </div>
             </div>
           </form>

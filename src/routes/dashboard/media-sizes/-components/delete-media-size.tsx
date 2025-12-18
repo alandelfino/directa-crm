@@ -40,8 +40,8 @@ export function DeleteMediaSize({ mediaSizeId }: { mediaSizeId: number }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant={'outline'}>
-                    <Trash className="w-4 h-4 mr-2" /> Excluir
+                <Button variant={'outline'} size="sm">
+                    <Trash className="size-[0.85rem]" /> Excluir
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -53,13 +53,13 @@ export function DeleteMediaSize({ mediaSizeId }: { mediaSizeId: number }) {
                 </DialogHeader>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button variant="outline">Cancelar</Button>
+                        <Button variant="outline" size="sm">Cancelar</Button>
                     </DialogClose>
-                    <Button variant="destructive" onClick={(e) => {
+                    <Button variant="destructive" size="sm" onClick={(e) => {
                         e.preventDefault()
                         mutate()
                     }} disabled={isPending}>
-                        {isPending ? <Loader className="w-4 h-4 animate-spin" /> : 'Excluir'}
+                        {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : 'Excluir'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

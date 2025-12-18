@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, Funnel, RefreshCcw, Trash, Scan } from 'lucide-react'
+import { Edit, Funnel, RefreshCw, Trash, Scan } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -151,33 +151,33 @@ function RouteComponent() {
         <div className='border-b flex w-full items-center p-2 gap-4'>
 
           <div className='flex items-center gap-2 flex-1'>
-            <Button variant={'outline'}>
-              <Funnel className="w-4 h-4 mr-2" /> Filtros
+            <Button variant={'outline'} size="sm">
+              <Funnel className="size-[0.85rem]" /> Filtros
             </Button>
           </div>
 
           <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
               {
                 (isLoading || isRefetching)
-                  ? <><RefreshCcw className='animate-spin w-4 h-4 mr-2' /> Atualizando...</>
-                  : <><RefreshCcw className="w-4 h-4 mr-2" /> Atualizar</>
+                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
+                  : <RefreshCw className="size-[0.85rem]" />
               }
             </Button>
 
             {selectedItems.length === 1 ? (
               <DeleteMediaSize mediaSizeId={selectedItems[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Trash className="w-4 h-4 mr-2" /> Excluir
+              <Button variant={'outline'} disabled size="sm">
+                <Trash className="size-[0.85rem]" /> Excluir
               </Button>
             )}
 
             {selectedItems.length === 1 ? (
               <EditMediaSizeSheet mediaSizeId={selectedItems[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Edit className="w-4 h-4 mr-2" /> Editar
+              <Button variant={'outline'} disabled size="sm">
+                <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
             <NewMediaSizeSheet />
@@ -207,8 +207,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewMediaSizeSheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin w-4 h-4 mr-2' /> Atualizando...</> : <><RefreshCcw className="w-4 h-4 mr-2" /> Atualizar</>}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

@@ -73,7 +73,7 @@ export function DerivationItemEditDialog({ derivationId, derivationType, item, o
       }
     }}>
       <DialogTrigger asChild>
-        <Button size={'sm'} variant={'outline'}><IconEdit className="size-4" /> Editar</Button>
+        <Button size={'sm'} variant={'outline'}><IconEdit className="size-[0.85rem]" /> Editar</Button>
       </DialogTrigger>
       <DialogContent>
         <Form {...form}>
@@ -151,9 +151,9 @@ export function DerivationItemEditDialog({ derivationId, derivationType, item, o
             )}
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant='outline'>Cancelar</Button>
+                <Button variant='outline' size="sm">Cancelar</Button>
               </DialogClose>
-              <Button type='submit' disabled={updating}>{updating ? <Loader className='animate-spin' /> : 'Salvar'}</Button>
+              <Button type='submit' size="sm" disabled={updating}>{updating ? <Loader className='animate-spin size-[0.85rem]' /> : 'Salvar'}</Button>
             </DialogFooter>
           </form>
         </Form>

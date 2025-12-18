@@ -32,7 +32,7 @@ export function DeleteProductDialog({ productId, onDeleted }: { productId: numbe
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant={'outline'} size={'sm'}>
-          <Trash className='w-4 h-4' /> Excluir
+          <Trash className='size-[0.85rem]' /> Excluir
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -43,9 +43,9 @@ export function DeleteProductDialog({ productId, onDeleted }: { productId: numbe
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant={'outline'} onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant={'destructive'} onClick={() => mutate()} disabled={isPending}>
-            {isPending ? <Loader className='animate-spin' /> : 'Excluir'}
+          <Button variant={'outline'} size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant={'destructive'} size="sm" onClick={() => mutate()} disabled={isPending}>
+            {isPending ? <Loader className='animate-spin size-[0.85rem]' /> : 'Excluir'}
           </Button>
         </DialogFooter>
       </DialogContent>

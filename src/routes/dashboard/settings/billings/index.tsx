@@ -251,7 +251,7 @@ function RouteComponent() {
         <div className='flex items-center gap-3'>
           <Button
             variant={'ghost'}
-            size={'icon'}
+            size="sm"
             className='xl:hidden'
             disabled={isLoading || isRefetching}
             aria-disabled={isLoading || isRefetching}
@@ -259,21 +259,22 @@ function RouteComponent() {
             title='Atualizar cobranças'
             onClick={() => { refetch() }}
           >
-            <RefreshCw className={`${(isLoading || isRefetching) ? 'animate-spin' : ''} w-4 h-4`} />
+            <RefreshCw className={`${(isLoading || isRefetching) ? 'animate-spin' : ''} size-[0.85rem]`} />
           </Button>
           <Button
             variant={'outline'}
-            size={'icon'}
+            size="sm"
             className='xl:hidden'
             aria-label='Detalhes da cobrança'
             title='Detalhes da cobrança'
             disabled={!selectedBillingId}
             aria-disabled={!selectedBillingId}
           >
-            <FileText className='w-4 h-4' />
+            <FileText className='size-[0.85rem]' />
           </Button>
           <Button
             variant={'ghost'}
+            size="sm"
             className='hidden xl:inline-flex'
             disabled={isLoading || isRefetching}
             aria-disabled={isLoading || isRefetching}
@@ -281,28 +282,30 @@ function RouteComponent() {
             title='Atualizar cobranças'
             onClick={() => { refetch() }}
           >
-            {(isLoading || isRefetching) ? <><RefreshCw className='animate-spin w-4 h-4' /> Atualizando...</> : <><RefreshCw className='w-4 h-4' /> Atualizar</>}
+            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
           </Button>
           <Button
             variant={'outline'}
+            size="sm"
             className='hidden xl:inline-flex'
             aria-label='Detalhes da cobrança'
             title='Detalhes da cobrança'
             disabled={!selectedBillingId}
             aria-disabled={!selectedBillingId}
           >
-            <FileText className='w-4 h-4' />
+            <FileText className='size-[0.85rem]' />
             Detalhes
           </Button>
           <Button
             variant={'outline'}
+            size="sm"
             className='hidden xl:inline-flex'
             aria-label='Pagar cobrança'
             title='Pagar cobrança'
             disabled={!selectedBillingId}
             aria-disabled={!selectedBillingId}
           >
-            <CreditCard className='w-4 h-4' />
+            <CreditCard className='size-[0.85rem]' />
             Pagar
           </Button>
         </div>
@@ -333,8 +336,8 @@ function RouteComponent() {
                 </EmptyHeader>
                 <EmptyContent>
                   <div className='flex gap-2'>
-                    <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
-                      {(isLoading || isRefetching) ? <><RefreshCw className='animate-spin' /> Atualizando...</> : <><RefreshCw /> Atualizar</>}
+                    <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
+                      {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                     </Button>
                   </div>
                 </EmptyContent>

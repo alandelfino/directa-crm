@@ -126,28 +126,28 @@ function RouteComponent() {
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
         <div className='border-b flex w-full items-center p-2 gap-4'>
           <div className='flex items-center gap-2 flex-1'>
-            <Button variant={'outline'}>
-              <Funnel /> Filtros
+            <Button variant={'outline'} size="sm">
+              <Funnel className="size-[0.85rem]" /> Filtros
             </Button>
           </div>
           <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-              {isLoading || isRefetching ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+              {isLoading || isRefetching ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
             </Button>
 
             {selected.length === 1 ? (
               <DeleteWarranty warrantyId={selected[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Trash /> Excluir
+              <Button variant={'outline'} disabled size="sm">
+                <Trash className="size-[0.85rem]" /> Excluir
               </Button>
             )}
 
             {selected.length === 1 ? (
               <EditWarrantySheet warrantyId={selected[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Edit /> Editar
+              <Button variant={'outline'} disabled size="sm">
+                <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
             <NewWarrantySheet />
@@ -176,8 +176,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewWarrantySheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-                    {isLoading || isRefetching ? <RefreshCw className='animate-spin' /> : <RefreshCw />}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+                    {isLoading || isRefetching ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, RefreshCcw, Trash, BadgeDollarSign } from 'lucide-react'
+import { Edit, RefreshCw, Trash, BadgeDollarSign } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -135,11 +135,11 @@ function RouteComponent() {
         <div className='border-b flex w-full items-center p-2 gap-4'>
           <div className='flex items-center gap-2 flex-1'></div>
           <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-              {(isLoading || isRefetching) ? (<><RefreshCcw className='animate-spin' /> Atualizando...</>) : (<><RefreshCcw /> Atualizar</>)}
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
             </Button>
-            {selected.length === 1 ? (<DeletePriceTable priceTableId={selected[0]} disabled={!canManageSelected} />) : (<Button variant={'outline'} disabled><Trash /> Excluir</Button>)}
-            {selected.length === 1 ? (<EditPriceTableSheet priceTableId={selected[0]} disabled={!canManageSelected} />) : (<Button variant={'outline'} disabled><Edit /> Editar</Button>)}
+            {selected.length === 1 ? (<DeletePriceTable priceTableId={selected[0]} disabled={!canManageSelected} />) : (<Button variant={'outline'} size="sm" disabled><Trash className="size-[0.85rem]" /> Excluir</Button>)}
+            {selected.length === 1 ? (<EditPriceTableSheet priceTableId={selected[0]} disabled={!canManageSelected} />) : (<Button variant={'outline'} size="sm" disabled><Edit className="size-[0.85rem]" /> Editar</Button>)}
             <NewPriceTableSheet />
           </div>
         </div>
@@ -163,8 +163,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewPriceTableSheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

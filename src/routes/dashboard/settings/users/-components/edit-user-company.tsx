@@ -126,8 +126,8 @@ export function EditUserCompanySheet({ uc, onSaved }: { uc: UserCompany, onSaved
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={'outline'} title={'Editar usuário'} aria-label={'Editar usuário'}>
-          <Edit className='h-4 w-4' /> <span>Editar</span>
+        <Button variant={'outline'} size="sm" title={'Editar usuário'} aria-label={'Editar usuário'}>
+          <Edit className='size-[0.85rem]' /> <span>Editar</span>
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-[520px]'>
@@ -220,10 +220,10 @@ export function EditUserCompanySheet({ uc, onSaved }: { uc: UserCompany, onSaved
             <div className='mt-auto border-t p-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <SheetClose asChild>
-                  <Button variant='outline' className='w-full'>Cancelar</Button>
+                  <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
                 </SheetClose>
-                <Button type='submit' disabled={isPending} className='w-full'>
-                  {isPending ? <Loader className='animate-spin' /> : 'Salvar alterações'}
+                <Button type='submit' size="sm" disabled={isPending} className='w-full'>
+                  {isPending ? <Loader className='animate-spin size-[0.85rem]' /> : 'Salvar alterações'}
                 </Button>
               </div>
             </div>

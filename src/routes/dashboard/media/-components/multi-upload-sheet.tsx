@@ -103,7 +103,7 @@ export function MultiUploadSheet() {
     <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) { if (queue.length > 0 && queue.every((q) => q.status === 'done' || q.status === 'error')) { setQueue([]) } } }}>
       <SheetTrigger asChild>
         <Button size={'sm'} variant={'default'}>
-          <UploadCloud /> Upload
+          <UploadCloud className="size-[0.85rem]" /> Upload
         </Button>
       </SheetTrigger>
       <SheetContent>

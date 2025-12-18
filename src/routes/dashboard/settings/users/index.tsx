@@ -238,22 +238,24 @@ function RouteComponent() {
         <div className='flex items-center gap-2 ml-auto'>
           <Button
             variant={'ghost'}
+            size="sm"
             title='Atualizar lista de usuários'
             aria-label='Atualizar lista de usuários'
             disabled={isLoading || isRefetching}
             onClick={() => { refetch() }}>
-            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin w-4 h-4' /> : <RefreshCw className='w-4 h-4' />}
+            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
           </Button>
           {canEdit ? (
             <EditUserCompanySheet uc={selectedUc!} onSaved={() => refetch()} />
           ) : (
             <Button
               variant={'outline'}
+              size="sm"
               disabled
               title='Editar usuário'
               aria-label='Editar usuário'
             >
-              <Edit className='w-4 h-4' /> <span>Editar</span>
+              <Edit className='size-[0.85rem]' /> <span>Editar</span>
             </Button>
           )}
         </div>

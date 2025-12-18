@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
-import { RefreshCw, RefreshCcw, Edit, Store as StoreIcon, ArrowUpRight } from 'lucide-react'
+import { RefreshCw, Edit, Store as StoreIcon, ArrowUpRight } from 'lucide-react'
 import { privateInstance } from '@/lib/auth'
 import { Checkbox } from '@/components/ui/checkbox'
 import { EditStoreSheet } from './-components/edit-store'
@@ -224,8 +224,8 @@ function RouteComponent() {
                 <EmptyContent>
                   <div className='flex gap-2'>
                     <NewStoreSheet onCreated={() => { setSelected([]); refetch() }} />
-                    <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-                      {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                    <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+                      {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                     </Button>
                   </div>
                 </EmptyContent>

@@ -183,10 +183,10 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending || isLoadingCategory} className="w-full">
-                  {isPending ? <Loader className="animate-spin" /> : 'Salvar'}
+                <Button type="submit" size="sm" disabled={isPending || isLoadingCategory} className="w-full">
+                  {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : 'Salvar'}
                 </Button>
               </div>
             </div>

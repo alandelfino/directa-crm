@@ -2,7 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
-import { BadgeDollarSign, RefreshCcw, Check, Edit } from 'lucide-react'
+import { BadgeDollarSign, RefreshCw, Check, Edit } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -119,14 +119,14 @@ function EditablePriceCell({
           }}
         />
         <Button 
-          size="icon" 
+          size="sm" 
           variant="ghost" 
           className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
           onClick={handleSave}
           onMouseDown={(e) => e.preventDefault()}
           disabled={isPending}
         >
-          <Check className="h-4 w-4" />
+          <Check className="size-[0.85rem]" />
         </Button>
       </div>
     )
@@ -315,7 +315,7 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) refetch() }}>
       <SheetTrigger asChild>
         <Button size={'sm'} variant={'outline'}>
-          <BadgeDollarSign className="size-4" /> Preços
+          <BadgeDollarSign className="size-[0.85rem]" /> Preços
         </Button>
       </SheetTrigger>
       <SheetContent className='w-4xl sm:max-w-[1000px] p-0'>
@@ -348,7 +348,7 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
                 onClick={() => refetch()} 
                 disabled={isLoading || isRefetching}
               >
-                <RefreshCcw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+                <RefreshCw className={cn("size-[0.85rem]", isRefetching && "animate-spin")} />
               </Button>
               {selectedIds.length === 1 ? (
                 <SimpleProductPriceEditSheet 
@@ -365,7 +365,7 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
                 />
               ) : (
                 <Button size={'sm'} variant={'outline'} disabled>
-                  <Edit className='h-4 w-4 mr-2' /> Editar
+                  <Edit className='size-[0.85rem]' /> Editar
                 </Button>
               )}
               <SimpleProductPriceCreateSheet productId={productId} onCreated={() => refetch()} />

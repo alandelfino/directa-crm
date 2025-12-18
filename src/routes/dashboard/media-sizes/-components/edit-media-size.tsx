@@ -94,8 +94,8 @@ export function EditMediaSizeSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline">
-          <Edit className="w-4 h-4 mr-2" />Editar
+        <Button variant="outline" size="sm">
+          <Edit className="w-4 h-4" />Editar
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -180,9 +180,9 @@ export function EditMediaSizeSheet({
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending || loading} className="w-full">
+                <Button type="submit" size="sm" disabled={isPending || loading} className="w-full">
                   {isPending ? <Loader className="animate-spin h-4 w-4" /> : "Salvar"}
                 </Button>
               </div>

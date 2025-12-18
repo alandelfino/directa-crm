@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, RefreshCcw, Trash, Package, GitFork, RefreshCw, BadgeDollarSign } from 'lucide-react'
+import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -165,7 +165,7 @@ function RouteComponent() {
         <div className='border-b flex w-full items-center p-2 gap-4 max-w-full overflow-hidden justify-end'>
           <div className='flex items-center gap-2'>
             <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }} size={'sm'}>
-              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
+              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
             </Button>
 
             {selected.length === 1 ? (
@@ -176,7 +176,7 @@ function RouteComponent() {
               )
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
-                <BadgeDollarSign className="size-4" /> Preços
+                <BadgeDollarSign className="size-[0.85rem]" /> Preços
               </Button>
             )}
 
@@ -184,7 +184,7 @@ function RouteComponent() {
               <DeleteProductDialog productId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
-                <Trash /> Excluir
+                <Trash className="size-[0.85rem]" /> Excluir
               </Button>
             )}
 
@@ -192,14 +192,14 @@ function RouteComponent() {
               <EditProductSheet productId={selected[0]} onSaved={() => { refetch() }} />
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
-                <Edit /> Editar
+                <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
             {selected.length === 1 && canManageChilds ? (
               <ChildProductsSheet productId={selected[0]} />
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
-                <GitFork /> Derivações
+                <GitFork className="size-[0.85rem]" /> Derivações
               </Button>
             )}
             <NewProductSheet onCreated={() => { refetch() }} />
@@ -229,8 +229,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewProductSheet onCreated={() => { refetch() }} />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

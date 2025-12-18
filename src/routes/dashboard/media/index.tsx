@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { privateInstance } from '@/lib/auth'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Images, RefreshCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash } from 'lucide-react'
+import { Images, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash } from 'lucide-react'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -128,13 +128,13 @@ function RouteComponent() {
 
           <div className='flex items-center gap-2'>
             <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => refetch()} size={'sm'}>
-              {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+              {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
             </Button>
             <Button variant={'outline'} onClick={handleBulkEdit} disabled={selectedIds.length !== 1} size={'sm'}>
-              <Edit className='w-4 h-4' /> Editar
+              <Edit className='size-[0.85rem]' /> Editar
             </Button>
             <Button variant={'outline'} onClick={handleBulkDelete} disabled={selectedIds.length === 0} size={'sm'}>
-              <Trash className='w-4 h-4' /> Excluir
+              <Trash className='size-[0.85rem]' /> Excluir
             </Button>
             <MultiUploadSheet />
           </div>
@@ -157,8 +157,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <MultiUploadSheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => refetch()}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => refetch()} size="sm">
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>
@@ -230,17 +230,17 @@ function RouteComponent() {
 
                 <Separator orientation='vertical' />
 
-                <Button variant={'outline'} size={'icon'} onClick={() => setPage(1)} disabled={payload.curPage === 1}>
-                  <ChevronsLeft />
+                <Button variant={'outline'} size={'sm'} onClick={() => setPage(1)} disabled={payload.curPage === 1}>
+                  <ChevronsLeft className="size-[0.85rem]" />
                 </Button>
-                <Button variant={'outline'} size={'icon'} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={payload.curPage === 1}>
-                  <ChevronLeft />
+                <Button variant={'outline'} size={'sm'} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={payload.curPage === 1}>
+                  <ChevronLeft className="size-[0.85rem]" />
                 </Button>
-                <Button variant={'outline'} size={'icon'} onClick={() => setPage((p) => p + 1)} disabled={payload.curPage >= totalPages}>
-                  <ChevronRight />
+                <Button variant={'outline'} size={'sm'} onClick={() => setPage((p) => p + 1)} disabled={payload.curPage >= totalPages}>
+                  <ChevronRight className="size-[0.85rem]" />
                 </Button>
-                <Button variant={'outline'} size={'icon'} onClick={() => setPage(totalPages)} disabled={payload.curPage >= totalPages}>
-                  <ChevronsRight />
+                <Button variant={'outline'} size={'sm'} onClick={() => setPage(totalPages)} disabled={payload.curPage >= totalPages}>
+                  <ChevronsRight className="size-[0.85rem]" />
                 </Button>
               </div>
             </div>

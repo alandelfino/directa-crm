@@ -144,9 +144,9 @@ export function NewMediaSizeSheet() {
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending} className="w-full">
+                <Button type="submit" size="sm" disabled={isPending} className="w-full">
                   {isPending ? <Loader className="animate-spin h-4 w-4" /> : "Cadastrar"}
                 </Button>
               </div>

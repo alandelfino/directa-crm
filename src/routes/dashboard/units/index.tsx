@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, Funnel, RefreshCcw, Trash, Ruler } from 'lucide-react'
+import { Edit, Funnel, RefreshCw, Trash, Ruler } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -164,34 +164,34 @@ function RouteComponent() {
           {/* Filters */}
           <div className='flex items-center gap-2 flex-1'>
 
-            <Button variant={'outline'}>
-              <Funnel /> Filtros
+            <Button variant={'outline'} size="sm">
+              <Funnel className="size-[0.85rem]" /> Filtros
             </Button>
 
           </div>
 
           <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedUnits([]); refetch() }}>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedUnits([]); refetch() }}>
               {
                 (isLoading || isRefetching)
-                  ? <><RefreshCcw className='animate-spin' /> Atualizando...</>
-                  : <><RefreshCcw /> Atualizar</>
+                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
+                  : <RefreshCw className="size-[0.85rem]" />
               }
             </Button>
 
             {selectedUnits.length === 1 ? (
               <DeleteUnit unitId={selectedUnits[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Trash /> Excluir
+              <Button variant={'outline'} disabled size="sm">
+                <Trash className="size-[0.85rem]" /> Excluir
               </Button>
             )}
 
             {selectedUnits.length === 1 ? (
               <EditUnitSheet unitId={selectedUnits[0]} />
             ) : (
-              <Button variant={'outline'} disabled>
-                <Edit /> Editar
+              <Button variant={'outline'} disabled size="sm">
+                <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
             <NewUnitSheet />
@@ -222,8 +222,8 @@ function RouteComponent() {
               <EmptyContent>
                 <div className='flex gap-2'>
                   <NewUnitSheet />
-                  <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedUnits([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedUnits([]); refetch() }}>
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>

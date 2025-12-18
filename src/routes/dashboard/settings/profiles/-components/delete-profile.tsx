@@ -46,8 +46,8 @@ export function DeleteProfile({ profileId }: { profileId: number }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={'outline'} disabled={isPending}>
-          <Trash /> Excluir
+        <Button variant={'outline'} size="sm" disabled={isPending}>
+          <Trash className="size-[0.85rem]" /> Excluir
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -58,8 +58,8 @@ export function DeleteProfile({ profileId }: { profileId: number }) {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2">
-          <Button variant={'outline'} onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant={'destructive'} onClick={confirmDelete} disabled={isPending}>
+          <Button variant={'outline'} size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant={'destructive'} size="sm" onClick={confirmDelete} disabled={isPending}>
             Excluir definitivamente
           </Button>
         </DialogFooter>

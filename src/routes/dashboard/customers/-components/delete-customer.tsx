@@ -28,8 +28,8 @@ export function DeleteCustomerDialog({ customerId }: { customerId: number }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="text-destructive">
-          <Trash2 className="w-4 h-4" />Excluir
+        <Button variant="outline" size="sm" className="text-destructive">
+          <Trash2 className="size-[0.85rem]" />Excluir
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -41,10 +41,10 @@ export function DeleteCustomerDialog({ customerId }: { customerId: number }) {
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline">Cancelar</Button>
+            <Button variant="outline" size="sm">Cancelar</Button>
           </DialogClose>
-          <Button onClick={() => mutate()} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            {isPending ? <Loader className="w-4 h-4 animate-spin" /> : 'Excluir'}
+          <Button onClick={() => mutate()} size="sm" disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : 'Excluir'}
           </Button>
         </DialogFooter>
       </DialogContent>

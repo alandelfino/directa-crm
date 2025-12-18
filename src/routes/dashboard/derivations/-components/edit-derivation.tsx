@@ -168,14 +168,14 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
             </div>
 
             <div className='mt-auto border-t p-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <SheetClose asChild>
-                  <Button variant='outline' className='w-full'>Cancelar</Button>
-                </SheetClose>
-                <Button type='submit' disabled={isPending || isLoading} className='w-full'>
-                  {(isPending || isLoading) ? <Loader className='animate-spin' /> : 'Salvar'}
-                </Button>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+            <SheetClose asChild>
+              <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
+            </SheetClose>
+            <Button type='submit' size="sm" disabled={isPending || isLoading} className='w-full'>
+              {(isPending || isLoading) ? <Loader className='animate-spin size-[0.85rem]' /> : 'Salvar'}
+            </Button>
+          </div>
             </div>
           </form>
         </Form>

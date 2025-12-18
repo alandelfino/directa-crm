@@ -395,7 +395,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant={'outline'} size={'sm'}>
-          <Edit className='w-4 h-4' /> Editar
+          <Edit className='size-[0.85rem]' /> Editar
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-[620px]'>
@@ -405,7 +405,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
               <SheetTitle>Editar produto</SheetTitle>
               <SheetDescription>
                 {loading ? (
-                  <span className='flex items-center gap-2'><Loader className='w-4 h-4 animate-spin' />Carregando dados do produto...</span>
+                  <span className='flex items-center gap-2'><Loader className='size-[0.85rem] animate-spin' />Carregando dados do produto...</span>
                 ) : (
                   <>Atualize os campos abaixo e salve as alterações.</>
                 )}
@@ -717,9 +717,9 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
             <div className='mt-auto border-t p-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <SheetClose asChild>
-                  <Button variant='outline' className='w-full'>Cancelar</Button>
+                  <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
                 </SheetClose>
-                <Button type='submit' disabled={isPending} className='w-full'>
+                <Button type='submit' size="sm" disabled={isPending} className='w-full'>
                   {isPending ? <Loader className='animate-spin' /> : 'Salvar alterações'}
                 </Button>
               </div>

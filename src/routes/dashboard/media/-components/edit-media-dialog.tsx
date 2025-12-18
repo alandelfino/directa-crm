@@ -71,9 +71,11 @@ export function EditMediaDialog({ media, onClose, onSaved }: { media: ApiMedia |
                 )} />
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button variant='outline'>Fechar</Button>
+                    <Button variant='outline' size={'sm'}>Fechar</Button>
                   </DialogClose>
-                  <Button type='submit' disabled={saving}>{saving ? <Loader className='animate-spin' /> : 'Salvar'}</Button>
+                  <Button type='submit' size={'sm'} disabled={saving}>
+                    {saving ? <Loader className='animate-spin size-[0.85rem]' /> : 'Salvar'}
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>

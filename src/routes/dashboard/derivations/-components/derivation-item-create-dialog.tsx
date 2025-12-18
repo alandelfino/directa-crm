@@ -71,7 +71,7 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, items
     }}>
       <DialogTrigger asChild>
         <Button size={'sm'}>
-          <Plus /> Cadastrar item
+          <Plus className="size-[0.85rem]" /> Cadastrar item
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -150,9 +150,9 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, items
             )}
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant='outline'>Cancelar</Button>
+                <Button variant='outline' size="sm">Cancelar</Button>
               </DialogClose>
-              <Button type='submit' disabled={creating}>{creating ? <Loader className='animate-spin' /> : 'Cadastrar'}</Button>
+              <Button type='submit' size="sm" disabled={creating}>{creating ? <Loader className='animate-spin size-[0.85rem]' /> : 'Cadastrar'}</Button>
             </DialogFooter>
           </form>
         </Form>

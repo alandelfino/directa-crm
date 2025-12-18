@@ -99,7 +99,7 @@ export function NewCategorySheet({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="default" size="sm">
-          <Plus className="w-4 h-4" /> Adicionar Categoria
+          <Plus className="size-[0.85rem]" /> Adicionar Categoria
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -169,10 +169,10 @@ export function NewCategorySheet({
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending} className="w-full">
-                  {isPending ? <Loader className="animate-spin" /> : "Cadastrar"}
+                <Button type="submit" size="sm" disabled={isPending} className="w-full">
+                  {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Cadastrar"}
                 </Button>
               </div>
             </div>

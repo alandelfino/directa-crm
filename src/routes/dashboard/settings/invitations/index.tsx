@@ -281,14 +281,15 @@ function RouteComponent() {
           variant={'ghost'} 
           disabled={isLoading || isRefetching} 
           onClick={() => { refetch() }} 
+          size="sm"
           title='Atualizar convites'
           aria-label='Atualizar convites'>
-            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin w-4 h-4' /> : <RefreshCw className='w-4 h-4' />}
+            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
           </Button>
           <div className='flex items-center'>
             <Button
               variant={'outline'}
-              size={'icon'}
+              size="sm"
               className='xl:hidden'
               disabled={selectedInvites.length !== 1}
               aria-disabled={selectedInvites.length !== 1}
@@ -296,10 +297,11 @@ function RouteComponent() {
               title='Cancelar convite'
               onClick={() => setOpenCancelDialog(true)}
             >
-              <CircleX className='w-4 h-4' />
+              <CircleX className='size-[0.85rem]' />
             </Button>
             <Button
               variant={'outline'}
+              size="sm"
               className='hidden xl:inline-flex'
               disabled={selectedInvites.length !== 1}
               aria-disabled={selectedInvites.length !== 1}
@@ -307,7 +309,7 @@ function RouteComponent() {
               title='Cancelar convite'
               onClick={() => setOpenCancelDialog(true)}
             >
-              <CircleX className='w-4 h-4' /> Cancelar
+              <CircleX className='size-[0.85rem]' /> Cancelar
             </Button>
           </div>
           <NewInvitationSheet onCreated={() => { refetch() }} />
@@ -340,13 +342,13 @@ function RouteComponent() {
                 <EmptyContent>
                   <div className='flex gap-2'>
                     <NewInvitationSheet onCreated={() => { refetch() }} />
-                    <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
-                      {(isLoading || isRefetching) ? <><RefreshCw className='animate-spin' /> Atualizando...</> : <><RefreshCw /> Atualizar</>}
+                    <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
+                      {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                     </Button>
                   </div>
                 </EmptyContent>
-                <Button variant='link' asChild className='text-muted-foreground'>
-                  <a href='#'>Saiba mais <ArrowUpRight className='inline-block ml-1 h-4 w-4' /></a>
+                <Button variant='link' size="sm" asChild className='text-muted-foreground'>
+                  <a href='#'>Saiba mais <ArrowUpRight className='inline-block ml-1 size-[0.85rem]' /></a>
                 </Button>
               </Empty>
             )}
@@ -363,9 +365,9 @@ function RouteComponent() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className='flex gap-2'>
-            <Button variant={'outline'} onClick={() => setOpenCancelDialog(false)}>Cancelar</Button>
-            <Button onClick={() => cancelSelectedInvite()} disabled={isCancelling}>
-              {isCancelling ? <Loader className='animate-spin w-4 h-4' aria-label='Carregando' /> : 'Confirmar'}
+            <Button variant={'outline'} size="sm" onClick={() => setOpenCancelDialog(false)}>Cancelar</Button>
+            <Button size="sm" onClick={() => cancelSelectedInvite()} disabled={isCancelling}>
+              {isCancelling ? <Loader className='animate-spin size-[0.85rem]' aria-label='Carregando' /> : 'Confirmar'}
             </Button>
           </DialogFooter>
         </DialogContent>

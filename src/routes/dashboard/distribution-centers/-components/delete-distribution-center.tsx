@@ -36,7 +36,7 @@ export function DeleteDistributionCenter({ distributionCenterId, disabled = fals
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" disabled={disabled || !distributionCenterId}>
-          <Trash /> Excluir
+          <Trash className="size-[0.85rem]" /> Excluir
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -48,8 +48,8 @@ export function DeleteDistributionCenter({ distributionCenterId, disabled = fals
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Cancelar</Button>
-          <Button variant="destructive" onClick={handleConfirmDelete} disabled={isPending}>{isPending ? <Loader className="w-4 h-4 animate-spin" /> : 'Sim, tenho certeza'}</Button>
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)} disabled={isPending}>Cancelar</Button>
+          <Button variant="destructive" size="sm" onClick={handleConfirmDelete} disabled={isPending}>{isPending ? <Loader className="animate-spin size-[0.85rem]" /> : 'Sim, tenho certeza'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

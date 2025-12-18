@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
-import { Edit, RefreshCcw, Trash, Users, ArrowUpRight, RefreshCw } from 'lucide-react'
+import { Edit, Trash, Users, ArrowUpRight, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { NewProfileSheet } from './-components/new-profile'
@@ -167,23 +167,23 @@ function RouteComponent() {
           <p className='text-sm text-muted-foreground'>Gerencie perfis de usuários.</p>
         </div>
         <div className='flex items-center gap-2'>
-          <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedProfiles([]); refetch() }}>
-            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin' /> : <RefreshCw />}
+          <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedProfiles([]); refetch() }}>
+            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
           </Button>
 
           {canEditDelete ? (
             <DeleteProfile profileId={selectedProfiles[0]} />
           ) : (
-            <Button variant={'outline'} disabled>
-              <Trash /> Excluir
+            <Button variant={'outline'} size="sm" disabled>
+              <Trash className="size-[0.85rem]" /> Excluir
             </Button>
           )}
 
           {canEditDelete ? (
             <EditProfileSheet profileId={selectedProfiles[0]} />
           ) : (
-            <Button variant={'outline'} disabled>
-              <Edit /> Editar
+            <Button variant={'outline'} size="sm" disabled>
+              <Edit className="size-[0.85rem]" /> Editar
             </Button>
           )}
           <NewProfileSheet />
@@ -216,8 +216,8 @@ function RouteComponent() {
                 <EmptyContent>
                   <div className='flex gap-2'>
                     <NewProfileSheet />
-                    <Button variant={'outline'} disabled={isLoading || isRefetching} onClick={() => { setSelectedProfiles([]); refetch() }}>
-                      {(isLoading || isRefetching) ? <><RefreshCcw className='animate-spin' /> Atualizando...</> : <><RefreshCcw /> Atualizar</>}
+                    <Button variant={'outline'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedProfiles([]); refetch() }}>
+                      {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                     </Button>
                   </div>
                 </EmptyContent>

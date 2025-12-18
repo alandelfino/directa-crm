@@ -138,7 +138,7 @@ export function ChildProductsSheet({ productId }: { productId: number }) {
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) { queryClient.invalidateQueries({ queryKey: ['product-derivations', productId] }); refetch() } }}>
       <SheetTrigger asChild>
         <Button variant={'outline'} size={'sm'}>
-          <GitFork /> Derivações
+          <GitFork className="size-[0.85rem]" /> Derivações
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-[920px] h-full gap-2'>

@@ -2,7 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
-import { BadgeDollarSign, Edit, RefreshCcw, Check } from 'lucide-react'
+import { BadgeDollarSign, Edit, RefreshCw, Check } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -124,7 +124,7 @@ function EditablePriceCell({
           onMouseDown={(e) => e.preventDefault()}
           disabled={isPending}
         >
-          <Check className="h-4 w-4" />
+          <Check className="size-[0.85rem]" />
         </Button>
       </div>
     )
@@ -326,7 +326,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) refetch() }}>
       <SheetTrigger asChild>
         <Button size={'sm'} variant={'outline'}>
-          <BadgeDollarSign className="size-4" /> Preços
+          <BadgeDollarSign className="size-[0.85rem]" /> Preços
         </Button>
       </SheetTrigger>
       <SheetContent className='w-4xl sm:max-w-[1000px] p-0'>
@@ -359,7 +359,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
                 onClick={() => refetch()} 
                 disabled={isLoading || isRefetching}
               >
-                <RefreshCcw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+                <RefreshCw className={cn("size-[0.85rem]", isRefetching && "animate-spin")} />
               </Button>
               {selectedIds.length === 1 ? (
                 <DerivatedProductPriceEditSheet 
@@ -376,7 +376,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
                 />
               ) : (
                 <Button size={'sm'} variant={'outline'} disabled>
-                  <Edit className='h-4 w-4 mr-2' /> Editar
+                  <Edit className='size-[0.85rem]' /> Editar
                 </Button>
               )}
               <DerivatedProductPriceCreateSheet productId={productId} onCreated={() => refetch()} />
@@ -403,7 +403,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
               {selectedIds.length > 0 && ` • ${selectedIds.length} selecionado(s)`}
             </span>
             <SheetClose asChild>
-              <Button variant='outline' className='w-fit'>Fechar</Button>
+              <Button variant='outline' size="sm" className='w-fit'>Fechar</Button>
             </SheetClose>
           </div>
         </SheetFooter>

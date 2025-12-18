@@ -41,10 +41,10 @@ export function DeleteDerivation({ derivationId, onDeleted }: { derivationId: nu
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant='outline'>Cancelar</Button>
+            <Button variant='outline' size="sm">Cancelar</Button>
           </DialogClose>
-          <Button onClick={() => mutate()} disabled={isPending}>
-            {isPending ? <Loader className='animate-spin' /> : 'Confirmar'}
+          <Button size="sm" onClick={() => mutate()} disabled={isPending}>
+            {isPending ? <Loader className='animate-spin size-[0.85rem]' /> : 'Confirmar'}
           </Button>
         </DialogFooter>
       </DialogContent>

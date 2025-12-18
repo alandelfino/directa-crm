@@ -96,8 +96,8 @@ export function EditProfileSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline">
-          <Edit className="w-4 h-4" />Editar
+        <Button variant="outline" size="sm">
+          <Edit className="size-[0.85rem]" />Editar
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -131,10 +131,10 @@ export function EditProfileSheet({
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending || profileLoading} className="w-full">
-                  {isPending ? <Loader className="animate-spin" /> : "Salvar"}
+                <Button type="submit" size="sm" disabled={isPending || profileLoading} className="w-full">
+                  {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Salvar"}
                 </Button>
               </div>
             </div>

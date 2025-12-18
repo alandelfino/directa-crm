@@ -48,8 +48,8 @@ export function DeleteTeam({ teamId, onDeleted }: { teamId: number, onDeleted?: 
           <DialogDescription>Tem certeza que deseja excluir esta equipe?</DialogDescription>
         </DialogHeader>
         <DialogFooter className='flex gap-2'>
-          <Button variant={'outline'} onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant={'destructive'} onClick={confirmDelete} disabled={isPending}>
+          <Button variant={'outline'} size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant={'destructive'} size="sm" onClick={confirmDelete} disabled={isPending}>
             {isPending ? <Loader className='animate-spin' /> : null}
             Excluir
           </Button>

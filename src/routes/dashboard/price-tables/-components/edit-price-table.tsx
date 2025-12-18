@@ -49,8 +49,8 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={'outline'} disabled={disabled}>
-          <Edit /> Editar
+        <Button variant={'outline'} size="sm" disabled={disabled}>
+          <Edit className="size-[0.85rem]" /> Editar
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-sm'>
@@ -58,7 +58,7 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
           <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col h-full'>
             <SheetHeader>
               <SheetTitle>Editar tabela de preço</SheetTitle>
-              <SheetDescription>{loading ? <span className='flex items-center gap-2'><Loader className='animate-spin' /> Carregando...</span> : 'Atualize os dados e salve.'}</SheetDescription>
+              <SheetDescription>{loading ? <span className='flex items-center gap-2'><Loader className='animate-spin size-[0.85rem]' /> Carregando...</span> : 'Atualize os dados e salve.'}</SheetDescription>
             </SheetHeader>
             <div className='flex-1 grid auto-rows-min gap-6 px-4 py-4'>
               <FormField control={form.control} name='name' render={({ field }) => (
@@ -74,10 +74,10 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
             <div className='mt-auto border-t p-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <SheetClose asChild>
-                  <Button variant='outline' className='w-full'>Cancelar</Button>
+                  <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
                 </SheetClose>
-                <Button type='submit' disabled={isPending || loading} className='w-full'>
-                  {isPending ? <Loader className='animate-spin' /> : 'Salvar'}
+                <Button type='submit' size="sm" disabled={isPending || loading} className='w-full'>
+                  {isPending ? <Loader className='animate-spin size-[0.85rem]' /> : 'Salvar'}
                 </Button>
               </div>
             </div>

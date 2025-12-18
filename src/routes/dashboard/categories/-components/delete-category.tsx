@@ -53,9 +53,9 @@ export function DeleteCategory({ categoryId, disabled = false }: { categoryId: n
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Cancelar</Button>
-          <Button variant="destructive" onClick={handleConfirmDelete} disabled={isPending}>
-            {isPending ? <Loader className="w-4 h-4 animate-spin" /> : 'Sim, tenho certeza'}
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)} disabled={isPending}>Cancelar</Button>
+          <Button variant="destructive" size="sm" onClick={handleConfirmDelete} disabled={isPending}>
+            {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : 'Sim, tenho certeza'}
           </Button>
         </DialogFooter>
       </DialogContent>

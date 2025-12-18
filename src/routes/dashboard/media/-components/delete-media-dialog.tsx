@@ -1,9 +1,9 @@
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Trash, Loader } from 'lucide-react'
 import { useState } from 'react'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 
 type ApiMedia = { id: number, name?: string }
 
@@ -29,18 +29,25 @@ export function DeleteMediaDialog({ media, onDeleted }: { media: ApiMedia, onDel
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size={'icon'} variant={'outline'}><Trash className='w-4 h-4' /></Button>
+        <Button size={'sm'} variant={'outline'}>
+          <Trash className='size-[0.85rem]' />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Excluir mídia</DialogTitle>
-          <DialogDescription>Esta ação não pode ser desfeita.</DialogDescription>
+          <DialogTitle>Você tem certeza absoluta?</DialogTitle>
+          <DialogDescription>
+            Essa ação não pode ser desfeita. Isso excluirá permanentemente a mídia
+            e removerá seus dados de nossos servidores.
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant='outline'>Cancelar</Button>
+            <Button variant='outline' size={'sm'}>Cancelar</Button>
           </DialogClose>
-          <Button variant='destructive' onClick={submit} disabled={deleting}>{deleting ? <Loader className='animate-spin' /> : 'Excluir'}</Button>
+          <Button variant='destructive' size={'sm'} onClick={submit} disabled={deleting}>
+            {deleting ? <Loader className='animate-spin size-[0.85rem]' /> : 'Excluir'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -119,9 +126,9 @@ export function BulkDeleteMediasDialog({ open, onOpenChange, ids, onDeleted }: {
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant='outline' disabled={deleting}>Cancelar</Button>
+            <Button variant='outline' disabled={deleting} size={'sm'}>Cancelar</Button>
           </DialogClose>
-          <Button variant='destructive' onClick={submit} disabled={deleting || total === 0}>{deleting ? <Loader className='animate-spin' /> : 'Excluir'}</Button>
+          <Button variant='destructive' onClick={submit} disabled={deleting || total === 0} size={'sm'}>{deleting ? <Loader className='animate-spin size-[0.85rem]' /> : 'Excluir'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

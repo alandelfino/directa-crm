@@ -260,8 +260,8 @@ function RouteComponent() {
           <p className='text-sm text-muted-foreground'>Gerencie suas equipes e permissões.</p>
         </div>
         <div className='flex items-center gap-2'>
-          <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
-            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin' /> : <RefreshCw />}
+          <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
+            {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
           </Button>
           {selectedTeams.length === 1 ? (
             <>
@@ -270,8 +270,8 @@ function RouteComponent() {
             </>
           ) : (
             <>
-              <Button variant={'outline'} disabled> <Trash className='w-4 h-4' /> Excluir</Button>
-              <Button variant={'outline'} disabled> <Edit className='w-4 h-4' /> Editar</Button>
+              <Button variant={'outline'} size="sm" disabled> <Trash className='size-[0.85rem]' /> Excluir</Button>
+              <Button variant={'outline'} size="sm" disabled> <Edit className='size-[0.85rem]' /> Editar</Button>
             </>
           )}
           <NewTeamSheet onCreated={() => { refetch() }} />
@@ -306,8 +306,8 @@ function RouteComponent() {
                 <EmptyContent>
                   <div className='flex gap-2'>
                     <NewTeamSheet onCreated={() => { refetch() }} />
-                    <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
-                      {(isLoading || isRefetching) ? <RefreshCw className='animate-spin w-4 h-4' /> : <RefreshCw className='w-4 h-4' />}
+                    <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
+                      {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
                     </Button>
                   </div>
                 </EmptyContent>

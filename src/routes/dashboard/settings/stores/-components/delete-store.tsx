@@ -41,8 +41,8 @@ export function DeleteStore({ storeId, onDeleted }: { storeId: number, onDeleted
           <DialogDescription>Esta ação não pode ser desfeita.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant={'outline'} onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant={'destructive'} onClick={confirmDelete} disabled={isPending}>
+          <Button variant={'outline'} size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant={'destructive'} size="sm" onClick={confirmDelete} disabled={isPending}>
             {isPending ? <Loader className='animate-spin' /> : 'Confirmar exclusão'}
           </Button>
         </DialogFooter>

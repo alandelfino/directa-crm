@@ -149,8 +149,8 @@ export function EditCustomerSheet({ className, customerId, ...props }: React.Com
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline">
-          <Edit className="w-4 h-4" />Editar
+        <Button variant="outline" size="sm">
+          <Edit className="size-[0.85rem]" />Editar
         </Button>
       </SheetTrigger>
       <SheetContent className="sm:max-w-lg md:max-w-2xl lg:max-w-xl w-full">
@@ -160,7 +160,7 @@ export function EditCustomerSheet({ className, customerId, ...props }: React.Com
               <SheetTitle>Editar cliente</SheetTitle>
               <SheetDescription>
                 {loading ? (
-                  <span className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" />Carregando dados do cliente...</span>
+                  <span className="flex items-center gap-2"><Loader className="animate-spin size-[0.85rem]" />Carregando dados do cliente...</span>
                 ) : (
                   <>Atualize os campos abaixo e salve as alterações.</>
                 )}
@@ -349,10 +349,10 @@ export function EditCustomerSheet({ className, customerId, ...props }: React.Com
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
                 <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
+                  <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                 </SheetClose>
-                <Button type="submit" disabled={isPending || loading} className="w-full">
-                  {isPending ? <Loader className="animate-spin" /> : "Salvar"}
+                <Button type="submit" size="sm" disabled={isPending || loading} className="w-full">
+                  {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Salvar"}
                 </Button>
               </div>
             </div>

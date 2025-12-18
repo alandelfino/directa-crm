@@ -99,8 +99,8 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline">
-          <Edit className="w-4 h-4" />Editar
+        <Button variant="outline" size="sm">
+          <Edit className="size-[0.85rem]" />Editar
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -110,7 +110,7 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
               <SheetTitle>Editar garantia</SheetTitle>
               <SheetDescription>
                 {loading ? (
-                  <span className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" />Carregando dados da garantia...</span>
+                  <span className="flex items-center gap-2"><Loader className="animate-spin size-[0.85rem]" />Carregando dados da garantia...</span>
                 ) : (
                   <>Atualize os campos abaixo e salve as alterações.</>
                 )}
@@ -193,13 +193,13 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
             </div>
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">
-                <SheetClose asChild>
-                  <Button variant="outline" className="w-full">Cancelar</Button>
-                </SheetClose>
-                <Button type="submit" disabled={isPending || loading} className="w-full">
-                  {isPending ? <Loader className="animate-spin" /> : "Salvar"}
-                </Button>
-              </div>
+          <SheetClose asChild>
+            <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
+          </SheetClose>
+          <Button type="submit" size="sm" disabled={isPending || loading} className="w-full">
+            {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Salvar"}
+          </Button>
+        </div>
             </div>
           </form>
         </Form>

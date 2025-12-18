@@ -233,7 +233,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
         type: 'simple',
         promotional_price_active: false,
         active: true,
-        managed_inventory: false,
+        managed_inventory: true,
         unit_id: undefined,
         brand_id: undefined,
         warranty_ids: [],

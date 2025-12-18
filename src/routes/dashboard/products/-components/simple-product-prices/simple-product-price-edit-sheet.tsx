@@ -15,19 +15,38 @@ import { formatMoneyFromCents, maskMoneyInput } from '@/lib/utils'
 
 const formSchema = z.object({
   price_table_id: z.string().min(1, { message: 'Selecione uma tabela de preço' }),
-  price: z.string().min(1, { message: 'Preço é obrigatório' }),
+  price: z.string().min(1, { message: 'Informe o preço' }),
   sale_price: z.string().optional(),
-}).refine((data) => {
-  if (!data.sale_price) return true
+}).superRefine((data, ctx) => {
   const price = parseInt(data.price.replace(/\D/g, '')) || 0
-  const salePrice = parseInt(data.sale_price.replace(/\D/g, '')) || 0
-  return salePrice <= price
-}, {
-  message: 'O preço promocional não pode ser maior que o preço',
-  path: ['sale_price'],
+  const salePrice = data.sale_price ? parseInt(data.sale_price.replace(/\D/g, '')) : 0
+
+  if (price < 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'O preço deve ser maior ou igual a zero',
+      path: ['price']
+    })
+  }
+
+  if (salePrice < 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'O preço promocional deve ser maior ou igual a zero',
+      path: ['sale_price']
+    })
+  }
+
+  if (data.sale_price && salePrice > price) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'O preço promocional deve ser menor ou igual ao preço',
+      path: ['sale_price']
+    })
+  }
 })
 
-export function ProductPriceEditSheet({ item, onUpdated }: { item: any, onUpdated?: () => void }) {
+export function SimpleProductPriceEditSheet({ item, onUpdated }: { item: any, onUpdated?: () => void }) {
   const [open, setOpen] = useState(false)
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -63,13 +82,13 @@ export function ProductPriceEditSheet({ item, onUpdated }: { item: any, onUpdate
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
       const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
       const payload = {
+        product_id: item.product_id,
         price: priceCents,
-        sale_price: salePriceCents
+        sale_price: salePriceCents,
+        price_table_id: item.price_table_id
       }
-      // Note: Endpoint to update only allows updating price usually. 
-      // If we want to change price_table_id, we might need to recreate or check if API supports it.
-      // Based on provided spec: PUT /derivated_product_price/{id} takes body with price.
-      const response = await privateInstance.put(`/api:c3X9fE5j/derivated_product_price/${item.id}`, payload)
+      
+      const response = await privateInstance.put(`/api:c3X9fE5j/product_prices`, payload)
       if (response.status !== 200) throw new Error('Erro ao atualizar preço')
       return response.data
     },

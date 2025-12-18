@@ -7,9 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { ProductPriceCreateSheet } from './product-price-create-sheet'
-import { ProductPriceEditSheet } from './product-price-edit-sheet'
-import { ProductPriceMassEditSheet } from './product-price-mass-edit-sheet'
+import { DerivatedProductPriceCreateSheet } from './derivated-product-price-create-sheet'
+import { DerivatedProductPriceEditSheet } from './derivated-product-price-edit-sheet'
+import { DerivatedProductPriceMassEditSheet } from './derivated-product-price-mass-edit-sheet'
 import { privateInstance } from '@/lib/auth'
 import { formatMoneyFromCents, cn, maskMoneyInput } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -148,7 +148,7 @@ function EditablePriceCell({
   )
 }
 
-export function ProductPricesSheet({ productId }: { productId: number }) {
+export function DerivatedProductPricesSheet({ productId }: { productId: number }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -362,12 +362,12 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
                 <RefreshCcw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
               </Button>
               {selectedIds.length === 1 ? (
-                <ProductPriceEditSheet 
+                <DerivatedProductPriceEditSheet 
                   item={selectedItems[0]} 
                   onUpdated={() => { refetch(); setSelectedIds([]) }} 
                 />
               ) : selectedIds.length > 1 ? (
-                <ProductPriceMassEditSheet 
+                <DerivatedProductPriceMassEditSheet 
                   selectedIds={selectedIds}
                   onUpdated={() => {
                     refetch()
@@ -379,7 +379,7 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
                   <Edit className='h-4 w-4 mr-2' /> Editar
                 </Button>
               )}
-              <ProductPriceCreateSheet productId={productId} onCreated={() => refetch()} />
+              <DerivatedProductPriceCreateSheet productId={productId} onCreated={() => refetch()} />
             </div>
           </div>
 

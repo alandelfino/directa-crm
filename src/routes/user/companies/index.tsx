@@ -150,7 +150,10 @@ function UserCompaniesPage() {
       queryClient.invalidateQueries({ queryKey: ['auth', 'companies'] })
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Falha ao revogar acesso')
+      const title = error?.response?.data?.payload?.title
+      const message = error?.response?.data?.message ?? 'Falha ao revogar acesso'
+      if (title) toast.error(title, { description: message })
+      else toast.error(message)
     }
   })
 

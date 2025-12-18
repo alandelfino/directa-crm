@@ -14,7 +14,8 @@ import { NewProductSheet } from './-components/new-product'
 import { EditProductSheet } from './-components/edit-product'
 import { DeleteProductDialog } from './-components/delete-product'
 import { ChildProductsSheet } from './-components/child-products'
-import { ProductPricesSheet } from './-components/product-prices/product-prices-sheet'
+import { DerivatedProductPricesSheet } from './-components/derivated-product-prices/derivated-product-prices-sheet'
+import { SimpleProductPricesSheet } from './-components/simple-product-prices/simple-product-prices-sheet'
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: RouteComponent,
@@ -168,7 +169,11 @@ function RouteComponent() {
             </Button>
 
             {selected.length === 1 ? (
-              <ProductPricesSheet productId={selected[0]} />
+              selectedProduct?.type === 'with_derivations' ? (
+                <DerivatedProductPricesSheet productId={selected[0]} />
+              ) : (
+                <SimpleProductPricesSheet productId={selected[0]} />
+              )
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <BadgeDollarSign className="size-4" /> Preços

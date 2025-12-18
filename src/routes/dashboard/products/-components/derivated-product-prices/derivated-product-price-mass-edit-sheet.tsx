@@ -25,7 +25,7 @@ const formSchema = z.object({
   path: ['sale_price'],
 })
 
-export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: { selectedIds: number[], onUpdated?: () => void, trigger?: React.ReactNode }) {
+export function DerivatedProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: { selectedIds: number[], onUpdated?: () => void, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [progress, setProgress] = useState(0)
   const [processedCount, setProcessedCount] = useState(0)
@@ -107,7 +107,7 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
       <SheetTrigger asChild>
         {trigger || (
           <Button size='sm' variant='outline'>
-            <Edit className='h-4 w-4 mr-2' /> Editar em Massa ({selectedIds.length})
+            <Edit className='h-4 w-4 mr-2' /> Editar em Lote ({selectedIds.length})
           </Button>
         )}
       </SheetTrigger>

@@ -15,7 +15,7 @@ const formSchema = z.object({
   price_table_id: z.string().min(1, { message: 'Selecione uma tabela de preço' }),
 })
 
-export function ProductPriceCreateSheet({ productId, onCreated }: { productId: number, onCreated?: () => void }) {
+export function DerivatedProductPriceCreateSheet({ productId, onCreated }: { productId: number, onCreated?: () => void }) {
   const [open, setOpen] = useState(false)
   
   const form = useForm<z.infer<typeof formSchema>>({

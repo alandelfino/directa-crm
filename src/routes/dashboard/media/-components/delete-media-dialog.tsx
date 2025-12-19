@@ -5,7 +5,7 @@ import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 
-type ApiMedia = { id: number, name?: string }
+type ApiMedia = { id: number | string, name?: string }
 
 export function DeleteMediaDialog({ media, onDeleted }: { media: ApiMedia, onDeleted?: () => void }) {
   const [open, setOpen] = useState(false)
@@ -54,10 +54,10 @@ export function DeleteMediaDialog({ media, onDeleted }: { media: ApiMedia, onDel
   )
 }
 
-export function BulkDeleteMediasDialog({ open, onOpenChange, ids, onDeleted }: { open: boolean, onOpenChange: (v: boolean) => void, ids: number[], onDeleted?: () => void }) {
+export function BulkDeleteMediasDialog({ open, onOpenChange, ids, onDeleted }: { open: boolean, onOpenChange: (v: boolean) => void, ids: (number | string)[], onDeleted?: () => void }) {
   const [deleting, setDeleting] = useState(false)
   const [processed, setProcessed] = useState(0)
-  const [errors, setErrors] = useState<{ id: number, message: string }[]>([])
+  const [errors, setErrors] = useState<{ id: number | string, message: string }[]>([])
 
   const total = ids.length
   const progress = total > 0 ? Math.round((processed / total) * 100) : 0
@@ -69,7 +69,7 @@ export function BulkDeleteMediasDialog({ open, onOpenChange, ids, onDeleted }: {
       setProcessed(0)
       setErrors([])
       let success = 0
-      const localErrors: { id: number, message: string }[] = []
+      const localErrors: { id: number | string, message: string }[] = []
       for (const id of ids) {
         try {
           const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${id}`)

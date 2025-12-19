@@ -11,9 +11,9 @@ import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 
 type ApiMedia = {
-  id: number
+  id: number | string
   name?: string
-  image?: { url?: string | null } | null
+  url?: string | null
 }
 
 const schema = z.object({ name: z.string().min(1, { message: 'Nome é obrigatório' }) })
@@ -50,8 +50,8 @@ export function EditMediaDialog({ media, onClose, onSaved }: { media: ApiMedia |
         {media && (
           <div className='flex flex-col gap-4'>
             <div className='aspect-video w-full bg-muted overflow-hidden rounded'>
-              {media.image?.url ? (
-                <img src={media.image.url} alt={media.name ?? 'media'} className='object-cover w-full h-full' />
+              {media.url ? (
+                <img src={media.url} alt={media.name ?? 'media'} className='object-cover w-full h-full' />
               ) : (
                 <div className='w-full h-full flex items-center justify-center text-muted-foreground'>
                   <Images className='w-12 h-12' />

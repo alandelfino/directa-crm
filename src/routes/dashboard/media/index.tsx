@@ -18,20 +18,20 @@ export const Route = createFileRoute('/dashboard/media/')({
 })
 
 type ApiMedia = {
-  id: number
+  id: number | string
   name?: string
-  image?: { url?: string | null } | null
+  url?: string | null
   mime?: string | null
   size?: number | null
-  created_at?: number
-  updated_at?: number
+  created_at?: number | string
+  updated_at?: number | string
 }
 
 function RouteComponent() {
   const [selected, setSelected] = useState<ApiMedia | null>(null)
   const [page, setPage] = useState<number>(1)
   const [perPage, setPerPage] = useState<number>(20)
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<(number | string)[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
@@ -58,6 +58,37 @@ function RouteComponent() {
         prevPage: null as number | null,
       }
     }
+    
+    // Check for new structure (flat with itemsReceived or items array)
+    // New structure: itemsReceived, curPage, nextPage, prevPage, offset, itemsTotal, pageTotal, items (array of obj)
+    // Old structure: medias: { items: ... } or just array
+
+    // Try to detect new structure
+    const isNewStructure = 'itemsReceived' in d || 'itemsTotal' in d
+
+    if (isNewStructure) {
+      const rawItems = Array.isArray(d.items) ? d.items : []
+      const items: ApiMedia[] = rawItems.map((it: any) => ({
+        id: it.uuid ?? it.id,
+        name: it.file_name ?? it.name,
+        url: it.url ?? it?.image?.url,
+        mime: it.mime_type ?? it.mime,
+        size: it.file_size ?? it.size,
+        created_at: it.created_at,
+        updated_at: it.updated_at
+      }))
+
+      const curPage = typeof d.curPage === 'number' ? d.curPage : page
+      const pageTotal = typeof d.pageTotal === 'number' ? d.pageTotal : 1
+      const itemsTotal = typeof d.itemsTotal === 'number' ? d.itemsTotal : items.length
+      const perPageVal = typeof d.perPage === 'number' ? d.perPage : perPage
+      const nextPage = typeof d.nextPage === 'number' ? d.nextPage : null
+      const prevPage = typeof d.prevPage === 'number' ? d.prevPage : null
+
+      return { items, curPage, pageTotal, itemsTotal, perPage: perPageVal, nextPage, prevPage }
+    }
+
+    // Fallback to old structure
     const mediasObj = d.medias ?? d
     const rawItems: any[] = Array.isArray(mediasObj?.items)
       ? (mediasObj.items as any[])
@@ -66,7 +97,8 @@ function RouteComponent() {
       const img = it?.image ?? {}
       const mime = it?.mime ?? img?.mime ?? img?.type ?? img?.content_type ?? img?.mimetype ?? null
       const size = it?.size ?? img?.size ?? img?.bytes ?? null
-      return { ...it, mime, size }
+      const url = it.url ?? img?.url
+      return { ...it, mime, size, url }
     })
     const curPage = typeof mediasObj?.curPage === 'number' ? mediasObj.curPage : page
     const pageTotal = typeof mediasObj?.pageTotal === 'number' ? mediasObj.pageTotal : 1
@@ -79,8 +111,8 @@ function RouteComponent() {
 
   const medias: ApiMedia[] = payload.items
 
-  const isSelected = (id: number) => selectedIds.includes(id)
-  const toggleSelect = (id: number) => {
+  const isSelected = (id: number | string) => selectedIds.includes(id)
+  const toggleSelect = (id: number | string) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
   }
 
@@ -168,8 +200,8 @@ function RouteComponent() {
               {medias.map((m) => (
                 <div key={m.id} className={`group relative rounded-lg border border-transparent p-1 bg-background hover:bg-neutral-100 transition-shadow overflow-hidden ${isSelected(m.id) ? 'ring-2 ring-primary' : ''}`}>
                   <div className='aspect-square w-full bg-muted flex items-center justify-center'>
-                    {m.image?.url ? (
-                      <img src={m.image.url} alt={m.name ?? 'media'} className='object-cover w-full h-full rounded-lg' />
+                    {m.url ? (
+                      <img src={m.url} alt={m.name ?? 'media'} className='object-cover w-full h-full rounded-lg' />
                     ) : (
                       <div className='flex flex-col items-center justify-center text-muted-foreground'>
                         <Images className='w-10 h-10' />

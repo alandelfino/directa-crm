@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Edit, Funnel, RefreshCw, Trash, Scan } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
@@ -19,6 +20,7 @@ export const Route = createFileRoute('/dashboard/media-sizes/')({
 
 type MediaSize = {
   id: number
+  company_id?: number | null
   created_at: number
   updated_at: number
   name: string
@@ -98,8 +100,8 @@ function RouteComponent() {
         const map: Record<string, string> = {
           desktop: 'Desktop',
           tablet: 'Tablet',
-          mobile: 'Mobile',
-          app: 'App'
+          mobile: 'Celular',
+          mobile_app: 'Aplicativo',
         }
         return map[item.device ?? ''] ?? item.device ?? '—'
       },
@@ -110,7 +112,14 @@ function RouteComponent() {
     {
       id: 'name',
       header: 'Nome',
-      cell: (item) => item.name,
+      cell: (item) => (
+        <div className="flex items-center gap-2">
+          {(!item.company_id || item.company_id <= 0) && (
+            <Badge variant="outline" className="text-[10px] rounded-md px-2 py-[0.2rem] h-5">Global</Badge>
+          )}
+          <span>{item.name}</span>
+        </div>
+      ),
       className: 'border-r px-4 py-2!'
     },
     {

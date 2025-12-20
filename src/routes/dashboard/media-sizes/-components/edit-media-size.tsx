@@ -17,7 +17,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
   width: z.preprocess((val) => Number(val), z.number({ error: "Largura é obrigatória" }).int().positive({ message: "Largura deve ser um número positivo" })),
   height: z.preprocess((val) => Number(val), z.number({ error: "Altura é obrigatória" }).int().positive({ message: "Altura deve ser um número positivo" })),
-  device: z.enum(['desktop', 'tablet', 'mobile', 'app']).refine(val => val !== undefined, { message: "Dispositivo é obrigatório" }),
+  device: z.enum(['desktop', 'tablet', 'mobile', 'mobile_app']).refine(val => val !== undefined, { message: "Dispositivo é obrigatório" }),
   fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze']).refine(val => val !== undefined, { message: "Ajuste é obrigatório" }),
   quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100")),
   background: z.string({ error: "Background é obrigatório" }).min(1, "Background é obrigatório"),
@@ -72,7 +72,9 @@ export function EditMediaSizeSheet({
         description: data.description ?? "",
       })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar tamanho de mídia')
+      toast.error(error?.response?.data?.payload?.title ?? "Erro!", {
+        description: error?.response?.data?.message ?? 'Erro ao carregar tamanho de mídia'
+      })
       closeSheet()
     } finally {
       setLoading(false)
@@ -95,11 +97,15 @@ export function EditMediaSizeSheet({
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['media-sizes'] })
       } else {
-        toast.error('Erro ao salvar tamanho de mídia')
+        toast.error("Erro!", {
+          description: 'Erro ao salvar tamanho de mídia'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao salvar tamanho de mídia')
+      toast.error(error?.response?.data?.payload?.title ?? "Erro!", {
+        description: error?.response?.data?.message ?? 'Erro ao salvar tamanho de mídia'
+      })
     },
   })
 
@@ -114,7 +120,7 @@ export function EditMediaSizeSheet({
     }}>
       <SheetTrigger asChild>
         <Button variant="outline" size="sm">
-          <Edit className="w-4 h-4" />Editar
+          <Edit className="size-[0.85rem]" />Editar
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -183,15 +189,15 @@ export function EditMediaSizeSheet({
                     <FormLabel>Dispositivo</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="desktop">Desktop</SelectItem>
                         <SelectItem value="tablet">Tablet</SelectItem>
-                        <SelectItem value="mobile">Mobile</SelectItem>
-                        <SelectItem value="app">App</SelectItem>
+                        <SelectItem value="mobile">Celular</SelectItem>
+                        <SelectItem value="mobile_app">Aplicativo</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

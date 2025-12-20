@@ -17,7 +17,7 @@ const formSchema = z.object({
   name: z.string({ error: "Nome é obrigatório" }).min(1, { message: "Nome é obrigatório" }),
   width: z.preprocess((val) => Number(val), z.number({ error: "Largura é obrigatória" }).int().positive({ message: "Largura deve ser um número positivo" })),
   height: z.preprocess((val) => Number(val), z.number({ error: "Altura é obrigatória" }).int().positive({ message: "Altura deve ser um número positivo" })),
-  device: z.enum(['desktop', 'tablet', 'mobile', 'app'], { error: "Dispositivo é obrigatório" }),
+  device: z.enum(['desktop', 'tablet', 'mobile', 'mobile_app'], { error: "Dispositivo é obrigatório" }),
   fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze'], { error: "Ajuste é obrigatório" }),
   quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100")),
   background: z.string({ error: "Background é obrigatório" }).min(1, "Background é obrigatório"),
@@ -59,11 +59,15 @@ export function NewMediaSizeSheet() {
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['media-sizes'] })
       } else {
-        toast.error('Erro ao cadastrar tamanho de mídia')
+        toast.error("Erro!", {
+          description: 'Erro ao cadastrar tamanho de mídia'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar tamanho de mídia')
+      toast.error(error?.response?.data?.payload?.title ?? "Erro!", {
+        description: error?.response?.data?.message ?? 'Erro ao cadastrar tamanho de mídia'
+      })
     },
   })
 
@@ -143,15 +147,15 @@ export function NewMediaSizeSheet() {
                     <FormLabel>Dispositivo</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="desktop">Desktop</SelectItem>
                         <SelectItem value="tablet">Tablet</SelectItem>
-                        <SelectItem value="mobile">Mobile</SelectItem>
-                        <SelectItem value="app">App</SelectItem>
+                        <SelectItem value="mobile">Celular</SelectItem>
+                        <SelectItem value="mobile_app">Aplicativo</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -254,12 +258,12 @@ export function NewMediaSizeSheet() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <textarea 
+                      <textarea
                         className={cn(
                           "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         )}
-                        placeholder="Descrição opcional..." 
-                        {...field} 
+                        placeholder="Descrição opcional..."
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

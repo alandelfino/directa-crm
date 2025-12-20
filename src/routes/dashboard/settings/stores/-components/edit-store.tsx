@@ -8,10 +8,12 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { Switch } from '@/components/ui/switch'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { Edit, Loader } from 'lucide-react'
+import { CheckCircle2Icon, Edit, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 type StoreItem = { id: number; name?: string; description?: string; active?: boolean; price_table_id?: number }
 
@@ -20,7 +22,14 @@ const formSchema = z.object({
   description: z.string().optional().or(z.literal('')),
   active: z.boolean().default(true),
   price_table_id: z.number().optional(),
+  desktop_product_media_size_id: z.number().optional(),
+  tablet_product_media_size_id: z.number().optional(),
+  mobile_product_media_size_id: z.number().optional(),
+  mobile_app_product_media_size_id: z.number().optional(),
 })
+
+type MediaSize = { id: number; name?: string }
+type MediaSizesResponse = { items?: MediaSize[] } | MediaSize[]
 
 type PriceTable = { id: number; name?: string }
 type PriceTablesResponse = { items?: PriceTable[] } | PriceTable[]
@@ -30,7 +39,16 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
   const [loading, setLoading] = useState(false)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
-    defaultValues: { name: '', description: '', active: true, price_table_id: undefined },
+    defaultValues: {
+      name: '',
+      description: '',
+      active: true,
+      price_table_id: undefined,
+      desktop_product_media_size_id: undefined,
+      tablet_product_media_size_id: undefined,
+      mobile_product_media_size_id: undefined,
+      mobile_app_product_media_size_id: undefined,
+    },
   })
 
   const { data: priceTablesData } = useQuery({
@@ -50,14 +68,46 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
       ? (priceTablesData as any).items
       : []
 
+  const { data: mediaSizesData } = useQuery({
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    queryKey: ['media-sizes', 'select'],
+    queryFn: async () => {
+      const url = `/api:jJaPcZVn/media_size?page=1&per_page=100`
+      const response = await privateInstance.get(url)
+      if (response.status !== 200) throw new Error('Erro ao carregar tamanhos de mídia')
+      return response.data as MediaSizesResponse
+    }
+  })
+
+  const mediaSizes = Array.isArray(mediaSizesData)
+    ? mediaSizesData
+    : Array.isArray((mediaSizesData as any)?.items)
+      ? (mediaSizesData as any).items
+      : []
+
   useEffect(() => {
     async function run() {
       try {
         setLoading(true)
         const response = await privateInstance.get(`/api:gI4qBCGQ/stores/${storeId}`)
         if (response.status !== 200 || !response.data) throw new Error('Falha ao carregar loja')
-        const s = response.data as StoreItem
-        form.reset({ name: s.name ?? '', description: s.description ?? '', active: s.active === true, price_table_id: typeof s.price_table_id === 'number' ? s.price_table_id : undefined })
+        const s = response.data as StoreItem & {
+          desktop_product_media_size_id?: number
+          tablet_product_media_size_id?: number
+          mobile_product_media_size_id?: number
+          mobile_app_product_media_size_id?: number
+        }
+        form.reset({
+          name: s.name ?? '',
+          description: s.description ?? '',
+          active: s.active === true,
+          price_table_id: typeof s.price_table_id === 'number' ? s.price_table_id : undefined,
+          desktop_product_media_size_id: typeof s.desktop_product_media_size_id === 'number' ? s.desktop_product_media_size_id : undefined,
+          tablet_product_media_size_id: typeof s.tablet_product_media_size_id === 'number' ? s.tablet_product_media_size_id : undefined,
+          mobile_product_media_size_id: typeof s.mobile_product_media_size_id === 'number' ? s.mobile_product_media_size_id : undefined,
+          mobile_app_product_media_size_id: typeof s.mobile_app_product_media_size_id === 'number' ? s.mobile_app_product_media_size_id : undefined,
+        })
       } catch (err: any) {
         toast.error(err?.response?.data?.message ?? 'Erro ao carregar loja')
       } finally {
@@ -69,7 +119,16 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const payload = { name: values.name, description: values.description ?? '', active: values.active, price_table_id: values.price_table_id }
+      const payload = {
+        name: values.name,
+        description: values.description ?? '',
+        active: values.active,
+        price_table_id: values.price_table_id,
+        desktop_product_media_size_id: values.desktop_product_media_size_id,
+        tablet_product_media_size_id: values.tablet_product_media_size_id,
+        mobile_product_media_size_id: values.mobile_product_media_size_id,
+        mobile_app_product_media_size_id: values.mobile_app_product_media_size_id,
+      }
       const response = await privateInstance.put(`/api:gI4qBCGQ/stores/${storeId}`, payload)
       if (response.status !== 200) throw new Error('Erro ao atualizar loja')
       return response.data
@@ -93,7 +152,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
           <Edit /> Editar
         </Button>
       </SheetTrigger>
-      <SheetContent className='sm:max-w-sm'>
+      <SheetContent className='min-w-lg'>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col h-full'>
             <SheetHeader>
@@ -101,64 +160,159 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
               <SheetDescription>Atualize os dados da loja e salve.</SheetDescription>
             </SheetHeader>
 
-            <div className='flex-1 grid auto-rows-min gap-6 px-4 py-4'>
-              <FormField control={form.control} name='name' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input placeholder='Nome da loja' {...field} disabled={loading || isPending} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name='description' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <textarea placeholder='Opcional' {...field} disabled={loading || isPending}
-                      className='file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm h-28 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive'
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name='price_table_id' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tabela de preço padrão</FormLabel>
-                  <FormControl>
-                    <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue placeholder='Selecione uma tabela' />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {priceTables.map((pt: PriceTable) => (
-                          <SelectItem key={pt.id} value={String(pt.id)}>{pt.name ?? `Tabela ${pt.id}`}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <div className='grid grid-cols-1 gap-4'>
-                <FormField control={form.control} name='active' render={({ field }) => (
-                  <FormItem>
-                    <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
-                      <div className='flex flex-col gap-0.5'>
-                        <FormLabel>Ativo</FormLabel>
-                        <FormDescription className='leading-snug text-xs'>Quando habilitada, a loja aparece ativa.</FormDescription>
-                        <FormMessage />
-                      </div>
-                      <FormControl>
-                        <Switch checked={Boolean(field.value)} onCheckedChange={(v) => field.onChange(v)} disabled={loading || isPending} />
-                      </FormControl>
-                    </div>
-                  </FormItem>
-                )} />
+            <Tabs defaultValue="general" className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-4 pt-4">
+                <TabsList className="w-full grid grid-cols-2">
+                  <TabsTrigger value="general">Geral</TabsTrigger>
+                  <TabsTrigger value="media-sizes">Tamanhos de mídia</TabsTrigger>
+                </TabsList>
               </div>
-            </div>
+
+              <TabsContent value="general" className="flex-1 overflow-y-auto px-4 py-4">
+                <div className='grid grid-cols-1 gap-6'>
+                  <FormField control={form.control} name='name' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder='Nome da loja' {...field} disabled={loading || isPending} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name='description' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <textarea placeholder='Opcional' {...field} disabled={loading || isPending}
+                          className='file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm h-28 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive'
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='price_table_id' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tabela de preço padrão</FormLabel>
+                      <FormControl>
+                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder='Selecione uma tabela' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {priceTables.map((pt: PriceTable) => (
+                              <SelectItem key={pt.id} value={String(pt.id)}>{pt.name ?? `Tabela ${pt.id}`}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='active' render={({ field }) => (
+                    <FormItem>
+                      <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
+                        <div className='flex flex-col gap-0.5'>
+                          <FormLabel>Ativo</FormLabel>
+                          <FormDescription className='leading-snug text-xs'>Quando habilitada, a loja aparece ativa.</FormDescription>
+                          <FormMessage />
+                        </div>
+                        <FormControl>
+                          <Switch checked={Boolean(field.value)} onCheckedChange={(v) => field.onChange(v)} disabled={loading || isPending} />
+                        </FormControl>
+                      </div>
+                    </FormItem>
+                  )} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="media-sizes" className="flex-1 overflow-y-auto px-4 py-4">
+                <Alert className='flex items-center'>
+                  <CheckCircle2Icon className='size-6!' />
+                  <AlertDescription>
+                    Tamanho de mídia é necessário para exibir o produto corretamente em diferentes dispositivos.
+                  </AlertDescription>
+                </Alert>
+                <div className="grid grid-cols-2 gap-6 mt-6">
+                  <FormField control={form.control} name='desktop_product_media_size_id' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tamanho de Mídia ( Desktop )</FormLabel>
+                      <FormControl>
+                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder='Selecione um tamanho' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes.map((ms: MediaSize) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='tablet_product_media_size_id' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tamanho de Mídia ( Tablet )</FormLabel>
+                      <FormControl>
+                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder='Selecione um tamanho' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes.map((ms: MediaSize) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='mobile_product_media_size_id' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tamanho de Mídia ( Celular )</FormLabel>
+                      <FormControl>
+                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder='Selecione um tamanho' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes.map((ms: MediaSize) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='mobile_app_product_media_size_id' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tamanho de Mídia ( Aplicativo )</FormLabel>
+                      <FormControl>
+                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder='Selecione um tamanho' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes.map((ms: MediaSize) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <div className='mt-auto border-t p-4'>
               <div className='grid grid-cols-2 gap-4'>

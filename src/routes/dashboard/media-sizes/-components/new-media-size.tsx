@@ -14,13 +14,14 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
-  name: z.string().min(1, { message: "Nome é obrigatório" }),
-  width: z.preprocess((val) => Number(val), z.number().int().positive({ message: "Largura deve ser um número positivo" })),
-  height: z.preprocess((val) => Number(val), z.number().int().positive({ message: "Altura deve ser um número positivo" })),
-  fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze']).optional(),
-  quality: z.preprocess((val) => val ? Number(val) : undefined, z.number({ invalid_type_error: "Deve ser um número" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100").optional()),
-  background: z.string().optional(),
-  format: z.enum(['jpeg', 'auto']).optional(),
+  name: z.string({ error: "Nome é obrigatório" }).min(1, { message: "Nome é obrigatório" }),
+  width: z.preprocess((val) => Number(val), z.number({ error: "Largura é obrigatória" }).int().positive({ message: "Largura deve ser um número positivo" })),
+  height: z.preprocess((val) => Number(val), z.number({ error: "Altura é obrigatória" }).int().positive({ message: "Altura deve ser um número positivo" })),
+  device: z.enum(['desktop', 'tablet', 'mobile', 'app'], { error: "Dispositivo é obrigatório" }),
+  fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze'], { error: "Ajuste é obrigatório" }),
+  quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100")),
+  background: z.string({ error: "Background é obrigatório" }).min(1, "Background é obrigatório"),
+  format: z.enum(['jpeg', 'auto']).refine(val => val !== undefined, { message: "Formato é obrigatório" }),
   description: z.string().optional(),
 })
 
@@ -34,6 +35,7 @@ export function NewMediaSizeSheet() {
       name: "",
       width: 0,
       height: 0,
+      device: undefined,
       fit: undefined,
       quality: 85,
       background: "#ffffff",
@@ -133,6 +135,30 @@ export function NewMediaSizeSheet() {
                 />
               </div>
 
+              <FormField
+                control={form.control}
+                name="device"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dispositivo</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="desktop">Desktop</SelectItem>
+                        <SelectItem value="tablet">Tablet</SelectItem>
+                        <SelectItem value="mobile">Mobile</SelectItem>
+                        <SelectItem value="app">App</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -147,12 +173,12 @@ export function NewMediaSizeSheet() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="scale-down">Scale Down</SelectItem>
-                          <SelectItem value="contain">Contain</SelectItem>
-                          <SelectItem value="cover">Cover</SelectItem>
-                          <SelectItem value="crop">Crop</SelectItem>
-                          <SelectItem value="pad">Pad</SelectItem>
-                          <SelectItem value="squeeze">Squeeze</SelectItem>
+                          <SelectItem value="scale-down">Reduzir</SelectItem>
+                          <SelectItem value="contain">Conter</SelectItem>
+                          <SelectItem value="cover">Cobrir</SelectItem>
+                          <SelectItem value="crop">Cortar</SelectItem>
+                          <SelectItem value="pad">Preencher</SelectItem>
+                          <SelectItem value="squeeze">Esticar</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

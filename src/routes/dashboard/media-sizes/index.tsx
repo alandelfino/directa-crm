@@ -25,6 +25,11 @@ type MediaSize = {
   width: number
   height: number
   description?: string
+  fit?: string
+  quality?: number
+  background?: string
+  format?: string
+  device?: string
 }
 
 type MediaSizesResponse = {
@@ -35,6 +40,15 @@ type MediaSizesResponse = {
   itemsTotal?: number
   pageTotal?: number
   items?: MediaSize[]
+}
+
+const fitTranslations: Record<string, string> = {
+  'scale-down': 'Reduzir',
+  contain: 'Conter',
+  cover: 'Cobrir',
+  crop: 'Cortar',
+  pad: 'Preencher',
+  squeeze: 'Esticar',
 }
 
 function RouteComponent() {
@@ -78,23 +92,72 @@ function RouteComponent() {
       className: 'font-medium border-r p-2!'
     },
     {
+      id: 'device',
+      header: 'Dispositivo',
+      cell: (item) => {
+        const map: Record<string, string> = {
+          desktop: 'Desktop',
+          tablet: 'Tablet',
+          mobile: 'Mobile',
+          app: 'App'
+        }
+        return map[item.device ?? ''] ?? item.device ?? '—'
+      },
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r',
+      className: 'w-[100px] min-w-[100px] px-4 py-2!'
+    },
+    {
       id: 'name',
       header: 'Nome',
       cell: (item) => item.name,
-      className: 'border-r p-2!'
+      className: 'border-r px-4 py-2!'
     },
     {
       id: 'dimensions',
       header: 'Dimensões',
-      cell: (item) => `${item.width} x ${item.height} px`,
-      headerClassName: 'w-[180px] border-r',
-      className: 'w-[180px] p-2!'
+      cell: (item) => <div>{`${item.width} x ${item.height}`} <span className='text-xs'>px</span></div>,
+      headerClassName: 'w-[150px] border-r',
+      className: 'w-[150px] px-4 py-2!'
     },
     {
-      id: 'description',
-      header: 'Descrição',
-      cell: (item) => item.description || '-',
-      className: 'border-r p-2!'
+      id: 'fit',
+      header: 'Ajuste',
+      cell: (item) => fitTranslations[item.fit ?? ''] ?? item.fit ?? '—',
+      width: '120px',
+      headerClassName: 'w-[120px] min-w-[120px] border-r',
+      className: 'w-[120px] min-w-[120px] px-4 py-2!'
+    },
+    {
+      id: 'quality',
+      header: 'Qualidade',
+      cell: (item) => item.quality ?? '—',
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r',
+      className: 'w-[100px] min-w-[100px] px-4 py-2!'
+    },
+    {
+      id: 'background',
+      header: 'Bg',
+      cell: (item) => (
+        <div className='flex items-center'>
+          <div
+            className='h-4 w-4 rounded border border-neutral-200'
+            style={{ backgroundColor: item.background ?? 'transparent' }}
+          />
+        </div>
+      ),
+      width: '70px',
+      headerClassName: 'w-[70px] min-w-[70px] border-r',
+      className: 'w-[70px] min-w-[70px] px-4 py-2!'
+    },
+    {
+      id: 'format',
+      header: 'Formato',
+      cell: (item) => item.format ?? '—',
+      width: '120px',
+      headerClassName: 'w-[120px] min-w-[120px] border-r',
+      className: 'w-[120px] min-w-[120px] px-4 py-2!'
     },
   ]
 

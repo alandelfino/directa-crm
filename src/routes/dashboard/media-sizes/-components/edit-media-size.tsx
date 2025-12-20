@@ -15,12 +15,13 @@ import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
-  width: z.preprocess((val) => Number(val), z.number().int().positive({ message: "Largura deve ser um número positivo" })),
-  height: z.preprocess((val) => Number(val), z.number().int().positive({ message: "Altura deve ser um número positivo" })),
-  fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze']).optional(),
-  quality: z.preprocess((val) => val ? Number(val) : undefined, z.number({ invalid_type_error: "Deve ser um número" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100").optional()),
-  background: z.string().optional(),
-  format: z.enum(['jpeg', 'auto']).optional(),
+  width: z.preprocess((val) => Number(val), z.number({ error: "Largura é obrigatória" }).int().positive({ message: "Largura deve ser um número positivo" })),
+  height: z.preprocess((val) => Number(val), z.number({ error: "Altura é obrigatória" }).int().positive({ message: "Altura deve ser um número positivo" })),
+  device: z.enum(['desktop', 'tablet', 'mobile', 'app']).refine(val => val !== undefined, { message: "Dispositivo é obrigatório" }),
+  fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze']).refine(val => val !== undefined, { message: "Ajuste é obrigatório" }),
+  quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100")),
+  background: z.string({ error: "Background é obrigatório" }).min(1, "Background é obrigatório"),
+  format: z.enum(['jpeg', 'auto'], { error: "Formato é obrigatório" }),
   description: z.string().optional(),
 })
 
@@ -37,8 +38,13 @@ export function EditMediaSizeSheet({
       name: "",
       width: 0,
       height: 0,
+      fit: undefined,
+      quality: undefined,
+      device: undefined,
+      background: "",
+      format: undefined,
       description: "",
-    },
+    }
   })
 
   const closeSheet = () => {
@@ -60,6 +66,7 @@ export function EditMediaSizeSheet({
         height: data.height ?? 0,
         fit: data.fit,
         quality: data.quality ?? 85,
+        device: data.device ?? "desktop",
         background: data.background ?? "#ffffff",
         format: data.format ?? "auto",
         description: data.description ?? "",
@@ -168,6 +175,30 @@ export function EditMediaSizeSheet({
                 />
               </div>
 
+              <FormField
+                control={form.control}
+                name="device"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dispositivo</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="desktop">Desktop</SelectItem>
+                        <SelectItem value="tablet">Tablet</SelectItem>
+                        <SelectItem value="mobile">Mobile</SelectItem>
+                        <SelectItem value="app">App</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -182,12 +213,12 @@ export function EditMediaSizeSheet({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="scale-down">Scale Down</SelectItem>
-                          <SelectItem value="contain">Contain</SelectItem>
-                          <SelectItem value="cover">Cover</SelectItem>
-                          <SelectItem value="crop">Crop</SelectItem>
-                          <SelectItem value="pad">Pad</SelectItem>
-                          <SelectItem value="squeeze">Squeeze</SelectItem>
+                          <SelectItem value="scale-down">Reduzir</SelectItem>
+                          <SelectItem value="contain">Conter</SelectItem>
+                          <SelectItem value="cover">Cobrir</SelectItem>
+                          <SelectItem value="crop">Cortar</SelectItem>
+                          <SelectItem value="pad">Preencher</SelectItem>
+                          <SelectItem value="squeeze">Esticar</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -264,12 +295,12 @@ export function EditMediaSizeSheet({
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <textarea 
+                      <textarea
                         className={cn(
                           "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         )}
-                        placeholder="Descrição opcional..." 
-                        {...field} 
+                        placeholder="Descrição opcional..."
+                        {...field}
                         disabled={loading || isPending}
                       />
                     </FormControl>

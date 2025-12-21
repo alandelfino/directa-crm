@@ -8,7 +8,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { Switch } from '@/components/ui/switch'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { CheckCircle2Icon, Edit, Loader } from 'lucide-react'
+import { AlertCircleIcon, CheckCircle2Icon, Edit, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -21,11 +21,11 @@ const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome da loja é obrigatório' }),
   description: z.string().optional().or(z.literal('')),
   active: z.boolean().default(true),
-  price_table_id: z.number().optional(),
-  desktop_product_media_size_id: z.number().optional(),
-  tablet_product_media_size_id: z.number().optional(),
-  mobile_product_media_size_id: z.number().optional(),
-  mobile_app_product_media_size_id: z.number().optional(),
+  price_table_id: z.number({ error: 'Tabela de preço é obrigatória' }),
+  desktop_product_media_size_id: z.number({ error: 'Tamanho de mídia (Desktop) é obrigatório' }),
+  tablet_product_media_size_id: z.number({ error: 'Tamanho de mídia (Tablet) é obrigatório' }),
+  mobile_product_media_size_id: z.number({ error: 'Tamanho de mídia (Mobile) é obrigatório' }),
+  mobile_app_product_media_size_id: z.number({ error: 'Tamanho de mídia (App) é obrigatório' }),
 })
 
 type MediaSize = { id: number; name?: string }
@@ -146,13 +146,13 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
   async function onSubmit(values: z.infer<typeof formSchema>) { await mutateAsync(values) }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) form.reset(); }}>
       <SheetTrigger asChild>
         <Button variant={'outline'}>
           <Edit /> Editar
         </Button>
       </SheetTrigger>
-      <SheetContent className='min-w-lg'>
+      <SheetContent className='min-w-md'>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col h-full'>
             <SheetHeader>
@@ -228,86 +228,97 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
               </TabsContent>
 
               <TabsContent value="media-sizes" className="flex-1 overflow-y-auto px-4 py-4">
-                <Alert className='flex items-center'>
-                  <CheckCircle2Icon className='size-6!' />
-                  <AlertDescription>
-                    Tamanho de mídia é necessário para exibir o produto corretamente em diferentes dispositivos.
+
+                <Alert className='mb-4 bg-blue-50/50 border-blue-200'>
+                  <AlertCircleIcon className='text-blue-500!' />
+                  <AlertDescription className='text-sm text-blue-500'>
+                    Tamanho de mídia para listagem de produtos na loja.
                   </AlertDescription>
                 </Alert>
-                <div className="grid grid-cols-2 gap-6 mt-6">
+
+                <div className="grid grid-cols-1 gap-6">
+
                   <FormField control={form.control} name='desktop_product_media_size_id' render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tamanho de Mídia ( Desktop )</FormLabel>
-                      <FormControl>
-                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
-                          <SelectTrigger className='w-full'>
-                            <SelectValue placeholder='Selecione um tamanho' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mediaSizes.map((ms: MediaSize) => (
-                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
+                    <FormItem className='flex items-start gap-2'>
+                      <FormLabel className='text-sm min-w-[90px] mt-2'>Desktop</FormLabel>
+                      <div className='w-full flex flex-col gap-1'>
+                        <FormControl>
+                          <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                            <SelectTrigger className='w-full'>
+                              <SelectValue placeholder='Selecione um tamanho' />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mediaSizes.map((ms: MediaSize) => (
+                                <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name='tablet_product_media_size_id' render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tamanho de Mídia ( Tablet )</FormLabel>
-                      <FormControl>
-                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
-                          <SelectTrigger className='w-full'>
-                            <SelectValue placeholder='Selecione um tamanho' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mediaSizes.map((ms: MediaSize) => (
-                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
+                    <FormItem className='flex items-start gap-2'>
+                      <FormLabel className='text-sm min-w-[90px] mt-2'>Tablet</FormLabel>
+                      <div className='w-full flex flex-col gap-1'>
+                        <FormControl>
+                          <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                            <SelectTrigger className='w-full'>
+                              <SelectValue placeholder='Selecione um tamanho' />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mediaSizes.map((ms: MediaSize) => (
+                                <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name='mobile_product_media_size_id' render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tamanho de Mídia ( Celular )</FormLabel>
-                      <FormControl>
-                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
-                          <SelectTrigger className='w-full'>
-                            <SelectValue placeholder='Selecione um tamanho' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mediaSizes.map((ms: MediaSize) => (
-                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
+                    <FormItem className='flex items-start gap-2'>
+                      <FormLabel className='text-sm min-w-[90px] mt-2'>Celular</FormLabel>
+                      <div className='w-full flex flex-col gap-1'>
+                        <FormControl>
+                          <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                            <SelectTrigger className='w-full'>
+                              <SelectValue placeholder='Selecione um tamanho' />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mediaSizes.map((ms: MediaSize) => (
+                                <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )} />
 
                   <FormField control={form.control} name='mobile_app_product_media_size_id' render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tamanho de Mídia ( Aplicativo )</FormLabel>
-                      <FormControl>
-                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
-                          <SelectTrigger className='w-full'>
-                            <SelectValue placeholder='Selecione um tamanho' />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mediaSizes.map((ms: MediaSize) => (
-                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
+                    <FormItem className='flex items-start gap-2'>
+                      <FormLabel className='text-sm min-w-[90px] mt-2'>Aplicativo</FormLabel>
+                      <div className='w-full flex flex-col gap-1'>
+                        <FormControl>
+                          <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                            <SelectTrigger className='w-full'>
+                              <SelectValue placeholder='Selecione um tamanho' />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mediaSizes.map((ms: MediaSize) => (
+                                <SelectItem key={ms.id} value={String(ms.id)}>{ms.name ?? `Tamanho ${ms.id}`}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </div>
                     </FormItem>
                   )} />
                 </div>

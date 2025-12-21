@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { EditMediaDialog } from './-components/edit-media-dialog'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { MultiUploadSheet } from './-components/multi-upload-sheet'
-import { BulkDeleteMediasDialog } from './-components/delete-media-dialog'
+import { BulkDeleteMediasSheet } from './-components/delete-media-sheet'
 
 export const Route = createFileRoute('/dashboard/media/')({
   component: RouteComponent,
@@ -281,7 +281,7 @@ function RouteComponent() {
 
         {/* Dialog de edição / detalhes */}
         <EditMediaDialog media={selected} onClose={() => setSelected(null)} onSaved={() => refetch()} />
-        <BulkDeleteMediasDialog open={bulkDeleteOpen} onOpenChange={(v) => { setBulkDeleteOpen(v); if (!v) { setSelectedIds([]) } }} ids={selectedIds} onDeleted={() => { setSelectedIds([]); refetch() }} />
+        <BulkDeleteMediasSheet open={bulkDeleteOpen} onOpenChange={(v) => { setBulkDeleteOpen(v); if (!v) { setSelectedIds([]) } }} ids={selectedIds} onDeleted={() => { setSelectedIds([]); refetch() }} />
 
       </div>
     </div>

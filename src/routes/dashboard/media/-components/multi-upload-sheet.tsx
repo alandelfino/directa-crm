@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { UploadCloud, Loader, Check, FileIcon, CloudUpload } from 'lucide-react'
+import { UploadCloud, Loader, Check, FileIcon, AlertCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 
 type QueueItem = {
@@ -23,11 +23,19 @@ function deriveName(file: File) {
 export function MultiUploadSheet() {
   const [open, setOpen] = useState(false)
   const [queue, setQueue] = useState<QueueItem[]>([])
+  const [hasNotified, setHasNotified] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const uploadingRef = useRef(false)
   const queryClient = useQueryClient()
 
   const allProcessed = useMemo(() => queue.length > 0 && queue.every((q) => q.status === 'done' || q.status === 'error'), [queue])
+  const isUploading = useMemo(() => queue.some((q) => q.status === 'pending' || q.status === 'uploading'), [queue])
+
+  useEffect(() => {
+    if (!allProcessed) {
+      setHasNotified(false)
+    }
+  }, [allProcessed])
 
   useEffect(() => {
     if (uploadingRef.current) return
@@ -58,7 +66,7 @@ export function MultiUploadSheet() {
           uploadingRef.current = false
         }
       })()
-    } else if (queue.length > 0 && allProcessed) {
+    } else if (queue.length > 0 && allProcessed && !hasNotified) {
       const ok = queue.filter((q) => q.status === 'done').length
       const fail = queue.filter((q) => q.status === 'error').length
       toast.success(`Uploads concluídos${fail > 0 ? ` (${ok} ok, ${fail} erro)` : ''}`)
@@ -68,12 +76,9 @@ export function MultiUploadSheet() {
           window.dispatchEvent(new CustomEvent('directa:medias-updated'))
         } catch {}
       } catch {}
-      if (open) {
-        setOpen(false)
-      }
-      setQueue([])
+      setHasNotified(true)
     }
-  }, [open, queue, allProcessed])
+  }, [open, queue, allProcessed, hasNotified])
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -87,76 +92,72 @@ export function MultiUploadSheet() {
       progress: 0,
     }))
     setQueue((prev) => [...prev, ...nextItems])
+    setOpen(true)
+    if (inputRef.current) inputRef.current.value = ''
   }
 
-  const onDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
-    e.preventDefault()
-    const dt = e.dataTransfer
-    handleFilesSelected(dt.files)
-  }
-
-  const onDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
-    e.preventDefault()
+  const handleOpenChange = (v: boolean) => {
+    if (!v && isUploading) {
+      toast.warning('Aguarde o término do upload para fechar')
+      return
+    }
+    setOpen(v)
+    if (!v) {
+      setQueue([])
+    }
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) { if (queue.length > 0 && queue.every((q) => q.status === 'done' || q.status === 'error')) { setQueue([]) } } }}>
-      <SheetTrigger asChild>
-        <Button size={'sm'} variant={'default'}>
-          <UploadCloud className="size-[0.85rem]" /> Upload
-        </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <div className='flex flex-col h-full'>
-          <SheetHeader>
-            <SheetTitle>Upload em lote</SheetTitle>
-            <SheetDescription>Selecione vários arquivos para enviar</SheetDescription>
-          </SheetHeader>
-          <div className='px-4 py-4'>
-            <input ref={inputRef} type='file' accept='image/*' multiple className='hidden' onChange={(e) => handleFilesSelected(e.target.files)} />
-            <div
-              className='rounded-md border-2 border-dashed h-40 w-full overflow-hidden cursor-pointer'
-              onClick={() => inputRef.current?.click()}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-            >
-              <div className='h-full w-full flex items-center justify-center'>
-                <div className='flex flex-col items-center justify-center'>
-                  <CloudUpload className='w-10 h-10 text-neutral-300' />
-                  <span className='text-sm mt-2'>Clique para selecionar</span>
-                </div>
+    <>
+      <input ref={inputRef} type='file' accept='image/*' multiple className='hidden' onChange={(e) => handleFilesSelected(e.target.files)} />
+      <Button size={'sm'} variant={'default'} onClick={() => inputRef.current?.click()}>
+        <UploadCloud className="size-[0.85rem]" /> Upload
+      </Button>
+
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent>
+          <div className='flex flex-col h-full'>
+            <SheetHeader>
+              <SheetTitle>Upload em lote</SheetTitle>
+              <SheetDescription>Acompanhe o progresso dos uploads</SheetDescription>
+            </SheetHeader>
+            
+            <div className='flex-1 min-h-0 overflow-auto px-4 mt-6'>
+              <div className='flex flex-col gap-2'>
+                {queue.map((item) => (
+                  <div key={item.id} className='rounded-md bg-neutral-50 p-3'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='flex items-center gap-3 min-w-0 flex-1'>
+                        <FileIcon className='h-5 w-5 text-muted-foreground shrink-0' />
+                        <div className='flex-1 min-w-0'>
+                          <div className='text-sm font-medium truncate'>{item.name}</div>
+                          <div className='text-xs text-muted-foreground'>{(item.file.size / 1024).toFixed(2)} KB</div>
+                          {item.status === 'uploading' && (
+                            <div className='mt-2 h-2 w-full bg-muted rounded overflow-hidden'>
+                              <div className='h-full bg-primary rounded transition-all duration-300' style={{ width: `${item.progress}%` }} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-2 shrink-0'>
+                        {item.status === 'uploading' && <span className='text-sm text-muted-foreground'>{item.progress}%</span>}
+                        {item.status === 'done' && <Check className='h-5 w-5 text-green-600' />}
+                        {item.status === 'uploading' && <Loader className='h-5 w-5 animate-spin text-muted-foreground' />}
+                        {item.status === 'error' && <AlertCircle className='h-5 w-5 text-destructive' />}
+                      </div>
+                    </div>
+                    {item.status === 'error' && (
+                      <div className='mt-2 text-xs text-destructive bg-destructive/10 p-2 rounded break-words'>
+                        {item.error ?? 'Erro ao enviar arquivo'}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-
-          <div className='flex-1 min-h-0 overflow-auto px-4'>
-            <div className='flex flex-col gap-2'>
-              {queue.map((item) => (
-                <div key={item.id} className='rounded-md bg-neutral-50 p-3 flex items-center justify-between gap-3'>
-                  <div className='flex items-center gap-3 min-w-0 flex-1'>
-                    <FileIcon className='h-5 w-5 text-muted-foreground' />
-                    <div className='flex-1 min-w-0'>
-                      <div className='text-sm font-medium truncate'>{item.name}</div>
-                      <div className='text-xs text-muted-foreground'>{(item.file.size / 1024).toFixed(2)} KB</div>
-                      {item.status === 'uploading' && (
-                        <div className='mt-2 h-2 w-full bg-muted rounded'>
-                          <div className='h-full bg-primary rounded' style={{ width: `${item.progress}%` }} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    {item.status === 'uploading' && <span className='text-sm text-muted-foreground'>{item.progress}%</span>}
-                    {item.status === 'done' && <Check className='h-5 w-5 text-green-600' />}
-                    {item.status === 'uploading' && <Loader className='h-5 w-5 animate-spin text-muted-foreground' />}
-                    {item.status === 'error' && <span className='text-sm text-destructive'>{item.error ?? 'Erro'}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

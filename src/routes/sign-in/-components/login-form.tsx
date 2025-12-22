@@ -8,10 +8,10 @@ import { z } from "zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
-import { useNavigate } from "@tanstack/react-router"
+import { Loader2, Eye, EyeOff } from "lucide-react"
+import { useNavigate, useLocation } from "@tanstack/react-router"
 import { auth, formSchema } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 export function LoginForm({
   className,
@@ -19,7 +19,10 @@ export function LoginForm({
 }: React.ComponentProps<"form">) {
 
   const navigate = useNavigate()
+  const location = useLocation()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const processingCode = useRef<string | null>(null)
 
   const { isPending, mutate } = useMutation({
     mutationFn: auth.login,
@@ -29,11 +32,17 @@ export function LoginForm({
         // Após login, direciona para o novo dashboard do usuário (Minhas contas)
         navigate({ to: "/user/companies" })
       } else {
-        toast.error('Credenciais invalidas')
+        const errorData = response?.data
+        toast.error(errorData?.title || 'Erro no login', {
+          description: errorData?.message || 'Credenciais inválidas'
+        })
       }
     },
-    onError: () => {
-      toast.error('Credenciais invalidas')
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro no login', {
+        description: errorData?.message || 'Ocorreu um erro ao tentar realizar o login.'
+      })
     },
   })
 
@@ -49,32 +58,62 @@ export function LoginForm({
     mutate(values)
   }
 
+  const processGoogleLogin = async (code: string) => {
+    if (processingCode.current === code || isGoogleLoading) return
+    
+    processingCode.current = code
+    setIsGoogleLoading(true)
+    try {
+      const redirectUri = window.location.origin + '/sign-in'
+      const response = await auth.continueWithGoogle(code, redirectUri)
+
+      if (response.status === 200) {
+        toast.success("Login com Google realizado com sucesso!")
+        await navigate({ to: "/user/companies" })
+      } else {
+        const errorData = response?.data
+        toast.error(errorData?.payload.title || "Falha no login com Google", {
+          description: errorData?.message || "Não foi possível completar o login com Google."
+        })
+        setIsGoogleLoading(false)
+      }
+    } catch (error: any) {
+      console.error("Google login error:", error)
+      const errorData = error?.response?.data
+      toast.error(errorData?.payload?.title || "Erro no login com Google", {
+        description: errorData?.message || "Ocorreu um erro inesperado ao processar o login."
+      })
+      setIsGoogleLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type === 'GOOGLE_LOGIN_SUCCESS' && event.data?.code) {
+        processGoogleLogin(event.data.code)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [navigate])
+
   useEffect(() => {
     const handleGoogleCallback = async () => {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get("code")
+      // TanStack Router: Acessa o parâmetro 'code' diretamente do estado da rota
+      const code = (location.search as any)?.code
 
       if (code) {
-        setIsGoogleLoading(true)
-        // Limpa a URL visualmente
-        window.history.replaceState({}, document.title, window.location.pathname)
-        
-        try {
-          const redirectUri = window.location.origin + '/sign-in'
-          const response = await auth.continueWithGoogle(code, redirectUri)
-          
-          if (response.status === 200) {
-            toast.success("Login com Google realizado com sucesso!")
-            window.location.href = "/user/companies"
-          } else {
-            toast.error("Falha ao realizar login com Google")
-          }
-        } catch (error) {
-          console.error("Google login error:", error)
-          toast.error("Erro ao processar login com Google")
-        } finally {
-          setIsGoogleLoading(false)
+        if (window.opener) {
+          window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS', code }, window.location.origin)
+          window.close()
+          return
         }
+
+        // Fallback para login direto via URL (se não for popup)
+        await navigate({ to: '/sign-in', replace: true })
+        processGoogleLogin(code)
       }
     }
 
@@ -87,14 +126,28 @@ export function LoginForm({
       const redirectUri = window.location.origin + '/sign-in'
       const authUrl = await auth.initGoogleLogin(redirectUri)
       if (authUrl) {
-        window.location.href = authUrl
+        const width = 500
+        const height = 600
+        const left = window.screen.width / 2 - width / 2
+        const top = window.screen.height / 2 - height / 2
+
+        window.open(
+          authUrl,
+          'google_login',
+          `width=${width},height=${height},top=${top},left=${left},status=yes,scrollbars=yes`
+        )
       } else {
-        toast.error("Erro ao iniciar login com Google")
-        setIsGoogleLoading(false)
+        toast.error("Erro ao iniciar login", {
+          description: "Não foi possível obter a URL de autenticação do Google."
+        })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Google init error:", error)
-      toast.error("Erro ao conectar com Google")
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || "Erro ao conectar", {
+        description: errorData?.message || "Não foi possível conectar com o Google."
+      })
+    } finally {
       setIsGoogleLoading(false)
     }
   }
@@ -129,7 +182,25 @@ export function LoginForm({
               <FormItem>
                 <FormLabel>Senha</FormLabel>
                 <FormControl>
-                  <Input placeholder="********" {...field} type="password" />
+                  <div className="relative">
+                    <Input placeholder="********" {...field} type={showPassword ? "text" : "password"} />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="sr-only">
+                        {showPassword ? "Esconder senha" : "Mostrar senha"}
+                      </span>
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -164,7 +235,7 @@ export function LoginForm({
           <Field>
             <FieldDescription className="text-center">
               Não tem uma conta?{" "}
-              <a href="#" className="underline underline-offset-4">
+              <a href="/sign-up" className="underline underline-offset-4">
                 Cadastre-se
               </a>
             </FieldDescription>

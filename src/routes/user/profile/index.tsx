@@ -34,6 +34,7 @@ type MeResponse = {
   name?: string
   email?: string
   image?: VaultImage
+  verified_email?: boolean
 }
 
 const formSchema = z.object({
@@ -72,17 +73,34 @@ function RouteComponent() {
         if (res.status === 200) {
           const payload = res.data?.me ?? null
           if (payload?.id) {
-            const meData: MeResponse = { id: payload.id, name: payload.name ?? '', email: payload.email ?? '', image: payload.image ?? null }
+            const meData: MeResponse = { 
+                id: payload.id, 
+                name: payload.name ?? '', 
+                email: payload.email ?? '', 
+                image: payload.image ?? null,
+                verified_email: payload.verified_email 
+            }
             setMe(meData)
             form.reset({ name: meData.name ?? '' })
             setPreviewUrl(meData.image?.url ?? null)
             try {
               const subdomain = getSubdomain()
-              localStorage.setItem(`${subdomain}-directa-user`, JSON.stringify({ id: meData.id, name: meData.name, email: meData.email, image: meData.image }))
+              localStorage.setItem(`${subdomain}-directa-user`, JSON.stringify({ 
+                  id: meData.id, 
+                  name: meData.name, 
+                  email: meData.email, 
+                  image: meData.image,
+                  verified_email: meData.verified_email 
+              }))
             } catch {}
             try {
               window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                detail: { name: meData.name, email: meData.email, avatarUrl: meData.image?.url ?? null }
+                detail: { 
+                    name: meData.name, 
+                    email: meData.email, 
+                    avatarUrl: meData.image?.url ?? null,
+                    verified_email: meData.verified_email
+                }
               }))
             } catch {}
           } else {

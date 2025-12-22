@@ -1,6 +1,12 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TopbarUser } from "./topbar-user";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 // Types
 export type BreadcrumbItem = {
@@ -10,6 +16,37 @@ export type BreadcrumbItem = {
 }
 
 export function Topbar({ title, breadcrumbs }: { title: string, breadcrumbs: BreadcrumbItem[] }) {
+    const [user, setUser] = useState<any | null>(null)
+
+    useEffect(() => {
+        const loadUser = () => {
+            const subdomain = window.location.hostname.split('.')[0]
+            const storageKey = `${subdomain}-directa-user`
+            try {
+                const raw = localStorage.getItem(storageKey)
+                if (raw) setUser(JSON.parse(raw))
+            } catch { }
+        }
+        loadUser()
+
+        const handler = () => loadUser()
+        window.addEventListener('directa:user-updated', handler)
+        return () => window.removeEventListener('directa:user-updated', handler)
+    }, [])
+
+    const handleResend = async () => {
+        try {
+            toast.loading("Enviando email...", { id: "resend-email" })
+            const res = await auth.resendVerification()
+            if (res.status === 200 || res.status === 201) {
+                toast.success("Email de confirmação enviado!", { id: "resend-email" })
+            } else {
+                toast.error("Erro ao enviar email", { id: "resend-email", description: res.data?.message })
+            }
+        } catch (e: any) {
+            toast.error("Erro ao enviar email", { id: "resend-email", description: e?.response?.data?.message || "Erro desconhecido" })
+        }
+    }
 
     return (
         <div className='w-full bg-pattern dark:bg-neutral-950'>
@@ -46,7 +83,30 @@ export function Topbar({ title, breadcrumbs }: { title: string, breadcrumbs: Bre
 
             </div>
 
+            {user && user.verified_email === false && (
+                <div className="px-4 py-2 bg-white dark:bg-neutral-900 border-b">
+                    <Alert variant="destructive" className="bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-900/20 dark:border-orange-900 dark:text-orange-200">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Email não verificado</AlertTitle>
+                        <AlertDescription className="flex items-center justify-between gap-4 mt-2 sm:mt-0">
+                            <span>
+                                Por favor, verifique seu email ({user.email}) para acessar todos os recursos.
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleResend}
+                                className="bg-white hover:bg-orange-50 border-orange-200 text-orange-700 dark:bg-transparent dark:hover:bg-orange-900/40 dark:border-orange-800 dark:text-orange-100 whitespace-nowrap h-8"
+                            >
+                                Reenviar confirmação
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            )}
+
         </div>
     )
+
 
 }

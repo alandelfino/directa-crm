@@ -7,6 +7,21 @@ export const formSchema = z.object({
     password: z.string().min(2, 'A senha deve ter pelo menos 2 caracteres'),
 })
 
+export const signUpSchema = z.object({
+    name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres'),
+    email: z.email('E-mail inválido'),
+    password: z.string()
+        .min(8, 'A senha deve ter pelo menos 8 caracteres')
+        .regex(/[A-Z]/, 'Pelo menos 1 letra maiúscula')
+        .regex(/[a-z]/, 'Pelo menos 1 letra minúscula')
+        .regex(/[0-9]/, 'Pelo menos 1 número')
+        .regex(/[@_\-$%&()]/, 'Pelo menos 1 caractere especial (@ _ - $ % & ( ))'),
+    confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+})
+
 const getSubdomain = () => {
     const host = window.location.hostname
     const parts = host.split('.')
@@ -66,7 +81,12 @@ loginInstance.interceptors.response.use((response) => {
         try {
             const avatarUrl = response?.data?.user?.image?.url ?? response?.data?.user?.avatar_url ?? null
             window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                detail: { name: response?.data?.user?.name, email: response?.data?.user?.email, avatarUrl }
+                detail: { 
+                    name: response?.data?.user?.name, 
+                    email: response?.data?.user?.email, 
+                    avatarUrl,
+                    verified_email: response?.data?.user?.verified_email
+                }
             }))
         } catch { }
     }
@@ -98,10 +118,13 @@ privateInstance.interceptors.response.use(
         const status = error?.response?.status
         if (status === 401) {
             // Redireciona para a tela de login ao detectar sessão inválida
-            try { toast.dismiss() } catch {}
-            try {
-                window.location.href = '/sign-in'
-            } catch {}
+            // Verifica se já não está na página de login para evitar loop/reload desnecessário
+            if (window.location.pathname !== '/sign-in') {
+                try { toast.dismiss() } catch {}
+                try {
+                    window.location.href = '/sign-in'
+                } catch {}
+            }
         }
         
         return Promise.reject(error)
@@ -122,7 +145,12 @@ export const auth = {
                     localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
                     const avatarUrl = user?.image?.url ?? user?.avatar_url ?? null
                     window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                        detail: { name: user?.name, email: user?.email, avatarUrl }
+                        detail: { 
+                            name: user?.name, 
+                            email: user?.email, 
+                            avatarUrl,
+                            verified_email: user?.verified_email
+                        }
                     }))
                     return user
                 }
@@ -141,6 +169,10 @@ export const auth = {
         }
         return response
     },
+    signup: async (values: z.infer<typeof signUpSchema>) => {
+        const response = await publicInstance.post(`/api:eA5lqIuH/auth/signup`, values)
+        return response
+    },
     initGoogleLogin: async (redirectUri: string) => {
         const response = await publicInstance.get(`/api:U0aE1wpF/oauth/google/init`, {
             params: {
@@ -150,42 +182,60 @@ export const auth = {
         return response.data?.authUrl
     },
     continueWithGoogle: async (code: string, redirectUri: string) => {
-        // Usa publicInstance para evitar o interceptor do loginInstance que espera formato diferente
-        const response = await publicInstance.get(`/api:U0aE1wpF/oauth/google/continue`, {
-            params: {
-                code,
-                redirect_uri: redirectUri
-            }
-        })
-        
-        if (response.status === 200 && response.data?.token) {
-            normalizeTokenStorage(response.data.token)
+        try {
+            // Usa publicInstance para evitar o interceptor do loginInstance que espera formato diferente
+            const response = await publicInstance.get(`/api:U0aE1wpF/oauth/google/continue`, {
+                params: {
+                    code,
+                    redirect_uri: redirectUri
+                }
+            })
+            
+            if (response.status === 200 && response.data?.token) {
+                normalizeTokenStorage(response.data.token)
 
-            const { name, email, image } = response.data
-            // Se houver dados de usuário na resposta (flat structure), armazena e notifica
-            if (name || email) {
-                // Constrói objeto de usuário compatível com o resto da aplicação
-                // Mapeia 'image' (string url) para avatar_url e image object
-                const user = {
-                    name,
-                    email,
-                    avatar_url: image,
-                    image: image ? { url: image } : null
+                const { name, email, image } = response.data
+                // Se houver dados de usuário na resposta (flat structure), armazena e notifica
+                if (name || email) {
+                    // Constrói objeto de usuário compatível com o resto da aplicação
+                    // Mapeia 'image' (string url) para avatar_url e image object
+                    const user = {
+                        name,
+                        email,
+                        avatar_url: image,
+                        image: image ? { url: image } : null
+                    }
+                    
+                    localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
+                    
+                    try {
+                        window.dispatchEvent(new CustomEvent('directa:user-updated', {
+                            detail: { 
+                                name, 
+                                email, 
+                                avatarUrl: image,
+                                verified_email: response.data?.verified_email
+                            }
+                        }))
+                    } catch { }
                 }
                 
-                localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
-                
-                try {
-                    window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                        detail: { name, email, avatarUrl: image }
-                    }))
-                } catch { }
+                // Busca o usuário completo (com ID, etc) para garantir consistência
+                await auth.fetchUser()
             }
             
-            // Busca o usuário completo (com ID, etc) para garantir consistência
-            await auth.fetchUser()
+            return response
+        } catch (error: any) {
+            // Retorna o erro para ser tratado pelo chamador em vez de lançar exceção
+            // Isso previne comportamentos inesperados em alguns fluxos
+            if (error.response) {
+                return error.response
+            }
+            throw error
         }
-        
+    },
+    resendVerification: async () => {
+        const response = await privateInstance.post(`/api:eA5lqIuH/auth/resend-verification`)
         return response
     },
     getCompany: async () => {
@@ -240,7 +290,12 @@ export const auth = {
             try {
                 const avatarUrl = user?.image?.url ?? user?.avatar_url ?? null
                 window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                    detail: { name: user?.name, email: user?.email, avatarUrl }
+                    detail: { 
+                        name: user?.name, 
+                        email: user?.email, 
+                        avatarUrl,
+                        verified_email: user?.verified_email
+                    }
                 }))
             } catch { }
         } catch (err: any) {

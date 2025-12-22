@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, Building2, Trash, LogIn, MoreVertical } from 'lucide-react'
+import { Loader2, Building2, Trash, LogIn, MoreVertical, AlertCircle } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -52,11 +52,41 @@ function UserCompaniesPage() {
   const [revokeOpen, setRevokeOpen] = useState(false)
   const [revokingCompany, setRevokingCompany] = useState<UserCompany | null>(null)
   const [revokeConfirmText, setRevokeConfirmText] = useState('')
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean | null>(null)
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    auth.userGuard()
+    
+    const checkVerification = () => {
+        const subdomain = getSubdomain()
+        const storageKey = `${subdomain}-directa-user`
+        try {
+            const raw = localStorage.getItem(storageKey)
+            if (raw) {
+                const user = JSON.parse(raw)
+                setIsEmailVerified(user.verified_email === true)
+            }
+        } catch { }
+    }
+    checkVerification()
+    
+    const handler = (evt: Event) => {
+        const e = evt as CustomEvent<{ verified_email?: boolean }>
+        if (e.detail?.verified_email !== undefined) {
+            setIsEmailVerified(e.detail.verified_email)
+        } else {
+            checkVerification()
+        }
+    }
+    window.addEventListener('directa:user-updated', handler)
+    return () => window.removeEventListener('directa:user-updated', handler)
+  }, [])
 
   const { data, isLoading, isError, error } = useQuery({
     refetchOnWindowFocus: false,
     queryKey: ['auth', 'companies'],
+    enabled: isEmailVerified === true,
     queryFn: async () => {
       // Listar empresas do usuário autenticado via endpoint de auth (escopo de /user)
       const res = await privateInstance.get('/api:eA5lqIuH/auth/companies')
@@ -103,10 +133,6 @@ function UserCompaniesPage() {
       })
     }
   }, [isError, error])
-
-  useEffect(() => {
-    auth.userGuard()
-  }, [])
 
   async function enterCompany(uc: UserCompany) {
     const companyId = uc.company_id ?? uc.id
@@ -171,7 +197,22 @@ function UserCompaniesPage() {
       </div>
 
       <div className='space-y-3 mt-4'>
-        {isLoading && (
+        {isEmailVerified === false && (
+            <Empty>
+                <EmptyHeader>
+                    <EmptyMedia variant='icon' className="bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+                        <AlertCircle className='h-5 w-5' />
+                    </EmptyMedia>
+                    <EmptyTitle>Email não verificado</EmptyTitle>
+                    <EmptyDescription>
+                        Você precisa verificar seu email para acessar suas empresas.
+                        Verifique sua caixa de entrada ou solicite um novo email de confirmação no topo da página.
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
+        )}
+
+        {isLoading && isEmailVerified !== false && (
           <div className='space-y-3'>
             {[1, 2, 3].map((i) => (
               <Card key={i}><CardContent className='flex items-center justify-between py-4'>
@@ -185,9 +226,9 @@ function UserCompaniesPage() {
           </div>
         )}
 
-        {isError && (<div className='text-destructive'>Não foi possível carregar as empresas. Verifique sua autenticação.</div>)}
+        {isError && isEmailVerified !== false && (<div className='text-destructive'>Não foi possível carregar as empresas. Verifique sua autenticação.</div>)}
 
-        {!isLoading && !isError && (
+        {!isLoading && !isError && isEmailVerified !== false && (
           <div className='space-y-3'>
             {(data ?? []).map((uc) => (
               <Card key={uc.id}>

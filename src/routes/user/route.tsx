@@ -6,14 +6,15 @@ import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuL
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { User as UserIcon, Building2, Mail } from 'lucide-react'
+import { User as UserIcon, Building2, Mail, AlertCircle } from 'lucide-react'
 import { ChevronsUpDown, LogOut } from 'lucide-react'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/user')({
   component: UserLayout,
 })
 
-type UserT = { email: string, name: string, avatarUrl?: string | null }
+type UserT = { email: string, name: string, avatarUrl?: string | null, verified_email?: boolean }
 function getSubdomain() { return window.location.hostname.split('.')[0] }
 
 function UserLayout() {
@@ -27,16 +28,22 @@ function UserLayout() {
       const raw = localStorage.getItem(`${sub}-directa-user`)
       const parsed = raw ? JSON.parse(raw) : null
       const avatarUrl: string | null = parsed?.image?.url ?? parsed?.avatar_url ?? null
-      setUser(parsed ? { email: parsed?.email ?? '', name: parsed?.name ?? '', avatarUrl } : null)
+      setUser(parsed ? { 
+        email: parsed?.email ?? '', 
+        name: parsed?.name ?? '', 
+        avatarUrl,
+        verified_email: parsed?.verified_email
+      } : null)
     } catch { }
     const handler = (evt: Event) => {
-      const e = evt as CustomEvent<{ name?: string, email?: string, avatarUrl?: string | null }>
+      const e = evt as CustomEvent<{ name?: string, email?: string, avatarUrl?: string | null, verified_email?: boolean }>
       const d = e.detail
       if (!d) return
       setUser((prev) => ({
         email: d.email ?? prev?.email ?? '',
         name: d.name ?? prev?.name ?? '',
         avatarUrl: d.avatarUrl ?? prev?.avatarUrl ?? null,
+        verified_email: d.verified_email ?? prev?.verified_email
       }))
     }
     window.addEventListener('directa:user-updated', handler as EventListener)
@@ -57,6 +64,20 @@ function UserLayout() {
     navigate({ to: '/sign-in' })
   }
 
+  const handleResend = async () => {
+    try {
+        toast.loading("Enviando email...", { id: "resend-email" })
+        const res = await auth.resendVerification()
+        if (res.status === 200 || res.status === 201) {
+            toast.success("Email de confirmação enviado!", { id: "resend-email" })
+        } else {
+            toast.error("Erro ao enviar email", { id: "resend-email", description: res.data?.message })
+        }
+    } catch (e: any) {
+        toast.error("Erro ao enviar email", { id: "resend-email", description: e?.response?.data?.message || "Erro desconhecido" })
+    }
+  }
+
   const navigationLinks = [
     { href: '/user/profile', label: 'Meu Perfil', icon: <UserIcon className='size-4' /> },
     { href: '/user/companies', label: 'Minhas contas', icon: <Building2 className='size-4' /> },
@@ -66,6 +87,23 @@ function UserLayout() {
 
   return (
     <div className='flex flex-col w-full h-lvh'>
+      {user && user.verified_email === false && (
+        <div className="w-full bg-orange-50 border-b border-orange-200 text-orange-800 dark:bg-orange-900/20 dark:border-orange-900 dark:text-orange-200 px-4 py-2 flex items-center justify-between gap-4 text-sm">
+            <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span>Por favor, verifique seu email ({user.email}) para acessar todos os recursos.</span>
+            </div>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResend}
+                className="bg-white hover:bg-orange-50 border-orange-200 text-orange-700 dark:bg-transparent dark:hover:bg-orange-900/40 dark:border-orange-800 dark:text-orange-100 whitespace-nowrap h-7 text-xs"
+            >
+                Reenviar confirmação
+            </Button>
+        </div>
+      )}
+
       <header className='border-b px-4 md:px-6 sticky top-0 z-10 bg-white dark:bg-neutral-900'>
         <div className='flex h-16 items-center justify-between gap-4'>
           <div className='flex items-center gap-2'>

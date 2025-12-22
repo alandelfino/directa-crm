@@ -160,6 +160,30 @@ export const auth = {
         
         if (response.status === 200 && response.data?.token) {
             normalizeTokenStorage(response.data.token)
+
+            const { name, email, image } = response.data
+            // Se houver dados de usuário na resposta (flat structure), armazena e notifica
+            if (name || email) {
+                // Constrói objeto de usuário compatível com o resto da aplicação
+                // Mapeia 'image' (string url) para avatar_url e image object
+                const user = {
+                    name,
+                    email,
+                    avatar_url: image,
+                    image: image ? { url: image } : null
+                }
+                
+                localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
+                
+                try {
+                    window.dispatchEvent(new CustomEvent('directa:user-updated', {
+                        detail: { name, email, avatarUrl: image }
+                    }))
+                } catch { }
+            }
+            
+            // Busca o usuário completo (com ID, etc) para garantir consistência
+            await auth.fetchUser()
         }
         
         return response

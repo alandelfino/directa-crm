@@ -65,7 +65,7 @@ export function LoginForm({
           
           if (response.status === 200) {
             toast.success("Login com Google realizado com sucesso!")
-            navigate({ to: "/user/companies" })
+            window.location.href = "/user/companies"
           } else {
             toast.error("Falha ao realizar login com Google")
           }

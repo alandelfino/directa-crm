@@ -1,6 +1,6 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
-import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookOpen, BookUser, Copyright, FileBadge, FileClock, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, TextCursorInput, Factory, Scan } from "lucide-react";
+import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookOpen, BookUser, Copyright, FileBadge, FileClock, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, TextCursorInput, Factory } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
 
 export function Navigation() {
@@ -110,11 +110,6 @@ export function Navigation() {
                     label: 'Midias',
                     icon: <Images />,
                     href: '/dashboard/media',
-                },
-                {
-                    label: 'Tamanhos de mídias',
-                    icon: <Scan />,
-                    href: '/dashboard/media-sizes',
                 },
                 {
                     label: 'Unidades de medida',

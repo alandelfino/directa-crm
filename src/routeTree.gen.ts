@@ -24,7 +24,6 @@ import { Route as DashboardProfileIndexRouteImport } from './routes/dashboard/pr
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
 import { Route as DashboardPriceTablesIndexRouteImport } from './routes/dashboard/price-tables/index'
 import { Route as DashboardMediaIndexRouteImport } from './routes/dashboard/media/index'
-import { Route as DashboardMediaSizesIndexRouteImport } from './routes/dashboard/media-sizes/index'
 import { Route as DashboardDistributionCentersIndexRouteImport } from './routes/dashboard/distribution-centers/index'
 import { Route as DashboardDerivationsIndexRouteImport } from './routes/dashboard/derivations/index'
 import { Route as DashboardCustomersIndexRouteImport } from './routes/dashboard/customers/index'
@@ -35,6 +34,7 @@ import { Route as DashboardSettingsUsersIndexRouteImport } from './routes/dashbo
 import { Route as DashboardSettingsTeamsIndexRouteImport } from './routes/dashboard/settings/teams/index'
 import { Route as DashboardSettingsStoresIndexRouteImport } from './routes/dashboard/settings/stores/index'
 import { Route as DashboardSettingsProfilesIndexRouteImport } from './routes/dashboard/settings/profiles/index'
+import { Route as DashboardSettingsMediaSizesIndexRouteImport } from './routes/dashboard/settings/media-sizes/index'
 import { Route as DashboardSettingsInvitationsIndexRouteImport } from './routes/dashboard/settings/invitations/index'
 import { Route as DashboardSettingsIntegrationsIndexRouteImport } from './routes/dashboard/settings/integrations/index'
 import { Route as DashboardSettingsBillingsIndexRouteImport } from './routes/dashboard/settings/billings/index'
@@ -117,12 +117,6 @@ const DashboardMediaIndexRoute = DashboardMediaIndexRouteImport.update({
   path: '/media/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardMediaSizesIndexRoute =
-  DashboardMediaSizesIndexRouteImport.update({
-    id: '/media-sizes/',
-    path: '/media-sizes/',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any)
 const DashboardDistributionCentersIndexRoute =
   DashboardDistributionCentersIndexRouteImport.update({
     id: '/distribution-centers/',
@@ -181,6 +175,12 @@ const DashboardSettingsProfilesIndexRoute =
     path: '/profiles/',
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
+const DashboardSettingsMediaSizesIndexRoute =
+  DashboardSettingsMediaSizesIndexRouteImport.update({
+    id: '/media-sizes/',
+    path: '/media-sizes/',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 const DashboardSettingsInvitationsIndexRoute =
   DashboardSettingsInvitationsIndexRouteImport.update({
     id: '/invitations/',
@@ -217,7 +217,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
   '/dashboard/distribution-centers': typeof DashboardDistributionCentersIndexRoute
-  '/dashboard/media-sizes': typeof DashboardMediaSizesIndexRoute
   '/dashboard/media': typeof DashboardMediaIndexRoute
   '/dashboard/price-tables': typeof DashboardPriceTablesIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
@@ -232,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/billings': typeof DashboardSettingsBillingsIndexRoute
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/invitations': typeof DashboardSettingsInvitationsIndexRoute
+  '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/profiles': typeof DashboardSettingsProfilesIndexRoute
   '/dashboard/settings/stores': typeof DashboardSettingsStoresIndexRoute
   '/dashboard/settings/teams': typeof DashboardSettingsTeamsIndexRoute
@@ -248,7 +248,6 @@ export interface FileRoutesByTo {
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
   '/dashboard/distribution-centers': typeof DashboardDistributionCentersIndexRoute
-  '/dashboard/media-sizes': typeof DashboardMediaSizesIndexRoute
   '/dashboard/media': typeof DashboardMediaIndexRoute
   '/dashboard/price-tables': typeof DashboardPriceTablesIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
@@ -263,6 +262,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings/billings': typeof DashboardSettingsBillingsIndexRoute
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/invitations': typeof DashboardSettingsInvitationsIndexRoute
+  '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/profiles': typeof DashboardSettingsProfilesIndexRoute
   '/dashboard/settings/stores': typeof DashboardSettingsStoresIndexRoute
   '/dashboard/settings/teams': typeof DashboardSettingsTeamsIndexRoute
@@ -281,7 +281,6 @@ export interface FileRoutesById {
   '/dashboard/customers/': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations/': typeof DashboardDerivationsIndexRoute
   '/dashboard/distribution-centers/': typeof DashboardDistributionCentersIndexRoute
-  '/dashboard/media-sizes/': typeof DashboardMediaSizesIndexRoute
   '/dashboard/media/': typeof DashboardMediaIndexRoute
   '/dashboard/price-tables/': typeof DashboardPriceTablesIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
@@ -296,6 +295,7 @@ export interface FileRoutesById {
   '/dashboard/settings/billings/': typeof DashboardSettingsBillingsIndexRoute
   '/dashboard/settings/integrations/': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/invitations/': typeof DashboardSettingsInvitationsIndexRoute
+  '/dashboard/settings/media-sizes/': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/profiles/': typeof DashboardSettingsProfilesIndexRoute
   '/dashboard/settings/stores/': typeof DashboardSettingsStoresIndexRoute
   '/dashboard/settings/teams/': typeof DashboardSettingsTeamsIndexRoute
@@ -315,7 +315,6 @@ export interface FileRouteTypes {
     | '/dashboard/customers'
     | '/dashboard/derivations'
     | '/dashboard/distribution-centers'
-    | '/dashboard/media-sizes'
     | '/dashboard/media'
     | '/dashboard/price-tables'
     | '/dashboard/products'
@@ -330,6 +329,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/billings'
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/invitations'
+    | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/profiles'
     | '/dashboard/settings/stores'
     | '/dashboard/settings/teams'
@@ -346,7 +346,6 @@ export interface FileRouteTypes {
     | '/dashboard/customers'
     | '/dashboard/derivations'
     | '/dashboard/distribution-centers'
-    | '/dashboard/media-sizes'
     | '/dashboard/media'
     | '/dashboard/price-tables'
     | '/dashboard/products'
@@ -361,6 +360,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/billings'
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/invitations'
+    | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/profiles'
     | '/dashboard/settings/stores'
     | '/dashboard/settings/teams'
@@ -378,7 +378,6 @@ export interface FileRouteTypes {
     | '/dashboard/customers/'
     | '/dashboard/derivations/'
     | '/dashboard/distribution-centers/'
-    | '/dashboard/media-sizes/'
     | '/dashboard/media/'
     | '/dashboard/price-tables/'
     | '/dashboard/products/'
@@ -393,6 +392,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/billings/'
     | '/dashboard/settings/integrations/'
     | '/dashboard/settings/invitations/'
+    | '/dashboard/settings/media-sizes/'
     | '/dashboard/settings/profiles/'
     | '/dashboard/settings/stores/'
     | '/dashboard/settings/teams/'
@@ -514,13 +514,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardMediaIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/media-sizes/': {
-      id: '/dashboard/media-sizes/'
-      path: '/media-sizes'
-      fullPath: '/dashboard/media-sizes'
-      preLoaderRoute: typeof DashboardMediaSizesIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/distribution-centers/': {
       id: '/dashboard/distribution-centers/'
       path: '/distribution-centers'
@@ -591,6 +584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsProfilesIndexRouteImport
       parentRoute: typeof DashboardSettingsRouteRoute
     }
+    '/dashboard/settings/media-sizes/': {
+      id: '/dashboard/settings/media-sizes/'
+      path: '/media-sizes'
+      fullPath: '/dashboard/settings/media-sizes'
+      preLoaderRoute: typeof DashboardSettingsMediaSizesIndexRouteImport
+      parentRoute: typeof DashboardSettingsRouteRoute
+    }
     '/dashboard/settings/invitations/': {
       id: '/dashboard/settings/invitations/'
       path: '/invitations'
@@ -628,6 +628,7 @@ interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsBillingsIndexRoute: typeof DashboardSettingsBillingsIndexRoute
   DashboardSettingsIntegrationsIndexRoute: typeof DashboardSettingsIntegrationsIndexRoute
   DashboardSettingsInvitationsIndexRoute: typeof DashboardSettingsInvitationsIndexRoute
+  DashboardSettingsMediaSizesIndexRoute: typeof DashboardSettingsMediaSizesIndexRoute
   DashboardSettingsProfilesIndexRoute: typeof DashboardSettingsProfilesIndexRoute
   DashboardSettingsStoresIndexRoute: typeof DashboardSettingsStoresIndexRoute
   DashboardSettingsTeamsIndexRoute: typeof DashboardSettingsTeamsIndexRoute
@@ -644,6 +645,8 @@ const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
       DashboardSettingsIntegrationsIndexRoute,
     DashboardSettingsInvitationsIndexRoute:
       DashboardSettingsInvitationsIndexRoute,
+    DashboardSettingsMediaSizesIndexRoute:
+      DashboardSettingsMediaSizesIndexRoute,
     DashboardSettingsProfilesIndexRoute: DashboardSettingsProfilesIndexRoute,
     DashboardSettingsStoresIndexRoute: DashboardSettingsStoresIndexRoute,
     DashboardSettingsTeamsIndexRoute: DashboardSettingsTeamsIndexRoute,
@@ -663,7 +666,6 @@ interface DashboardRouteRouteChildren {
   DashboardCustomersIndexRoute: typeof DashboardCustomersIndexRoute
   DashboardDerivationsIndexRoute: typeof DashboardDerivationsIndexRoute
   DashboardDistributionCentersIndexRoute: typeof DashboardDistributionCentersIndexRoute
-  DashboardMediaSizesIndexRoute: typeof DashboardMediaSizesIndexRoute
   DashboardMediaIndexRoute: typeof DashboardMediaIndexRoute
   DashboardPriceTablesIndexRoute: typeof DashboardPriceTablesIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
@@ -680,7 +682,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardDerivationsIndexRoute: DashboardDerivationsIndexRoute,
   DashboardDistributionCentersIndexRoute:
     DashboardDistributionCentersIndexRoute,
-  DashboardMediaSizesIndexRoute: DashboardMediaSizesIndexRoute,
   DashboardMediaIndexRoute: DashboardMediaIndexRoute,
   DashboardPriceTablesIndexRoute: DashboardPriceTablesIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,

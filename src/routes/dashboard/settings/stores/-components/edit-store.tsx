@@ -8,12 +8,12 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { Switch } from '@/components/ui/switch'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { AlertCircleIcon, CheckCircle2Icon, Edit, Loader } from 'lucide-react'
+import { AlertCircleIcon, Edit, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 type StoreItem = { id: number; name?: string; description?: string; active?: boolean; price_table_id?: number }
 

@@ -111,9 +111,58 @@ privateInstance.interceptors.response.use(
 export const auth = {
     // Normaliza o armazenamento do token: grava na chave preferida e remove chaves antigas de dev
     normalizeTokenStorage: (token: string) => normalizeTokenStorage(token),
+    fetchUser: async () => {
+        try {
+            const response = await privateInstance.get('/api:eA5lqIuH/auth/me')
+            if (response.status === 200) {
+                const data = response?.data
+                const user = Array.isArray(data) ? (data[0] ?? null) : data
+                
+                if (user && user.id) {
+                    localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
+                    const avatarUrl = user?.image?.url ?? user?.avatar_url ?? null
+                    window.dispatchEvent(new CustomEvent('directa:user-updated', {
+                        detail: { name: user?.name, email: user?.email, avatarUrl }
+                    }))
+                    return user
+                }
+            }
+        } catch (error) {
+            console.warn('fetchUser failed:', error)
+        }
+        return null
+    },
     login: async (values: z.infer<typeof formSchema>) => {
         // Endpoint absoluto para o grupo de auth
-        return loginInstance.post(`/api:eA5lqIuH/auth/login`, values)
+        const response = await loginInstance.post(`/api:eA5lqIuH/auth/login`, values)
+        // Garante que os dados do usuário estejam atualizados se não vierem no login
+        if (response.status === 200 && !response.data?.user) {
+            await auth.fetchUser()
+        }
+        return response
+    },
+    initGoogleLogin: async (redirectUri: string) => {
+        const response = await publicInstance.get(`/api:U0aE1wpF/oauth/google/init`, {
+            params: {
+                redirect_uri: redirectUri
+            }
+        })
+        return response.data?.authUrl
+    },
+    continueWithGoogle: async (code: string, redirectUri: string) => {
+        // Usa publicInstance para evitar o interceptor do loginInstance que espera formato diferente
+        const response = await publicInstance.get(`/api:U0aE1wpF/oauth/google/continue`, {
+            params: {
+                code,
+                redirect_uri: redirectUri
+            }
+        })
+        
+        if (response.status === 200 && response.data?.token) {
+            normalizeTokenStorage(response.data.token)
+        }
+        
+        return response
     },
     getCompany: async () => {
         // Usar o servidor n7 para companies

@@ -105,13 +105,7 @@ export function LoginForm({
       const code = (location.search as any)?.code
 
       if (code) {
-        if (window.opener) {
-          window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS', code }, window.location.origin)
-          window.close()
-          return
-        }
-
-        // Fallback para login direto via URL (se não for popup)
+        // Remove o code da URL para limpar o estado
         await navigate({ to: '/sign-in', replace: true })
         processGoogleLogin(code)
       }
@@ -126,16 +120,7 @@ export function LoginForm({
       const redirectUri = window.location.origin + '/sign-in'
       const authUrl = await auth.initGoogleLogin(redirectUri)
       if (authUrl) {
-        const width = 500
-        const height = 600
-        const left = window.screen.width / 2 - width / 2
-        const top = window.screen.height / 2 - height / 2
-
-        window.open(
-          authUrl,
-          'google_login',
-          `width=${width},height=${height},top=${top},left=${left},status=yes,scrollbars=yes`
-        )
+        window.location.href = authUrl
       } else {
         toast.error("Erro ao iniciar login", {
           description: "Não foi possível obter a URL de autenticação do Google."

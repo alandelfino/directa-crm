@@ -3,15 +3,46 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { privateInstance, auth } from '@/lib/auth'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Mail, Check, Loader2, X, AlertCircle } from 'lucide-react'
+import { Mail, Check, Loader2, X, AlertCircle, Calendar } from 'lucide-react'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { getAvatarAbbrev } from '@/lib/utils'
 
 type Company = { id: number; name: string; alias?: string | null }
-type Invite = { created_at: number; status: 'pending'; uuid: string; company: Company }
+type Invite = { created_at: number; status: 'pending' | 'accepted' | 'rejected' | 'canceled'; uuid: string; company: Company }
+
+const getStatusBadge = (status: Invite['status']) => {
+    switch (status) {
+        case 'pending':
+            return {
+                label: 'Pendente',
+                className: 'bg-yellow-500/10 text-yellow-600 border-yellow-200 dark:border-yellow-800 dark:text-yellow-400'
+            }
+        case 'accepted':
+            return {
+                label: 'Aceito',
+                className: 'bg-green-500/10 text-green-600 border-green-200 dark:border-green-800 dark:text-green-400'
+            }
+        case 'rejected':
+            return {
+                label: 'Rejeitado',
+                className: 'bg-red-500/10 text-red-600 border-red-200 dark:border-red-800 dark:text-red-400'
+            }
+        case 'canceled':
+            return {
+                label: 'Cancelado',
+                className: 'bg-muted text-muted-foreground border-border'
+            }
+        default:
+            return {
+                label: status,
+                className: 'bg-muted text-muted-foreground border-border'
+            }
+    }
+}
 
 export const Route = createFileRoute('/user/invites/')({
   component: InvitesPage,
@@ -121,10 +152,12 @@ function InvitesPage() {
 
   if (isEmailVerified === false) {
     return (
-        <div className='container mx-auto p-6'>
-          <div className='flex items-center gap-2 mb-4'>
-            <Mail className='h-5 w-5 text-muted-foreground' />
-            <span className='text-base font-semibold'>Convites</span>
+        <div className='max-w-5xl mx-auto p-6 space-y-8'>
+          <div className='flex flex-col gap-1'>
+            <h1 className='text-2xl font-bold tracking-tight'>Convites</h1>
+            <p className='text-muted-foreground'>
+                Gerencie seus convites para participar de outras empresas.
+            </p>
           </div>
           <Empty>
             <EmptyHeader>
@@ -142,75 +175,110 @@ function InvitesPage() {
     )
   }
 
+  const formatDate = (ts: number) => {
+    try {
+        return new Date(ts).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+    } catch {
+        return 'Data desconhecida'
+    }
+  }
+
   return (
-    <div className='container mx-auto p-6'>
-      <div className='flex items-center gap-2 mb-4'>
-        <Mail className='h-5 w-5 text-muted-foreground' />
-        <span className='text-base font-semibold'>Convites</span>
+    <div className='max-w-5xl mx-auto p-6 space-y-8'>
+      <div className='flex flex-col gap-1'>
+        <h1 className='text-2xl font-bold tracking-tight'>Convites</h1>
+        <p className='text-muted-foreground'>
+            Gerencie seus convites para participar de outras empresas.
+        </p>
       </div>
+      
       {isLoading && (
-        <div className='space-y-3'>
-          {[1,2].map((i) => (
-            <Card key={i}><CardContent className='flex items-center justify-between py-4'>
-              <div className='flex items-center gap-3'>
-                <Skeleton className='h-5 w-48' />
-                <Skeleton className='h-5 w-20' />
-              </div>
-              <Skeleton className='h-11 w-28' />
-            </CardContent></Card>
+        <div className='space-y-4'>
+          {[1,2,3].map((i) => (
+             <div key={i} className="flex items-center justify-between p-4 border rounded-xl bg-card">
+                 <div className="flex items-center gap-4">
+                     <Skeleton className="h-12 w-12 rounded-full" />
+                     <div className="space-y-2">
+                         <Skeleton className="h-4 w-48" />
+                         <Skeleton className="h-3 w-24" />
+                     </div>
+                 </div>
+                 <Skeleton className="h-9 w-24" />
+             </div>
           ))}
         </div>
       )}
 
-      {isError && (<div className='text-destructive'>Não foi possível carregar os convites. Verifique sua autenticação.</div>)}
+      {isError && (<div className='text-destructive bg-destructive/10 p-4 rounded-md'>Não foi possível carregar os convites. Verifique sua autenticação.</div>)}
 
       {!isLoading && !isError && (
-        <div className='space-y-3'>
+        <div className='space-y-4'>
           {(invites ?? []).map((inv) => (
-            <Card key={inv.uuid}>
-              <CardContent className='flex items-center justify-between py-4'>
-                <div className='flex items-center gap-3'>
-                  <Mail className='h-4 w-4 text-muted-foreground' />
-                  <span className='font-medium'>{inv.company?.name ?? 'Empresa'}</span>
-                  {inv.company?.alias ? <Badge variant={'secondary'}>{inv.company.alias}</Badge> : null}
-                  <Badge variant={'outline'} className='ml-2'>Pendente</Badge>
+            <div 
+                key={inv.uuid} 
+                className='group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border rounded-xl bg-card hover:bg-accent/5 transition-colors shadow-sm hover:shadow-md hover:border-primary/20'
+            >
+              <div className='flex items-start sm:items-center gap-4'>
+                <Avatar className="h-12 w-12 rounded-lg border-2 border-background shadow-sm">
+                    <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {getAvatarAbbrev(inv.company?.name ?? 'Empresa')}
+                    </AvatarFallback>
+                </Avatar>
+                
+                <div className='space-y-1'>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className='font-semibold text-lg'>{inv.company?.name ?? 'Empresa'}</span>
+                        {inv.company?.alias && <Badge variant={'secondary'} className="text-xs font-normal">{inv.company.alias}</Badge>}
+                        <Badge variant={'outline'} className={`text-xs font-normal ${getStatusBadge(inv.status).className}`}>
+                            {getStatusBadge(inv.status).label}
+                        </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>Recebido em {formatDate(inv.created_at)}</span>
+                    </div>
                 </div>
-                <div className='flex items-center gap-2'>
-                  <span className='text-xs text-muted-foreground hidden sm:inline'>Convite: {inv.uuid}</span>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    disabled={isAccepting || isRejecting}
-                    onClick={() => rejectInvite(inv.uuid || String(inv.company.id))}
-                  >
-                    {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                    Rejeitar
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="gap-2"
-                    disabled={isAccepting || isRejecting}
-                    onClick={() => acceptInvite(inv.uuid || String(inv.company.id))}
-                  >
-                    {isAccepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                    Aceitar
-                  </Button>
-                </div>
-              </CardContent>
-              <CardFooter className='pt-0 pb-4' />
-            </Card>
+              </div>
+
+              {inv.status === 'pending' && (
+              <div className='flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0'>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="flex-1 sm:flex-none text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  disabled={isAccepting || isRejecting}
+                  onClick={() => rejectInvite(inv.uuid || String(inv.company.id))}
+                >
+                  {isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                  Recusar
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="flex-1 sm:flex-none shadow-sm"
+                  disabled={isAccepting || isRejecting}
+                  onClick={() => acceptInvite(inv.uuid || String(inv.company.id))}
+                >
+                  {isAccepting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                  Aceitar
+                </Button>
+              </div>
+              )}
+            </div>
           ))}
           {(!invites || invites.length === 0) && (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant='icon'>
-                  <Mail className='h-5 w-5 text-muted-foreground' />
-                </EmptyMedia>
-                <EmptyTitle>Nenhum convite pendente</EmptyTitle>
-                <EmptyDescription>Você ainda não possui convites. Quando tiver, eles aparecerão aqui.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <div className="py-12">
+                <Empty>
+                <EmptyHeader>
+                    <EmptyMedia variant='icon' className="bg-muted/50">
+                    <Mail className='h-6 w-6 text-muted-foreground' />
+                    </EmptyMedia>
+                    <EmptyTitle>Nenhum convite pendente</EmptyTitle>
+                    <EmptyDescription className="max-w-sm mx-auto">
+                        Você não possui convites pendentes no momento. Quando uma empresa te convidar, o convite aparecerá aqui.
+                    </EmptyDescription>
+                </EmptyHeader>
+                </Empty>
+            </div>
           )}
         </div>
       )}

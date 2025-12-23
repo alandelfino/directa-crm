@@ -30,6 +30,7 @@ type CompanyProfile = {
   alias?: string
   website?: string
   segment?: string
+  description?: string
   image?: VaultImage
 }
 
@@ -58,7 +59,7 @@ export function CompanyProfileContent() {
         user_id: Number(payload?.user_id ?? 4),
         alias: String(payload?.alias ?? 'diveus'),
         website: String(payload?.website ?? ''),
-        segment: String(payload?.segment ?? ''),
+        description: String(payload?.description ?? ''),
         image: payload?.image ?? null,
       }
       return normalized
@@ -160,8 +161,8 @@ export function CompanyProfileContent() {
             <div className='grid grid-cols-1 md:grid-cols-2 gap-8 pt-2'>
               <div className='flex flex-col gap-3'>
                 <div className='flex flex-col'>
-                  <span className='text-xs font-medium text-muted-foreground'>Segmento</span>
-                  <span className='text-sm'>{company?.segment ?? '—'}</span>
+                  <span className='text-xs font-medium text-muted-foreground'>Descrição</span>
+                  <span className='text-sm'>{company?.description ?? '—'}</span>
                 </div>
               </div>
             </div>

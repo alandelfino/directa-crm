@@ -84,51 +84,14 @@ function getSubdomain() {
           form.reset({ name: localUser.name ?? '' })
           setPreviewUrl(localUser.image?.url ?? localUser.avatar_url ?? null)
 
-          // Se não houver imagem no localStorage, busca do backend para atualizar
-          const hasLocalImage = Boolean(
-            (localUser?.image?.url && !String(localUser?.image?.url).startsWith('blob:'))
-            || localUser?.avatar_url
-          )
-          if (!hasLocalImage) {
-            try {
-  const res = await privateInstance.get('/api:eA5lqIuH/auth/me')
-              if (res.status === 200) {
-                const data = Array.isArray(res.data) ? (res.data[0] ?? null) : res.data
-                if (data?.id) {
-                  const meData: MeResponse = { id: data.id, name: data.name ?? '', email: data.email ?? '', image: data.image ?? null }
-                  setMe(meData)
-                  form.reset({ name: meData.name ?? '' })
-                  setPreviewUrl(meData.image?.url ?? data?.avatar_url ?? null)
-                  // Atualiza localStorage com dados mais recentes, incluindo imagem
-                  try {
-                    const nextUser = { ...(localUser ?? {}), name: meData.name, email: meData.email, image: meData.image }
-                    localStorage.setItem(`${subdomain}-directa-user`, JSON.stringify(nextUser))
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
+          // Se não houver imagem no localStorage, não buscamos mais do backend (endpoint removido)
+          // const hasLocalImage = ...
         } else {
-          // Fallback: consulta ao backend
-  const res = await privateInstance.get('/api:eA5lqIuH/auth/me')
-          if (res.status === 200) {
-            const data = Array.isArray(res.data) ? (res.data[0] ?? null) : res.data
-            if (data?.id) {
-              const meData: MeResponse = { id: data.id, name: data.name ?? '', email: data.email ?? '', image: data.image ?? null }
-              setMe(meData)
-              form.reset({ name: meData.name ?? '' })
-              setPreviewUrl(meData.image?.url ?? data?.avatar_url ?? null)
-              // Persiste no localStorage para os próximos carregamentos
-              try {
-                localStorage.setItem(`${subdomain}-directa-user`, JSON.stringify({ id: meData.id, name: meData.name, email: meData.email, image: meData.image }))
-              } catch {}
-            }
-          } else {
-            toast.error('Não foi possível carregar seus dados')
-          }
+          // Fallback: endpoint /auth/me removido
+          toast.error('Sessão expirada ou dados locais não encontrados. Por favor, faça login novamente.')
         }
       } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Erro ao carregar seu perfil')
+        toast.error(err?.message ?? 'Erro ao carregar seu perfil')
       } finally {
         setLoadingMe(false)
       }
@@ -136,7 +99,7 @@ function getSubdomain() {
     loadMe()
   }, [])
 
-  // userId local removido: os dados do usuário são inferidos pelo token e obtidos via /auth/me
+  // userId local removido: os dados do usuário são inferidos pelo token e mantidos no localStorage
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {

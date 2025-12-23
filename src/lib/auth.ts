@@ -1,6 +1,7 @@
 import z from "zod"
 import axios from 'axios'
 import { toast } from 'sonner'
+import { Navigate } from "@tanstack/react-router"
 
 export const formSchema = z.object({
     email: z.email(),
@@ -135,29 +136,8 @@ export const auth = {
     // Normaliza o armazenamento do token: grava na chave preferida e remove chaves antigas de dev
     normalizeTokenStorage: (token: string) => normalizeTokenStorage(token),
     fetchUser: async () => {
-        try {
-            const response = await privateInstance.get('/api:eA5lqIuH/auth/me')
-            if (response.status === 200) {
-                const data = response?.data
-                const user = Array.isArray(data) ? (data[0] ?? null) : data
-                
-                if (user && user.id) {
-                    localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
-                    const avatarUrl = user?.image?.url ?? user?.avatar_url ?? null
-                    window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                        detail: { 
-                            name: user?.name, 
-                            email: user?.email, 
-                            avatarUrl,
-                            verified_email: user?.verified_email
-                        }
-                    }))
-                    return user
-                }
-            }
-        } catch (error) {
-            console.warn('fetchUser failed:', error)
-        }
+        // Endpoint /auth/me removido do backend.
+        // Dados do usuário são atualizados apenas no login ou edição.
         return null
     },
     login: async (values: z.infer<typeof formSchema>) => {
@@ -253,7 +233,7 @@ export const auth = {
         const authToken = getToken()
         if (!authToken) {
             // Sem token: redireciona imediatamente
-            //window.location.href = '/sign-in'
+            Navigate({ to: '/sign-in' })
             return
         }
         // Sem requisição de validação: apenas verifica presença do token.
@@ -267,46 +247,7 @@ export const auth = {
             //window.location.href = '/sign-in'
             return
         }
-
-        try {
-            const response = await privateInstance.get('/api:eA5lqIuH/auth/me')
-            if (response.status !== 200) {
-                const status = response.status
-                if (status === 401 || status === 403) {
-                    //window.location.href = '/sign-in'
-                }
-                return
-            }
-
-            const data = response?.data
-            const user = Array.isArray(data) ? (data[0] ?? null) : data
-            if (!user || !user.id) {
-                //window.location.href = '/sign-in'
-                return
-            }
-
-            try {
-                localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
-            } catch { }
-            try {
-                const avatarUrl = user?.image?.url ?? user?.avatar_url ?? null
-                window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                    detail: { 
-                        name: user?.name, 
-                        email: user?.email, 
-                        avatarUrl,
-                        verified_email: user?.verified_email
-                    }
-                }))
-            } catch { }
-        } catch (err: any) {
-            const status = err?.response?.status
-            if (status === 401 || status === 403) {
-                //window.location.href = '/sign-in'
-            } else {
-                console.warn('dashboardGuard (/auth/me): falha ao validar sessão, mantendo usuário na página:', err?.message ?? err)
-            }
-        }
+        // Validação de sessão ocorre via interceptors nas chamadas de API
     }
 }
 

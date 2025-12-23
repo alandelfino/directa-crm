@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, Building2, Trash, LogIn, MoreVertical, AlertCircle } from 'lucide-react'
+import { Loader2, Building2, Trash, LogIn, MoreVertical, AlertCircle, RefreshCw } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -27,10 +27,10 @@ type UserCompany = {
   is_me?: boolean
   company_id?: number
   active?: boolean
+  status?: 'active' | 'inactive' | 'payment_block' | 'maintenance'
   users_profile_id?: number
   image?: { url?: string | null } | null
-  segment?: string | null
-  segment_description?: string | null
+  description?: string | null
   website?: string | null
   country?: string | null
 }
@@ -44,6 +44,21 @@ function getSubdomain() {
   if (host === 'localhost' || /^127(\.\d+){0,3}$/.test(host)) return 'localhost'
   const parts = host.split('.')
   return parts[0] ?? host
+}
+
+const getStatusBadge = (status?: string) => {
+    switch (status) {
+        case 'active':
+            return { label: 'Ativa', className: 'bg-green-500/10 text-green-600 border-green-200 dark:border-green-800 dark:text-green-400' }
+        case 'inactive':
+            return { label: 'Inativa', className: 'bg-muted text-muted-foreground border-border' }
+        case 'payment_block':
+            return { label: 'Bloqueio Financeiro', className: 'bg-red-500/10 text-red-600 border-red-200 dark:border-red-800 dark:text-red-400' }
+        case 'maintenance':
+            return { label: 'Manutenção', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-200 dark:border-yellow-800 dark:text-yellow-400' }
+        default:
+            return null
+    }
 }
 
 function UserCompaniesPage() {
@@ -83,7 +98,7 @@ function UserCompaniesPage() {
     return () => window.removeEventListener('directa:user-updated', handler)
   }, [])
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     refetchOnWindowFocus: false,
     queryKey: ['auth', 'companies'],
     enabled: isEmailVerified === true,
@@ -99,10 +114,11 @@ function UserCompaniesPage() {
           const name = String(c?.name ?? it?.name ?? '')
           const alias = typeof c?.alias === 'string' ? c.alias : (typeof it?.alias === 'string' ? it.alias : null)
           const imageUrl = c?.image?.url
-          const segmentName = typeof c?.segment?.name === 'string' ? c.segment.name : (typeof c?.segment === 'string' ? c.segment : null)
-          const segmentDescription = typeof c?.segment?.description === 'string' ? c.segment.description : null
+          const description = typeof c?.description === 'string' ? c.description : (typeof it?.description === 'string' ? it.description : null)
           const website = typeof c?.website === 'string' ? c.website : (typeof it?.website === 'string' ? it.website : null)
           const active = typeof it?.active === 'boolean' ? it.active : (typeof c?.active === 'boolean' ? c.active : undefined)
+          const status = typeof c?.status === 'string' ? c.status : (typeof it?.status === 'string' ? it.status : 'active')
+
           return {
             id: Number.isFinite(id) ? id : undefined as any,
             company_id: Number.isFinite(id) ? id : undefined,
@@ -112,10 +128,10 @@ function UserCompaniesPage() {
             alias,
             is_me: Boolean(it?.is_me),
             active,
+            status,
             users_profile_id: typeof it?.users_profile_id === 'number' ? it.users_profile_id : undefined,
             image: (imageUrl && typeof imageUrl === 'string') ? { url: imageUrl } : null,
-            segment: segmentName,
-            segment_description: segmentDescription,
+            description,
             website,
             country: typeof it?.country === 'string' ? it.country : null,
           }
@@ -155,8 +171,14 @@ function UserCompaniesPage() {
       localStorage.setItem(`${sub}-directa-company`, JSON.stringify(company))
       window.dispatchEvent(new CustomEvent('directa:company-updated', { detail: company }))
       navigate({ to: '/dashboard' })
-    } catch (err) {
+    } catch (err: any) {
       console.error('Falha ao autenticar na empresa:', err)
+      const errorData = err?.response?.data
+      const title = errorData?.payload?.title || 'Erro ao acessar empresa'
+      const message = errorData?.message || 'Não foi possível realizar o login na empresa.'
+      toast.error(title, {
+        description: message
+      })
     } finally {
       setLoggingCompanyId(null)
     }
@@ -186,14 +208,23 @@ function UserCompaniesPage() {
   return (
     <div className='mx-auto p-6'>
 
-      <div className='flex items-center'>
+      <div className='flex items-center justify-between'>
         <div className='flex flex-col gap-2'>
           <div className='flex flex-col text-xl'>
             {(() => { const sub = getSubdomain(); let name = 'Usuário'; try { const raw = localStorage.getItem(`${sub}-directa-user`); const u = raw ? JSON.parse(raw) : null; name = u?.name?.split(' ')[0] || name } catch { } return (<span className='text-md font-medium'>Olá {name},</span>) })()}
             <span className='text-sm text-muted-foreground'>Você tem {data?.length ?? 0} {data?.length === 1 ? 'conta disponível para acesso.' : 'contas disponíveis, qual deseja acessar?'}</span>
           </div>
         </div>
-
+        <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 gap-2 text-muted-foreground"
+            onClick={() => refetch()}
+            disabled={isLoading || isRefetching}
+        >
+            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            Atualizar
+        </Button>
       </div>
 
       <div className='space-y-3 mt-4'>
@@ -248,14 +279,19 @@ function UserCompaniesPage() {
                           {uc.is_me ? (
                             <Badge variant={'default'} className='text-xs bg-blue-50 text-blue-500'>proprietário</Badge>
                           ) : null}
+                          {uc.status && uc.status !== 'active' && (() => {
+                              const badge = getStatusBadge(uc.status)
+                              return badge ? (
+                                <Badge variant={'outline'} className={`text-xs font-normal ${badge.className}`}>
+                                    {badge.label}
+                                </Badge>
+                              ) : null
+                          })()}
                         </div>
                       </div>
                       <div className='gap-x-3 gap-y-2 items-start'>
                         <div className='flex flex-col'>
-                          <span className='text-sm font-medium'>{uc.segment ?? '—'}</span>
-                          {uc.segment_description ? (
-                            <span className='text-xs text-muted-foreground'>{uc.segment_description}</span>
-                          ) : null}
+                          <span className='text-sm text-muted-foreground line-clamp-2'>{uc.description || 'Sem descrição'}</span>
                         </div>
                       </div>
                     </div>

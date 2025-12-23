@@ -35,6 +35,7 @@ type CompanyProfile = {
   alias?: string
   website?: string
   segment?: string
+  description?: string
   image?: VaultImage
 }
 
@@ -52,7 +53,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
   const formSchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório'),
     website: z.string().optional().default(''),
-    segment: z.string().optional().default(''),
+    description: z.string().optional().default(''),
   })
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,7 +61,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
     defaultValues: {
       name: '',
       website: '',
-      segment: '',
+      description: '',
     },
   })
 
@@ -83,7 +84,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
         user_id: Number(payload?.user_id ?? 0),
         alias: String(payload?.alias ?? ''),
         website: String(payload?.website ?? ''),
-        segment: String(payload?.segment ?? ''),
+        description: String(payload?.description ?? ''),
         image: payload?.image ?? null,
       }
       return normalized
@@ -109,7 +110,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
     form.reset({
       name: data?.name ?? '',
       website: data?.website ?? '',
-      segment: data?.segment ?? '',
+      description: data?.description ?? '',
     })
     try {
       const sub = getSubdomain()
@@ -181,7 +182,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
       const fd = new FormData()
       fd.append('name', values.name)
       fd.append('website', values.website ?? '')
-      fd.append('segment', values.segment ?? '')
+      fd.append('description', values.description ?? '')
       if (selectedFile) {
         fd.append('file', selectedFile, selectedFile.name)
       }
@@ -273,12 +274,12 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name='segment' render={({ field }) => (
+                <FormField control={form.control} name='description' render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Segmento</FormLabel>
+                    <FormLabel>Descrição</FormLabel>
                     <FormControl>
                       <textarea
-                        placeholder='Segmento da empresa'
+                        placeholder='Descrição da empresa'
                         className='file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive'
                         rows={3}
                         {...field}

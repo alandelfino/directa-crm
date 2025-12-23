@@ -194,16 +194,17 @@ export const auth = {
             if (response.status === 200 && response.data?.token) {
                 normalizeTokenStorage(response.data.token)
 
-                const { name, email, image } = response.data
-                // Se houver dados de usuário na resposta (flat structure), armazena e notifica
+                const { name, email, image, verified_email } = response.data?.user || {}
+                // Se houver dados de usuário na resposta, armazena e notifica
                 if (name || email) {
+                    const avatarUrl = image?.url ?? null
                     // Constrói objeto de usuário compatível com o resto da aplicação
-                    // Mapeia 'image' (string url) para avatar_url e image object
                     const user = {
                         name,
                         email,
-                        avatar_url: image,
-                        image: image ? { url: image } : null
+                        verified_email,
+                        avatar_url: avatarUrl,
+                        image: image
                     }
                     
                     localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
@@ -213,8 +214,8 @@ export const auth = {
                             detail: { 
                                 name, 
                                 email, 
-                                avatarUrl: image,
-                                verified_email: response.data?.verified_email
+                                avatarUrl,
+                                verified_email
                             }
                         }))
                     } catch { }
@@ -235,7 +236,7 @@ export const auth = {
         }
     },
     resendVerification: async () => {
-        const response = await privateInstance.post(`/api:eA5lqIuH/auth/resend-verification`)
+        const response = await privateInstance.post(`/api:eA5lqIuH/auth/send-confirmation-email`)
         return response
     },
     getCompany: async () => {

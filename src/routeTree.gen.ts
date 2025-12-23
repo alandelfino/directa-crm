@@ -14,6 +14,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SignUpIndexRouteImport } from './routes/sign-up/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
+import { Route as EmailConfirmationTokenRouteImport } from './routes/email-confirmation/$token'
 import { Route as DashboardSettingsRouteRouteImport } from './routes/dashboard/settings/route'
 import { Route as UserProfileIndexRouteImport } from './routes/user/profile/index'
 import { Route as UserInvitesIndexRouteImport } from './routes/user/invites/index'
@@ -64,6 +65,11 @@ const SignUpIndexRoute = SignUpIndexRouteImport.update({
 const SignInIndexRoute = SignInIndexRouteImport.update({
   id: '/sign-in/',
   path: '/sign-in/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailConfirmationTokenRoute = EmailConfirmationTokenRouteImport.update({
+  id: '/email-confirmation/$token',
+  path: '/email-confirmation/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardSettingsRouteRoute = DashboardSettingsRouteRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/user': typeof UserRouteRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
+  '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/user': typeof UserRouteRouteWithChildren
+  '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/user': typeof UserRouteRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
+  '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/sign-in/': typeof SignInIndexRoute
   '/sign-up/': typeof SignUpIndexRoute
   '/dashboard/brands/': typeof DashboardBrandsIndexRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/user'
     | '/dashboard/settings'
+    | '/email-confirmation/$token'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/user'
+    | '/email-confirmation/$token'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/user'
     | '/dashboard/settings'
+    | '/email-confirmation/$token'
     | '/sign-in/'
     | '/sign-up/'
     | '/dashboard/brands/'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   UserRouteRoute: typeof UserRouteRouteWithChildren
+  EmailConfirmationTokenRoute: typeof EmailConfirmationTokenRoute
   SignInIndexRoute: typeof SignInIndexRoute
   SignUpIndexRoute: typeof SignUpIndexRoute
 }
@@ -455,6 +468,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-confirmation/$token': {
+      id: '/email-confirmation/$token'
+      path: '/email-confirmation/$token'
+      fullPath: '/email-confirmation/$token'
+      preLoaderRoute: typeof EmailConfirmationTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/settings': {
@@ -734,6 +754,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   UserRouteRoute: UserRouteRouteWithChildren,
+  EmailConfirmationTokenRoute: EmailConfirmationTokenRoute,
   SignInIndexRoute: SignInIndexRoute,
   SignUpIndexRoute: SignUpIndexRoute,
 }

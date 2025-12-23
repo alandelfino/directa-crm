@@ -66,15 +66,19 @@ function UserLayout() {
 
   const handleResend = async () => {
     try {
-        toast.loading("Enviando email...", { id: "resend-email" })
+        toast.loading("Enviando email...", { id: "resend-email", description: undefined })
         const res = await auth.resendVerification()
         if (res.status === 200 || res.status === 201) {
-            toast.success("Email de confirmação enviado!", { id: "resend-email" })
+            toast.success("Email de confirmação enviado!", { id: "resend-email", description: undefined })
         } else {
-            toast.error("Erro ao enviar email", { id: "resend-email", description: res.data?.message })
+            const errorTitle = res.data?.payload?.title || "Erro ao enviar email"
+            const errorMessage = res.data?.message || "Erro desconhecido"
+            toast.error(errorTitle, { id: "resend-email", description: errorMessage })
         }
     } catch (e: any) {
-        toast.error("Erro ao enviar email", { id: "resend-email", description: e?.response?.data?.message || "Erro desconhecido" })
+        const errorTitle = e?.response?.data?.payload?.title || "Erro ao enviar email"
+        const errorMessage = e?.response?.data?.message || "Erro desconhecido"
+        toast.error(errorTitle, { id: "resend-email", description: errorMessage })
     }
   }
 

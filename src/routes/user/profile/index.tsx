@@ -64,58 +64,35 @@ function RouteComponent() {
     },
   })
 
-  // Carrega dados iniciais do usuário diretamente do endpoint `users/me` (Xano) e atualiza os dados locais
+  // Carrega dados iniciais do usuário do localStorage
   useEffect(() => {
-    async function loadMe() {
+    function loadFromStorage() {
       try {
-        setLoadingMe(true)
-  const res = await privateInstance.get('/api:paM0Fhtw/users/me')
-        if (res.status === 200) {
-          const payload = res.data?.me ?? null
-          if (payload?.id) {
-            const meData: MeResponse = { 
-                id: payload.id, 
-                name: payload.name ?? '', 
-                email: payload.email ?? '', 
-                image: payload.image ?? null,
-                verified_email: payload.verified_email 
-            }
-            setMe(meData)
-            form.reset({ name: meData.name ?? '' })
-            setPreviewUrl(meData.image?.url ?? null)
-            try {
-              const subdomain = getSubdomain()
-              localStorage.setItem(`${subdomain}-directa-user`, JSON.stringify({ 
-                  id: meData.id, 
-                  name: meData.name, 
-                  email: meData.email, 
-                  image: meData.image,
-                  verified_email: meData.verified_email 
-              }))
-            } catch {}
-            try {
-              window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                detail: { 
-                    name: meData.name, 
-                    email: meData.email, 
-                    avatarUrl: meData.image?.url ?? null,
-                    verified_email: meData.verified_email
-                }
-              }))
-            } catch {}
-          } else {
-            toast.error('Não foi possível carregar seus dados')
+        const subdomain = getSubdomain()
+        const raw = localStorage.getItem(`${subdomain}-directa-user`)
+        if (raw) {
+          const user = JSON.parse(raw)
+          // Tenta obter ID do user, se não existir usa 0 (já que o login pode não retornar ID)
+          const meData: MeResponse = { 
+              id: user.id || 0, 
+              name: user.name ?? '', 
+              email: user.email ?? '', 
+              image: user.image ?? null,
+              verified_email: user.verified_email 
           }
+          setMe(meData)
+          form.reset({ name: meData.name ?? '' })
+          setPreviewUrl(meData.image?.url ?? user.avatar_url ?? null)
         } else {
-          toast.error('Não foi possível carregar seus dados')
+          toast.error('Não foi possível carregar seus dados locais')
         }
       } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Erro ao carregar seu perfil')
+        console.error(err)
       } finally {
         setLoadingMe(false)
       }
     }
-    loadMe()
+    loadFromStorage()
   }, [])
 
   // Removido: derivação de userId local; os dados agora são sempre provenientes do endpoint `me`
@@ -178,23 +155,7 @@ function RouteComponent() {
           } catch {}
 
           if (!removeImage) {
-            try {
-              setTimeout(async () => {
-  const check = await privateInstance.get('/api:paM0Fhtw/users/me')
-                const payload2 = check?.data?.me ?? null
-                const finalUrl: string | undefined = payload2?.image?.url
-                if (finalUrl && typeof finalUrl === 'string' && !finalUrl.startsWith('blob:')) {
-                  const raw2 = localStorage.getItem(`${subdomain}-directa-user`)
-                  let localUser2: any = null
-                  try { localUser2 = raw2 ? JSON.parse(raw2) : null } catch { localUser2 = null }
-                  const nextUser2 = { ...(localUser2 ?? {}), image: { ...(localUser2?.image ?? {}), url: finalUrl } }
-                  localStorage.setItem(`${subdomain}-directa-user`, JSON.stringify(nextUser2))
-                  setMe((prev) => prev ? ({ ...prev, image: nextUser2.image }) : prev)
-                  setPreviewUrl(finalUrl)
-                  try { window.dispatchEvent(new CustomEvent('directa:user-updated', { detail: { avatarUrl: finalUrl, name: nextUser2?.name, email: nextUser2?.email } })) } catch {}
-                }
-              }, 1500)
-            } catch {}
+            // Atualização local já realizada acima
           } else {
             try {
               const raw3 = localStorage.getItem(`${subdomain}-directa-user`)

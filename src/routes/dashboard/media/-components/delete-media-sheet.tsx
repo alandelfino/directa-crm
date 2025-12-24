@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button'
-import { Trash, Loader, Check, AlertCircle, FileIcon } from 'lucide-react'
+import { Trash, Loader, Check, AlertCircle, FileIcon, AlertTriangle, X } from 'lucide-react'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 type ApiMedia = { id: number | string, name?: string }
 
@@ -39,21 +40,37 @@ export function DeleteMediaSheet({ media, onDeleted }: { media: ApiMedia, onDele
           <Trash className='size-[0.85rem]' />
         </Button>
       </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Você tem certeza absoluta?</SheetTitle>
+      <SheetContent className="sm:max-w-[400px]">
+        <SheetHeader className="sm:text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100 mb-4">
+            <AlertTriangle className="size-6 text-red-600" />
+          </div>
+          <SheetTitle>Excluir mídia</SheetTitle>
           <SheetDescription>
-            Essa ação não pode ser desfeita. Isso excluirá permanentemente a mídia
-            e removerá seus dados de nossos servidores.
+            Você está prestes a excluir a mídia <span className="font-medium text-foreground">ID: {media.id}</span>.
           </SheetDescription>
         </SheetHeader>
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button variant='outline' size={'sm'}>Cancelar</Button>
-          </SheetClose>
-          <Button variant='destructive' size={'sm'} onClick={submit} disabled={deleting}>
-            {deleting ? <Loader className='animate-spin size-[0.85rem]' /> : 'Excluir'}
-          </Button>
+
+        <div className="py-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Atenção</AlertTitle>
+            <AlertDescription>
+              Essa ação não pode ser desfeita. A mídia será permanentemente removida dos servidores.
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        <SheetFooter className="gap-2 sm:space-x-0">
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <SheetClose asChild>
+              <Button variant='outline' disabled={deleting}>Cancelar</Button>
+            </SheetClose>
+            <Button variant='destructive' onClick={submit} disabled={deleting}>
+              {deleting ? <Loader className='animate-spin size-4 mr-2' /> : null}
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -68,6 +85,8 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
 
   const allProcessed = useMemo(() => queue.length > 0 && queue.every((q) => q.status === 'done' || q.status === 'error'), [queue])
   const isDeleting = useMemo(() => queue.some((q) => q.status === 'pending' || q.status === 'deleting'), [queue])
+  const successCount = useMemo(() => queue.filter(q => q.status === 'done').length, [queue])
+  const errorCount = useMemo(() => queue.filter(q => q.status === 'error').length, [queue])
 
   useEffect(() => {
     if (open && ids.length > 0 && queue.length === 0) {
@@ -88,34 +107,32 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
   useEffect(() => {
     if (deletingRef.current || !confirmed) return
     const nextIndex = queue.findIndex((q) => q.status === 'pending')
-    
+
     if (nextIndex >= 0) {
       deletingRef.current = true
-      ;(async () => {
-        const item = queue[nextIndex]
-        try {
-          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'deleting', error: undefined } : q))
-          
-          const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${item.id}`)
-          
-          if (res.status !== 200 && res.status !== 204) throw new Error('Falha ao excluir')
-          
-          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done' } : q))
-        } catch (err: any) {
-          const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao excluir'
-          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
-        } finally {
-          deletingRef.current = false
-        }
-      })()
+        ; (async () => {
+          const item = queue[nextIndex]
+          try {
+            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'deleting', error: undefined } : q))
+
+            const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${item.id}`)
+
+            if (res.status !== 200 && res.status !== 204) throw new Error('Falha ao excluir')
+
+            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done' } : q))
+          } catch (err: any) {
+            const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao excluir'
+            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
+          } finally {
+            deletingRef.current = false
+          }
+        })()
     } else if (queue.length > 0 && allProcessed && !hasNotified) {
-      const ok = queue.filter((q) => q.status === 'done').length
-      const fail = queue.filter((q) => q.status === 'error').length
-      toast.success(`Exclusão concluída${fail > 0 ? ` (${ok} ok, ${fail} erro)` : ''}`)
+      toast.success(`Processo finalizado: ${successCount} excluídos, ${errorCount} erros`)
       onDeleted?.()
       setHasNotified(true)
     }
-  }, [queue, allProcessed, hasNotified, onDeleted, confirmed])
+  }, [queue, allProcessed, hasNotified, onDeleted, confirmed, successCount, errorCount])
 
   const handleOpenChange = (v: boolean) => {
     if (!v && isDeleting && confirmed) {
@@ -127,67 +144,90 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent>
-        <div className='flex flex-col h-full'>
+      <SheetContent className="flex flex-col h-full sm:max-w-[450px] p-0 gap-0 bg-background">
+        <div className="p-0 border-b">
           <SheetHeader>
-            <SheetTitle>Excluir em lote</SheetTitle>
+            <SheetTitle>Excluir {ids.length} {ids.length === 1 ? 'item selecionado' : 'itens selecionados'}</SheetTitle>
             <SheetDescription>
-              {confirmed 
-                ? 'Acompanhe o progresso da exclusão' 
-                : 'Você tem certeza que deseja excluir os itens selecionados?'}
+              {confirmed
+                ? 'Aguarde enquanto os itens são processados.'
+                : 'Revise a lista abaixo. Esta ação é irreversível.'}
             </SheetDescription>
           </SheetHeader>
-          
-          <div className='flex-1 min-h-0 overflow-auto px-4 mt-6'>
-            <div className='flex flex-col gap-2'>
+        </div>
+
+        <div className='flex-1 min-h-0 overflow-y-auto'>
+          <div className="p-6 pt-4">
+
+            {!confirmed && (
+              <div className="mb-4">
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Atenção</AlertTitle>
+                  <AlertDescription>
+                    Os itens selecionados serão permanentemente removidos.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
+            <div className="border overflow-auto rounded-md divide-y">
               {queue.map((item) => (
-                <div key={item.id} className='rounded-md bg-neutral-50 p-3'>
-                  <div className='flex items-center justify-between gap-3'>
-                    <div className='flex items-center gap-3 min-w-0 flex-1'>
-                      <FileIcon className='h-5 w-5 text-muted-foreground shrink-0' />
-                      <div className='flex-1 min-w-0'>
-                        <div className='text-sm font-medium truncate'>Mídia ID: {item.id}</div>
-                        {item.status === 'deleting' && (
-                          <div className='mt-2 h-2 w-full bg-muted rounded overflow-hidden'>
-                            <div className='h-full bg-destructive rounded animate-pulse' style={{ width: '100%' }} />
-                          </div>
-                        )}
+                <div key={item.id} className="flex items-start gap-3 p-3 bg-card transition-colors hover:bg-accent/50">
+                  <div className="flex items-center justify-center size-8 rounded-md bg-muted text-muted-foreground shrink-0 mt-0.5">
+                    <FileIcon className="size-4" />
+                  </div>
+
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium truncate">Mídia ID: {item.id}</span>
+                      <div className="shrink-0">
+                        {item.status === 'pending' && <span className="flex size-2 rounded-full bg-muted-foreground/30" />}
+                        {item.status === 'deleting' && <Loader className="size-4 animate-spin text-primary" />}
+                        {item.status === 'done' && <Check className="size-4 text-green-600" />}
+                        {item.status === 'error' && <X className="size-4 text-destructive" />}
                       </div>
                     </div>
-                    <div className='flex items-center gap-2 shrink-0'>
-                      {item.status === 'done' && <Check className='h-5 w-5 text-green-600' />}
-                      {item.status === 'deleting' && <Loader className='h-5 w-5 animate-spin text-muted-foreground' />}
-                      {item.status === 'error' && <AlertCircle className='h-5 w-5 text-destructive' />}
-                      {item.status === 'pending' && <div className='h-2 w-2 rounded-full bg-neutral-300' />}
-                    </div>
+
+                    {item.status === 'error' && (
+                      <p className="text-xs text-destructive mt-1">{item.error}</p>
+                    )}
+
+                    {item.status === 'deleting' && (
+                      <span className="text-xs text-muted-foreground">Excluindo...</span>
+                    )}
                   </div>
-                  {item.status === 'error' && (
-                    <div className='mt-2 text-xs text-destructive bg-destructive/10 p-2 rounded break-words'>
-                      {item.error ?? 'Erro ao excluir mídia'}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           </div>
+        </div>
 
-          {!confirmed && queue.length > 0 && (
-            <div className='mt-auto pt-4 border-t flex flex-col gap-2'>
-              <Button 
-                variant='destructive' 
-                onClick={() => setConfirmed(true)}
-                className='w-full'
-              >
-                Confirmar Exclusão ({queue.length} itens)
-              </Button>
-              <Button 
-                variant='outline' 
+        <div className='p-6 border-t bg-background mt-auto'>
+          {!confirmed ? (
+            <div className='grid grid-cols-2 gap-3'>
+              <Button
+                variant='outline'
                 onClick={() => handleOpenChange(false)}
-                className='w-full'
               >
                 Cancelar
               </Button>
+              <Button
+                variant='destructive'
+                onClick={() => setConfirmed(true)}
+              >
+                Confirmar Exclusão
+              </Button>
             </div>
+          ) : (
+            <Button
+              variant='secondary'
+              onClick={() => handleOpenChange(false)}
+              className='w-full'
+              disabled={!allProcessed}
+            >
+              {allProcessed ? 'Fechar' : 'Processando...'}
+            </Button>
           )}
         </div>
       </SheetContent>

@@ -15,13 +15,17 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-type StoreItem = { id: number; name?: string; description?: string; active?: boolean; price_table_id?: number }
+type StoreItem = { id: number; name?: string; description?: string; active?: boolean; price_table_id?: number; segment_id?: number }
+
+type Segment = { id: number; name?: string }
+type SegmentsResponse = { items?: Segment[] } | Segment[]
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome da loja é obrigatório' }),
   description: z.string().optional().or(z.literal('')),
   active: z.boolean().default(true),
   price_table_id: z.number({ error: 'Tabela de preço é obrigatória' }),
+  segment_id: z.number({ error: 'Segmento é obrigatório' }),
   desktop_product_media_size_id: z.number({ error: 'Tamanho de mídia (Desktop) é obrigatório' }),
   tablet_product_media_size_id: z.number({ error: 'Tamanho de mídia (Tablet) é obrigatório' }),
   mobile_product_media_size_id: z.number({ error: 'Tamanho de mídia (Mobile) é obrigatório' }),
@@ -44,6 +48,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
       description: '',
       active: true,
       price_table_id: undefined,
+      segment_id: undefined,
       desktop_product_media_size_id: undefined,
       tablet_product_media_size_id: undefined,
       mobile_product_media_size_id: undefined,
@@ -66,6 +71,24 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
     ? priceTablesData
     : Array.isArray((priceTablesData as any)?.items)
       ? (priceTablesData as any).items
+      : []
+
+  const { data: segmentsData } = useQuery({
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    queryKey: ['segments', 'select'],
+    queryFn: async () => {
+      const url = `/api:A9ZKSnTX/segments?page=1&per_page=100`
+      const response = await privateInstance.get(url)
+      if (response.status !== 200) throw new Error('Erro ao carregar segmentos')
+      return response.data as SegmentsResponse
+    }
+  })
+
+  const segments = Array.isArray(segmentsData)
+    ? segmentsData
+    : Array.isArray((segmentsData as any)?.items)
+      ? (segmentsData as any).items
       : []
 
   const { data: mediaSizesData } = useQuery({
@@ -103,6 +126,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
           description: s.description ?? '',
           active: s.active === true,
           price_table_id: typeof s.price_table_id === 'number' ? s.price_table_id : undefined,
+          segment_id: typeof s.segment_id === 'number' ? s.segment_id : undefined,
           desktop_product_media_size_id: typeof s.desktop_product_media_size_id === 'number' ? s.desktop_product_media_size_id : undefined,
           tablet_product_media_size_id: typeof s.tablet_product_media_size_id === 'number' ? s.tablet_product_media_size_id : undefined,
           mobile_product_media_size_id: typeof s.mobile_product_media_size_id === 'number' ? s.mobile_product_media_size_id : undefined,
@@ -124,6 +148,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
         description: values.description ?? '',
         active: values.active,
         price_table_id: values.price_table_id,
+        segment_id: values.segment_id,
         desktop_product_media_size_id: values.desktop_product_media_size_id,
         tablet_product_media_size_id: values.tablet_product_media_size_id,
         mobile_product_media_size_id: values.mobile_product_media_size_id,
@@ -202,6 +227,25 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                           <SelectContent>
                             {priceTables.map((pt: PriceTable) => (
                               <SelectItem key={pt.id} value={String(pt.id)}>{pt.name ?? `Tabela ${pt.id}`}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='segment_id' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Segmento</FormLabel>
+                      <FormControl>
+                        <Select value={field.value != null ? String(field.value) : undefined} onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder='Selecione um segmento' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {segments.map((sg: Segment) => (
+                              <SelectItem key={sg.id} value={String(sg.id)}>{sg.name ?? `Segmento ${sg.id}`}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

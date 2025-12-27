@@ -122,43 +122,43 @@ function DerivationImages({ derivation }: { derivation: ChildProduct }) {
 
   return (
     <Card className="overflow-hidden border-neutral-200 shadow-sm transition-all hover:shadow-md dark:border-neutral-800">
-      <CardHeader className="flex flex-row items-center gap-3 bg-neutral-50/50 px-4 py-3 dark:bg-neutral-900/50">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Package className="h-4 w-4" />
+      <CardHeader className="flex flex-row items-center gap-2 bg-neutral-50/50 px-3 py-2 dark:bg-neutral-900/50">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Package className="h-3 w-3" />
         </div>
         <div className="flex flex-col min-w-0">
           <CardTitle className="text-sm font-semibold text-foreground truncate" title={derivation.name}>
             {derivation.name || 'Variação sem nome'}
           </CardTitle>
           {derivation.sku && (
-             <span className="text-xs text-muted-foreground font-mono truncate" title={derivation.sku}>SKU: {derivation.sku}</span>
+             <span className="text-[10px] text-muted-foreground font-mono truncate" title={derivation.sku}>SKU: {derivation.sku}</span>
           )}
         </div>
       </CardHeader>
       <Separator />
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         {isLoading ? (
-          <div className="grid grid-cols-4 gap-3">
-             {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-5 gap-2">
+             {[1, 2, 3, 4, 5].map((i) => (
                <Skeleton key={i} className="aspect-square w-full rounded-lg" />
              ))}
           </div>
         ) : isError ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center animate-in fade-in-50">
-            <div className="mb-2 rounded-full bg-destructive/10 p-2 text-destructive">
-               <AlertCircle className="h-5 w-5" />
+          <div className="flex flex-col items-center justify-center py-4 text-center animate-in fade-in-50">
+            <div className="mb-2 rounded-full bg-destructive/10 p-1.5 text-destructive">
+               <AlertCircle className="h-4 w-4" />
             </div>
-            <p className="text-sm font-medium text-destructive">Falha ao carregar imagens</p>
+            <p className="text-xs font-medium text-destructive">Falha ao carregar</p>
           </div>
         ) : images.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground animate-in fade-in-50">
-            <div className="mb-2 rounded-full bg-muted p-3">
-              <ImageIcon className="h-6 w-6 opacity-40" />
+          <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground animate-in fade-in-50">
+            <div className="mb-1.5 rounded-full bg-muted p-2">
+              <ImageIcon className="h-5 w-5 opacity-40" />
             </div>
-            <p className="text-xs font-medium">Nenhuma imagem cadastrada</p>
+            <p className="text-[10px] font-medium">Sem imagens</p>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3 animate-in fade-in-50">
+          <div className="grid grid-cols-5 gap-2 animate-in fade-in-50">
             {images.map((img) => (
               <ImageThumbnail key={img.media_id} img={img} />
             ))}
@@ -194,12 +194,12 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col h-full sm:max-w-[600px] p-0 gap-0 bg-background/95 backdrop-blur-sm">
-        <div className="p-6 border-b">
-          <SheetHeader>
-            <SheetTitle className="text-xl">Imagens das Variações</SheetTitle>
-            <SheetDescription className="flex items-center gap-2 mt-1.5">
-              <Info className="size-4 shrink-0" />
-              Visualize as imagens cadastradas para cada variação deste produto.
+        <div className="px-4 py-3 border-b">
+          <SheetHeader className="space-y-1">
+            <SheetTitle className="text-base font-semibold">Imagens das Variações</SheetTitle>
+            <SheetDescription className="flex items-center gap-1.5 text-xs">
+              <Info className="size-3.5 shrink-0" />
+              Visualize as imagens cadastradas para cada variação.
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -217,8 +217,8 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
                         <Skeleton className="h-3 w-24" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-3">
-                      {[1, 2, 3, 4].map((j) => (
+                    <div className="grid grid-cols-5 gap-3">
+                      {[1, 2, 3, 4, 5].map((j) => (
                         <Skeleton key={j} className="aspect-square rounded-lg" />
                       ))}
                     </div>

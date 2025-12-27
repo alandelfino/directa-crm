@@ -196,7 +196,7 @@ function RouteComponent() {
               </EmptyContent>
             </Empty>
           ) : (
-            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'>
+            <div className='grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4'>
               {medias.map((m) => (
                 <div key={m.id} className={`group relative rounded-lg border border-transparent p-1 bg-background hover:bg-neutral-100 transition-shadow overflow-hidden ${isSelected(m.id) ? 'ring-2 ring-primary' : ''}`}>
                   <div className='aspect-square w-full bg-muted flex items-center justify-center'>

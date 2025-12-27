@@ -16,7 +16,7 @@ import { DeleteProductDialog } from './-components/delete-product'
 import { ChildProductsSheet } from './-components/child-products'
 import { DerivatedProductPricesSheet } from './-components/derivated-product-prices/derivated-product-prices-sheet'
 import { SimpleProductPricesSheet } from './-components/simple-product-prices/simple-product-prices-sheet'
-import { ProductImagesSheet } from './-components/product-images-sheet'
+import { ProductImagesSheet } from './-components/derivated-product-images-sheet'
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: RouteComponent,

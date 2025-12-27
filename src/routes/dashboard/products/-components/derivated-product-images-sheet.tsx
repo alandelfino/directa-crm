@@ -3,12 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
-import { Image as ImageIcon, ZoomIn, Package, AlertCircle, Info, X, ExternalLink, Plus, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Image as ImageIcon, ZoomIn, Package, AlertCircle, Info, X, ExternalLink, Plus, Loader2, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { MediaSelectorDialog, type ApiMedia } from '../../media/-components/media-selector-dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'
+
+import { toast } from 'sonner'
 
 type ChildProduct = {
   id: number
@@ -23,6 +25,7 @@ type ChildsResponse = {
 } | ChildProduct[]
 
 type ImageItem = {
+  id: number
   media_id: number
   name: string
   url: string
@@ -43,11 +46,22 @@ function normalizeImages(data: ImagesResponse) {
   return { items: Array.isArray(data.items) ? data.items : [] }
 }
 
-function ImageThumbnail({ img }: { img: ImageItem }) {
+function ImageThumbnail({ img, onDelete }: { img: ImageItem, onDelete: (id: number) => void }) {
   const imageUrl = img.url
   const zoomUrl = img.original_url
+  const [isDeleting, setIsDeleting] = useState(false)
 
   if (!imageUrl) return null
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsDeleting(true)
+    try {
+      await onDelete(img.id)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <Dialog>
@@ -62,6 +76,15 @@ function ImageThumbnail({ img }: { img: ImageItem }) {
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             <ZoomIn className="h-6 w-6 text-white drop-shadow-md" />
           </div>
+          <Button
+            size="icon"
+            variant="destructive"
+            className="absolute top-1 right-1 h-6 w-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+          </Button>
         </div>
       </DialogTrigger>
       <DialogContent showCloseButton={false} className="max-w-[95vw] max-h-[95vh] w-fit h-fit border-none bg-transparent p-0 shadow-none overflow-visible">
@@ -170,6 +193,22 @@ function DerivationImages({ derivation }: { derivation: ChildProduct }) {
     processQueue(queue)
   }
 
+  const handleDeleteImage = async (id: number) => {
+    try {
+      const response = await privateInstance.delete(`/api:DqAmjbHy/derivated_product_images/${id}`)
+      if (response.data.status === 'success') {
+        toast.success('Imagem removida com sucesso')
+        queryClient.invalidateQueries({ queryKey: ['derivation-images', derivation.id] })
+      } else {
+        throw new Error('Falha ao remover imagem')
+      }
+    } catch (error: any) {
+      const title = error?.response?.data?.message || 'Erro ao remover imagem'
+      const description = error?.response?.data?.payload?.title || 'Não foi possível excluir a imagem.'
+      toast.error(description, { description: title })
+    }
+  }
+
   const images = data ? normalizeImages(data).items : []
 
   return (
@@ -224,7 +263,7 @@ function DerivationImages({ derivation }: { derivation: ChildProduct }) {
         ) : (
           <div className="grid grid-cols-5 gap-2 animate-in fade-in-50">
             {images.map((img) => (
-              <ImageThumbnail key={img.media_id} img={img} />
+              <ImageThumbnail key={img.media_id} img={img} onDelete={handleDeleteImage} />
             ))}
           </div>
         )}

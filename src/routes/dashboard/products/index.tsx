@@ -16,7 +16,8 @@ import { DeleteProductDialog } from './-components/delete-product'
 import { ChildProductsSheet } from './-components/child-products'
 import { DerivatedProductPricesSheet } from './-components/derivated-product-prices/derivated-product-prices-sheet'
 import { SimpleProductPricesSheet } from './-components/simple-product-prices/simple-product-prices-sheet'
-import { ProductImagesSheet } from './-components/derivated-product-images-sheet'
+import { ProductImagesSheet as DerivatedProductImagesSheet } from './-components/derivated-product-images-sheet'
+import { ProductImagesSheet as SimpleProductImagesSheet } from './-components/product-images-sheet'
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: RouteComponent,
@@ -169,8 +170,12 @@ function RouteComponent() {
               {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
             </Button>
 
-            {selected.length === 1 && selectedProduct?.type === 'with_derivations' ? (
-              <ProductImagesSheet productId={selected[0]} />
+            {selected.length === 1 ? (
+              selectedProduct?.type === 'with_derivations' ? (
+                <DerivatedProductImagesSheet productId={selected[0]} />
+              ) : (
+                <SimpleProductImagesSheet productId={selected[0]} />
+              )
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <ImageIcon className="size-[0.85rem]" /> Imagens

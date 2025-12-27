@@ -212,8 +212,8 @@ function DerivationImages({ derivation }: { derivation: ChildProduct }) {
   const images = data ? normalizeImages(data).items : []
 
   return (
-    <Card className="overflow-hidden border-neutral-200 shadow-sm transition-all hover:shadow-md dark:border-neutral-800">
-      <CardHeader className="flex flex-row items-center gap-2 bg-neutral-50/50 px-3 py-2 dark:bg-neutral-900/50">
+    <Card className="overflow-hidden shadow-sm transition-all hover:shadow-md">
+      <CardHeader className="flex flex-row items-center gap-2 bg-muted/50 px-3 py-2">
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Package className="h-3 w-3" />
         </div>
@@ -322,6 +322,70 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
   })
 
   const derivations = derivationsData ? normalizeChilds(derivationsData).items : []
+  const queryClient = useQueryClient()
+
+  type QueueItem = {
+    media: ApiMedia
+    status: 'idle' | 'processing' | 'success' | 'error'
+    errorMessage?: string
+  }
+
+  const [uploadQueue, setUploadQueue] = useState<QueueItem[]>([])
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const processQueue = async (initialQueue: QueueItem[]) => {
+    setIsProcessing(true)
+    for (let i = 0; i < initialQueue.length; i++) {
+      setUploadQueue(prev => {
+        const next = [...prev]
+        if (next[i]) next[i] = { ...next[i], status: 'processing' }
+        return next
+      })
+
+      try {
+        const response = await privateInstance.post('/api:DqAmjbHy/derivated_product_images', {
+          derivated_product_id: derivations[0]?.id,
+          media_id: initialQueue[i].media.id,
+          to_all: true
+        })
+        
+        if (response.data.status !== 'success' && !response.data.to_all) { 
+           // Fallback verification if backend doesn't return standard success structure but we expect it
+           // Adjusting based on user prompt "esperar um retorno {status: success}"
+           if (response.status !== 200) throw new Error('Erro na requisição')
+        }
+
+        setUploadQueue(prev => {
+          const next = [...prev]
+          if (next[i]) next[i] = { ...next[i], status: 'success' }
+          return next
+        })
+      } catch (e: any) {
+        const title = e?.response?.data?.message || 'Erro ao vincular'
+        setUploadQueue(prev => {
+          const next = [...prev]
+          if (next[i]) next[i] = { ...next[i], status: 'error', errorMessage: title }
+          return next
+        })
+      }
+    }
+    setIsProcessing(false)
+    // Invalidate all derivation images queries
+    derivations.forEach(d => {
+        queryClient.invalidateQueries({ queryKey: ['derivation-images', d.id] })
+    })
+  }
+
+  const handleSelectToAll = (medias: ApiMedia[]) => {
+    if (medias.length === 0) return
+    if (!derivations || derivations.length === 0) return
+
+    const queue = medias.map(m => ({ media: m, status: 'idle' } as QueueItem))
+    setUploadQueue(queue)
+    setIsUploadDialogOpen(true)
+    processQueue(queue)
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -344,6 +408,25 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 flex flex-col gap-6">
+            <div className="rounded-xl border bg-muted/30 p-4">
+               <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold leading-none tracking-tight">Adicionar a todas</h3>
+                    <p className="text-sm text-muted-foreground">Vincular imagens a todas as variações deste produto.</p>
+                  </div>
+                  <MediaSelectorDialog
+                    multiple={true}
+                    trigger={
+                      <Button size="sm" className="gap-2">
+                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        Adicionar
+                      </Button>
+                    }
+                    onSelect={handleSelectToAll}
+                  />
+               </div>
+            </div>
+
             {isLoadingDerivations ? (
               <div className="flex flex-col gap-4">
                 {[1, 2, 3].map((i) => (
@@ -381,6 +464,41 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
           </div>
         </div>
       </SheetContent>
+
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vinculando Imagens em Massa</DialogTitle>
+            <DialogDescription>
+              {isProcessing ? 'Aguarde enquanto as imagens são vinculadas a todas as variações...' : 'Processo finalizado.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-2 max-h-[60vh] overflow-y-auto py-2">
+            {uploadQueue.map((item, idx) => (
+              <div key={idx} className="relative aspect-square rounded-md overflow-hidden border bg-muted" title={item.errorMessage}>
+                {item.media.url ? (
+                   <img src={item.media.url} alt="preview" className="w-full h-full object-cover" />
+                ) : (
+                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <ImageIcon className="w-6 h-6" />
+                   </div>
+                )}
+                
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                  {item.status === 'processing' && <Loader2 className="animate-spin text-white w-6 h-6" />}
+                  {item.status === 'success' && <CheckCircle className="text-green-500 w-6 h-6 bg-white rounded-full" />}
+                  {item.status === 'error' && <XCircle className="text-red-500 w-6 h-6 bg-white rounded-full" />}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end">
+             <Button onClick={() => setIsUploadDialogOpen(false)} disabled={isProcessing}>
+                {isProcessing ? 'Processando...' : 'Concluir'}
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   )
 }

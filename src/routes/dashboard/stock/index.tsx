@@ -10,6 +10,7 @@ import { privateInstance } from '@/lib/auth'
 import { DataTable } from '@/components/data-table'
 import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
+import { NewStockMovementSheet } from './-components/new-stock-movement-sheet'
 
 
 export const Route = createFileRoute('/dashboard/stock/')({
@@ -228,6 +229,7 @@ function RouteComponent() {
           </div>
 
           <div className='flex items-center gap-2'>
+            <NewStockMovementSheet onCreated={() => refetch()} />
             <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => refetch()}>
               {
                 (isLoading || isRefetching)

@@ -21,6 +21,7 @@ import { Route as UserInvitesIndexRouteImport } from './routes/user/invites/inde
 import { Route as UserCompaniesIndexRouteImport } from './routes/user/companies/index'
 import { Route as DashboardWarrantiesIndexRouteImport } from './routes/dashboard/warranties/index'
 import { Route as DashboardUnitsIndexRouteImport } from './routes/dashboard/units/index'
+import { Route as DashboardStockIndexRouteImport } from './routes/dashboard/stock/index'
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index'
 import { Route as DashboardProfileIndexRouteImport } from './routes/dashboard/profile/index'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
@@ -101,6 +102,11 @@ const DashboardWarrantiesIndexRoute =
 const DashboardUnitsIndexRoute = DashboardUnitsIndexRouteImport.update({
   id: '/units/',
   path: '/units/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardStockIndexRoute = DashboardStockIndexRouteImport.update({
+  id: '/stock/',
+  path: '/stock/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardSettingsIndexRoute = DashboardSettingsIndexRouteImport.update({
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/profile': typeof DashboardProfileIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
+  '/dashboard/stock': typeof DashboardStockIndexRoute
   '/dashboard/units': typeof DashboardUnitsIndexRoute
   '/dashboard/warranties': typeof DashboardWarrantiesIndexRoute
   '/user/companies': typeof UserCompaniesIndexRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/profile': typeof DashboardProfileIndexRoute
   '/dashboard/settings': typeof DashboardSettingsIndexRoute
+  '/dashboard/stock': typeof DashboardStockIndexRoute
   '/dashboard/units': typeof DashboardUnitsIndexRoute
   '/dashboard/warranties': typeof DashboardWarrantiesIndexRoute
   '/user/companies': typeof UserCompaniesIndexRoute
@@ -304,6 +312,7 @@ export interface FileRoutesById {
   '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/dashboard/profile/': typeof DashboardProfileIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
+  '/dashboard/stock/': typeof DashboardStockIndexRoute
   '/dashboard/units/': typeof DashboardUnitsIndexRoute
   '/dashboard/warranties/': typeof DashboardWarrantiesIndexRoute
   '/user/companies/': typeof UserCompaniesIndexRoute
@@ -340,6 +349,7 @@ export interface FileRouteTypes {
     | '/dashboard/products'
     | '/dashboard/profile'
     | '/dashboard/settings/'
+    | '/dashboard/stock'
     | '/dashboard/units'
     | '/dashboard/warranties'
     | '/user/companies'
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/dashboard/products'
     | '/dashboard/profile'
     | '/dashboard/settings'
+    | '/dashboard/stock'
     | '/dashboard/units'
     | '/dashboard/warranties'
     | '/user/companies'
@@ -407,6 +418,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/'
     | '/dashboard/profile/'
     | '/dashboard/settings/'
+    | '/dashboard/stock/'
     | '/dashboard/units/'
     | '/dashboard/warranties/'
     | '/user/companies/'
@@ -517,6 +529,13 @@ declare module '@tanstack/react-router' {
       path: '/units'
       fullPath: '/dashboard/units'
       preLoaderRoute: typeof DashboardUnitsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/stock/': {
+      id: '/dashboard/stock/'
+      path: '/stock'
+      fullPath: '/dashboard/stock'
+      preLoaderRoute: typeof DashboardStockIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/settings/': {
@@ -710,6 +729,7 @@ interface DashboardRouteRouteChildren {
   DashboardPriceTablesIndexRoute: typeof DashboardPriceTablesIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
   DashboardProfileIndexRoute: typeof DashboardProfileIndexRoute
+  DashboardStockIndexRoute: typeof DashboardStockIndexRoute
   DashboardUnitsIndexRoute: typeof DashboardUnitsIndexRoute
   DashboardWarrantiesIndexRoute: typeof DashboardWarrantiesIndexRoute
 }
@@ -726,6 +746,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardPriceTablesIndexRoute: DashboardPriceTablesIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,
   DashboardProfileIndexRoute: DashboardProfileIndexRoute,
+  DashboardStockIndexRoute: DashboardStockIndexRoute,
   DashboardUnitsIndexRoute: DashboardUnitsIndexRoute,
   DashboardWarrantiesIndexRoute: DashboardWarrantiesIndexRoute,
 }

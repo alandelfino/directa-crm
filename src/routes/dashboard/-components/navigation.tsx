@@ -127,7 +127,7 @@ export function Navigation() {
                     href: '/dashboard/distribution-centers',
                 },
                 {
-                    label: 'Estoque',
+                    label: 'Movimento de estoque',
                     icon: <Package />,
                     href: '/dashboard/stock',
                 },

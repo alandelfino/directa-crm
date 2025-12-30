@@ -12,6 +12,7 @@ import { EditMediaDialog } from './-components/edit-media-dialog'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { MultiUploadSheet } from './-components/multi-upload-sheet'
 import { BulkDeleteMediasSheet } from './-components/delete-media-sheet'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/dashboard/media/')({
   component: RouteComponent,
@@ -175,7 +176,19 @@ function RouteComponent() {
 
         {/* Grid de arquivos */}
         <div className='flex-1 overflow-auto p-4'>
-          {medias.length === 0 ? (
+          {isLoading || isRefetching ? (
+            <div className='grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4'>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="rounded-lg border border-transparent p-1 bg-background">
+                  <Skeleton className="aspect-square w-full rounded-lg bg-muted" />
+                  <div className="p-2 space-y-2">
+                    <Skeleton className="h-3 w-full bg-muted" />
+                    <Skeleton className="h-3 w-1/2 bg-muted" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : medias.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">

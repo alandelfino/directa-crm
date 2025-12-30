@@ -11,6 +11,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyCont
 import { MultiUploadSheet } from './multi-upload-sheet'
 import { BulkDeleteMediasSheet } from './delete-media-sheet'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 export type ApiMedia = {
@@ -46,7 +47,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
   const [selectedIds, setSelectedIds] = useState<(number | string)[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
-  const { data, isLoading, isRefetching, refetch } = useQuery({
+  const { data, isLoading, isRefetching, refetch, isPending } = useQuery({
     queryKey: ['medias', page, perPage],
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -199,7 +200,19 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
 
           {/* Grid de arquivos */}
           <div className='flex-1 overflow-auto p-4 bg-muted/10'>
-            {medias.length === 0 ? (
+            {isLoading || isRefetching || isPending ? (
+              <div className='grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4'>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border border-transparent p-1 bg-background">
+                    <Skeleton className="aspect-square w-full rounded-md bg-muted" />
+                    <div className="p-2 space-y-2">
+                      <Skeleton className="h-3 w-full bg-muted" />
+                      <Skeleton className="h-3 w-1/2 bg-muted" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : medias.length === 0 ? (
               <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">

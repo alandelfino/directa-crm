@@ -21,14 +21,27 @@ export function DeleteDistributionCenter({ distributionCenterId, disabled = fals
         queryClient.invalidateQueries({ queryKey: ['distribution-centers'] })
         onDeleted?.()
       } else {
-        toast.error('Erro ao excluir centro de distribuição')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao excluir centro de distribuição', {
+          description: errorData?.detail || 'Não foi possível excluir o centro de distribuição.'
+        })
       }
     },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao excluir centro de distribuição') }
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir centro de distribuição', {
+        description: errorData?.detail || 'Não foi possível excluir o centro de distribuição.'
+      })
+    }
   })
 
   const handleConfirmDelete = () => {
-    if (!distributionCenterId) { toast.error('Selecione um centro de distribuição para excluir'); return }
+    if (!distributionCenterId) {
+      toast.error('Erro na seleção', {
+        description: 'Selecione um centro de distribuição para excluir'
+      })
+      return
+    }
     mutate()
   }
 

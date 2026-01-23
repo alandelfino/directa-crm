@@ -59,7 +59,7 @@ function RouteComponent() {
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+  const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryKey: ['media-sizes', currentPage, perPage],
@@ -185,9 +185,12 @@ function RouteComponent() {
 
   useEffect(() => {
     if (isError) {
-      toast.error('Erro ao carregar tamanhos de mídia')
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar tamanhos de mídia', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de tamanhos de mídia.'
+      })
     }
-  }, [isError])
+  }, [isError, error])
 
   useEffect(() => {
     setSelectedItems([])

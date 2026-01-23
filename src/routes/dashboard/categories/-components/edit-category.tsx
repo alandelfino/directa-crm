@@ -17,6 +17,7 @@ type ApiCategory = {
   name?: string
   nome?: string
   parent_id?: number | string | null
+  parentId?: number | string | null
 }
 
 const formSchema = z.object({
@@ -32,11 +33,11 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
   // Carregar detalhes da categoria selecionada
   const { data: categoryResponse, isLoading: isLoadingCategory } = useQuery({
     queryKey: ['category', categoryId],
-    enabled: !!categoryId,
+    enabled: !!categoryId && open,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get(`/api:ojk_IOB-/categories/${categoryId}`)
+      const res = await privateInstance.get(`/tenant/categories/${categoryId}`)
       if (res.status !== 200) throw new Error('Erro ao carregar categoria')
       return res.data
     },
@@ -68,9 +69,9 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
       // Garante que parent_id seja número e que 0 representa raiz
       const payload = {
         name: values.name,
-        parent_id: Number(values.parent_id ?? 0),
+        parentId: Number(values.parent_id ?? 0),
       }
-      return privateInstance.put(`/api:ojk_IOB-/categories/${categoryId}`, payload)
+      return privateInstance.put(`/tenant/categories/${categoryId}`, payload)
     },
     onSuccess: (response) => {
       if (response.status === 200) {
@@ -79,11 +80,17 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
         queryClient.invalidateQueries({ queryKey: ['categories'] })
         queryClient.invalidateQueries({ queryKey: ['category', categoryId] })
       } else {
-        toast.error('Erro ao atualizar categoria')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao atualizar categoria', {
+          description: errorData?.detail || 'Não foi possível atualizar a categoria.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao atualizar categoria')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar categoria', {
+        description: errorData?.detail || 'Não foi possível atualizar a categoria.'
+      })
     },
   })
 
@@ -97,7 +104,7 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
 
   useEffect(() => {
     if (!currentCategory) return
-    const parentRaw = currentCategory.parent_id as unknown as string | number | null | undefined
+    const parentRaw = (currentCategory.parentId ?? currentCategory.parent_id) as unknown as string | number | null | undefined
     const parentId = parentRaw == null || parentRaw === 0 || parentRaw === '0' ? 0 : parseInt(String(parentRaw)) || 0
     form.reset({
       name: currentCategory.name ?? currentCategory.nome ?? '',

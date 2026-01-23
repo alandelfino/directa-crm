@@ -34,14 +34,14 @@ export function LoginForm({
       } else {
         const errorData = response?.data
         toast.error(errorData?.title || 'Erro no login', {
-          description: errorData?.message || 'Credenciais inválidas'
+          description: errorData?.detail || 'Credenciais inválidas'
         })
       }
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro no login', {
-        description: errorData?.message || 'Ocorreu um erro ao tentar realizar o login.'
+        description: errorData?.detail || 'Ocorreu um erro ao tentar realizar o login.'
       })
     },
   })
@@ -72,16 +72,16 @@ export function LoginForm({
         await navigate({ to: "/user/companies" })
       } else {
         const errorData = response?.data
-        toast.error(errorData?.payload.title || "Falha no login com Google", {
-          description: errorData?.message || "Não foi possível completar o login com Google."
+        toast.error(errorData?.title || "Falha no login com Google", {
+          description: errorData?.detail || "Não foi possível completar o login com Google."
         })
         setIsGoogleLoading(false)
       }
     } catch (error: any) {
       console.error("Google login error:", error)
       const errorData = error?.response?.data
-      toast.error(errorData?.payload?.title || "Erro no login com Google", {
-        description: errorData?.message || "Ocorreu um erro inesperado ao processar o login."
+      toast.error(errorData?.title || "Erro no login com Google", {
+        description: errorData?.detail || "Ocorreu um erro inesperado ao processar o login."
       })
       setIsGoogleLoading(false)
     }
@@ -130,7 +130,7 @@ export function LoginForm({
       console.error("Google init error:", error)
       const errorData = error?.response?.data
       toast.error(errorData?.title || "Erro ao conectar", {
-        description: errorData?.message || "Não foi possível conectar com o Google."
+        description: errorData?.detail || "Não foi possível conectar com o Google."
       })
     } finally {
       setIsGoogleLoading(false)

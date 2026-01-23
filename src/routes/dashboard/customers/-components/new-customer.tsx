@@ -97,11 +97,17 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
         queryClient.invalidateQueries({ queryKey: ['customers'] })
         closeSheet()
       } else {
-        toast.error('Erro ao salvar cliente')
+        const errorData = response?.data as any
+        toast.error(errorData?.title || 'Erro ao salvar cliente', {
+            description: errorData?.detail || 'Não foi possível cadastrar o cliente.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message ?? 'Erro ao criar cliente')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao criar cliente', {
+          description: errorData?.detail || 'Não foi possível cadastrar o cliente.'
+      })
     }
   })
 

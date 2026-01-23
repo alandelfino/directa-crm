@@ -12,7 +12,7 @@ export function DeleteBrand({ brandId, disabled = false }: { brandId: number; di
 
     const { isPending, mutate } = useMutation({
         mutationFn: async () => {
-      return await privateInstance.delete(`/api:tc5G7www/brands/${brandId}`)
+      return await privateInstance.delete(`/tenant/brands/${brandId}`)
         },
         onSuccess: (response) => {
             if (response.status === 200 || response.status === 204) {
@@ -20,17 +20,23 @@ export function DeleteBrand({ brandId, disabled = false }: { brandId: number; di
                 setOpen(false)
                 queryClient.invalidateQueries({ queryKey: ['brands'] })
             } else {
-                toast.error('Erro ao excluir marca')
+                const errorData = (response.data as any)
+                toast.error(errorData?.title || 'Erro ao excluir marca', {
+                    description: errorData?.detail || 'Não foi possível excluir a marca.'
+                })
             }
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.message ?? 'Erro ao excluir marca')
+            const errorData = error?.response?.data
+            toast.error(errorData?.title || 'Erro ao excluir marca', {
+                description: errorData?.detail || 'Não foi possível excluir a marca.'
+            })
         }
     })
 
     const handleConfirmDelete = () => {
         if (!brandId) {
-            toast.error('Selecione uma marca para excluir')
+            toast.error('Erro na seleção', { description: 'Selecione uma marca para excluir' })
             return
         }
         mutate()

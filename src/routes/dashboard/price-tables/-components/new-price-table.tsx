@@ -33,11 +33,18 @@ export function NewPriceTableSheet({ className, ...props }: React.ComponentProps
       return response.data
     },
     onSuccess: () => {
+      // Note: react-query mutationFn returns response.data, so we can't check status here easily unless we change mutationFn return.
+      // However, the mutationFn throws if status is not 200/201.
       toast.success('Tabela de preço cadastrada com sucesso!')
       queryClient.invalidateQueries({ queryKey: ['price-tables'] })
       closeSheet()
     },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar tabela de preço') },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar tabela de preço', {
+        description: errorData?.detail || 'Não foi possível cadastrar a tabela de preço.'
+      })
+    },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) { await mutateAsync(values) }

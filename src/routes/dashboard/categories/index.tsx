@@ -20,7 +20,7 @@ type ApiCategory = {
   id: number | string
   name?: string
   nome?: string
-  parent_id?: number | string | null
+  parentId?: number | string | null
   children?: ApiCategory[]
 }
 
@@ -40,8 +40,13 @@ function RouteComponent() {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get('/api:ojk_IOB-/categories', {
-        params: { page: currentPage, per_page: Math.min(50, perPage) }
+      const res = await privateInstance.get('/tenant/categories', {
+        params: { 
+          page: currentPage, 
+          limit: Math.min(50, perPage),
+          sortBy: 'createdAt',
+          orderBy: 'desc'
+        }
       })
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
@@ -53,8 +58,6 @@ function RouteComponent() {
     if (!d) return []
     if (Array.isArray(d)) return d as ApiCategory[]
     if (Array.isArray(d.items)) return d.items as ApiCategory[]
-    if (Array.isArray(d.categories)) return d.categories as ApiCategory[]
-    if (Array.isArray(d.data)) return d.data as ApiCategory[]
     return []
   }, [data])
 
@@ -68,7 +71,7 @@ function RouteComponent() {
   const childrenCountMap = useMemo(() => {
     const map = new Map<string, number>()
     for (const cat of categories) {
-      const parentRaw = cat.parent_id as unknown as string | number | null | undefined
+      const parentRaw = cat.parentId as unknown as string | number | null | undefined
       const parentId = parentRaw == null || parentRaw === 0 || parentRaw === '0' ? null : String(parentRaw)
       if (parentId) {
         map.set(parentId, (map.get(parentId) ?? 0) + 1)
@@ -110,7 +113,7 @@ function RouteComponent() {
 
     const getId = (c: ApiCategory) => String(c.id)
     const getParent = (c: ApiCategory) => {
-      const raw = c.parent_id as unknown as string | number | null | undefined
+      const raw = c.parentId as unknown as string | number | null | undefined
       const pid = raw == null || raw === 0 || raw === '0' ? null : String(raw)
       return pid
     }

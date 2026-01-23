@@ -32,7 +32,7 @@ export function NewBrandSheet({
 
     const { isPending, mutate } = useMutation({
         mutationFn: (values: z.infer<typeof formSchema>) => {
-      return privateInstance.post('/api:tc5G7www/brands', values)
+      return privateInstance.post('/tenant/brands', values)
         },
         onSuccess: (response) => {
             if (response.status === 200 || response.status === 201) {
@@ -41,11 +41,17 @@ export function NewBrandSheet({
                 // Atualiza a listagem de marcas
                 queryClient.invalidateQueries({ queryKey: ['brands'] })
             } else {
-                toast.error('Erro ao cadastrar marca')
+                const errorData = (response.data as any)
+                toast.error(errorData?.title || 'Erro ao cadastrar marca', {
+                    description: errorData?.detail || 'Não foi possível cadastrar a marca.'
+                })
             }
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar marca')
+            const errorData = error?.response?.data
+            toast.error(errorData?.title || 'Erro ao cadastrar marca', {
+                description: errorData?.detail || 'Não foi possível cadastrar a marca.'
+            })
         },
     })
 

@@ -107,7 +107,10 @@ export function EditCustomerSheet({ className, customerId, ...props }: React.Com
         postal_code: c.postal_code ?? "",
       })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar cliente')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar cliente', {
+        description: errorData?.detail || 'Não foi possível carregar os dados do cliente.'
+      })
     } finally {
       setLoading(false)
     }
@@ -134,11 +137,17 @@ export function EditCustomerSheet({ className, customerId, ...props }: React.Com
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['customers'] })
       } else {
-        toast.error('Erro ao salvar cliente')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar cliente', {
+          description: errorData?.detail || 'Não foi possível atualizar o cliente.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message ?? 'Erro ao atualizar cliente')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar cliente', {
+        description: errorData?.detail || 'Não foi possível atualizar o cliente.'
+      })
     }
   })
 

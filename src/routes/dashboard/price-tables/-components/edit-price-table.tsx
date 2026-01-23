@@ -28,7 +28,10 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
       const it = response.data as any
       form.reset({ name: it.name ?? '' })
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Erro ao carregar tabela de preço')
+      const errorData = err?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar tabela de preço', {
+        description: errorData?.detail || 'Não foi possível carregar os dados da tabela de preço.'
+      })
     } finally { setLoading(false) }
   }
 
@@ -41,7 +44,12 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
       return response.data
     },
     onSuccess: () => { toast.success('Tabela de preço atualizada com sucesso!'); setOpen(false); queryClient.invalidateQueries({ queryKey: ['price-tables'] }) },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao atualizar tabela de preço') },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar tabela de preço', {
+        description: errorData?.detail || 'Não foi possível atualizar a tabela de preço.'
+      })
+    },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) { await mutateAsync(values) }

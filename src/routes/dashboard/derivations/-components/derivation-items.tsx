@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { List } from 'lucide-react'
@@ -8,7 +8,6 @@ import { DataTable, type ColumnDef } from '@/components/data-table'
 import { DerivationItemCreateDialog } from './derivation-item-create-dialog'
 import { DerivationItemEditDialog } from './derivation-item-edit-dialog'
 import { DerivationItemDeleteDialog } from './derivation-item-delete-dialog'
-import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { IconEdit, IconTrash } from '@tabler/icons-react'
 
@@ -23,14 +22,19 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
   const [open, setOpen] = useState(false)
   const [itemsLocal, setItemsLocal] = useState<DerivationItem[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  // Guarda a ordenação anterior para reverter em caso de erro ao salvar
-  const prevOrderRef = useRef<DerivationItem[]>([])
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['derivation-items', derivationId],
     queryFn: async () => {
       // Endpoint de listagem conforme Derivations spec
-      const response = await privateInstance.get(`/api:JOs6IYNo/derivation_items?derivation_id=${derivationId}`)
+      const response = await privateInstance.get(`/tenant/derivation-items`, {
+        params: {
+          derivationId: derivationId,
+          limit: 100, // Fetch many items as it's a list within a sheet
+          sortBy: 'order',
+          orderBy: 'asc'
+        }
+      })
       if (response.status !== 200) throw new Error('Erro ao carregar itens da derivação')
       return response.data
     },
@@ -41,13 +45,14 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
 
   const items: DerivationItem[] = useMemo(() => {
     if (!data) return []
-    const raw = Array.isArray((data as any).items) ? (data as any).items : Array.isArray(data) ? data : []
+    const raw = data.items || []
     const normalized: DerivationItem[] = raw.map((i: any) => ({
       id: Number(i.id),
-      order: Number(i.order ?? i.ordem ?? i.position ?? 0),
-      value: String(i.value ?? i.valor ?? i.color ?? i.image_url ?? ''),
-      name: typeof i.name === 'string' ? i.name : (typeof i.nome === 'string' ? i.nome : ''),
+      order: Number(i.order ?? 0),
+      value: String(i.value ?? ''),
+      name: i.name ?? '',
     }))
+    // Already sorted by backend but ensure frontend sort too
     normalized.sort((a, b) => a.order - b.order)
     return normalized
   }, [data])
@@ -120,31 +125,6 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
   // Delete item
   // Delete dialog agora é um componente isolado que gerencia seu próprio estado e mutation
 
-  // Persistir ordenação
-  const { isPending: savingOrder, mutate: reorderMutation } = useMutation({
-    mutationFn: async (reordered: DerivationItem[]) => {
-      const payload = {
-        derivation_id: derivationId,
-        items: reordered.map((it) => ({ id: String(it.id) }))
-      }
-      const response = await privateInstance.put(
-        '/api:JOs6IYNo/derivation_items_reorder',
-        payload
-      )
-      if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao salvar ordenação')
-      return true
-    },
-    onSuccess: () => {
-      toast.success('Ordenação salva!')
-    },
-    onError: () => {
-      // Reverte para a ordenação anterior caso ocorra erro
-      setItemsLocal(prevOrderRef.current)
-      toast.error('Não foi possível salvar a ordenação. Voltamos para a ordenação anterior.')
-      refetch()
-    }
-  })
-
   return (
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) refetch() }}>
       <SheetTrigger asChild>
@@ -165,7 +145,7 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
           <div className='flex items-center gap-2 px-4 justify-end'>
             {selectedItem ? (
               <>
-                <DerivationItemEditDialog derivationId={derivationId} derivationType={derivationType} item={selectedItem} onUpdated={() => { refetch(); }} />
+                <DerivationItemEditDialog derivationType={derivationType} item={selectedItem} onUpdated={() => { refetch(); }} />
                 <DerivationItemDeleteDialog itemId={selectedItem.id} onDeleted={() => { refetch(); }} />
               </>
             ) : (
@@ -174,7 +154,7 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
                 <Button size={'sm'} variant={'outline'} disabled> <IconTrash className="size-[0.85rem]" /> Excluir</Button>
               </>
             )}
-            <DerivationItemCreateDialog derivationId={derivationId} derivationType={derivationType} itemsCount={itemsLocal.length} onCreated={() => refetch()} />
+            <DerivationItemCreateDialog derivationId={derivationId} derivationType={derivationType} onCreated={() => refetch()} />
           </div>
 
           <div className='mt-2 mb-0 flex-1 flex flex-col overflow-hidden border-t'>
@@ -183,25 +163,16 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
               data={itemsLocal}
               loading={isLoading || isRefetching}
               hideFooter={true}
-              enableReorder={true}
-              reorderDisabled={savingOrder}
+              enableReorder={false} // Disabled reorder as per doc limitations
+              reorderDisabled={true}
               onRowClick={(item) => setSelectedId(item.id)}
               rowIsSelected={(item) => item.id === selectedId}
-              onReorder={(reordered) => {
-                const next = reordered.map((it, idx) => ({ ...it, order: idx + 1 }))
-                prevOrderRef.current = itemsLocal
-                setItemsLocal(next)
-                reorderMutation(next)
-              }}
             />
           </div>
         </div>
 
         <SheetFooter className='border-t'>
-          <div className='flex w-full items-center justify-between'>
-            <span className='text-sm text-muted-foreground'>
-              {itemsLocal.length} {itemsLocal.length === 1 ? 'item cadastrado' : 'itens cadastrados'}
-            </span>
+          <div className='flex w-full items-center justify-end'>
             <SheetClose asChild>
               <Button variant='outline' size="sm" className='w-fit'>Fechar</Button>
             </SheetClose>

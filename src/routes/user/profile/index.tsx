@@ -84,7 +84,9 @@ function RouteComponent() {
           form.reset({ name: meData.name ?? '' })
           setPreviewUrl(meData.image?.url ?? user.avatar_url ?? null)
         } else {
-          toast.error('Não foi possível carregar seus dados locais')
+          toast.error('Erro ao carregar dados', {
+            description: 'Não foi possível carregar seus dados locais.'
+          })
         }
       } catch (err: any) {
         console.error(err)
@@ -104,7 +106,9 @@ function RouteComponent() {
       const imageVal: File | undefined = values.image instanceof FileList ? values.image.item(0) ?? undefined : (values.image as File | undefined)
       const uploadFile: File | undefined = removeImage ? undefined : imageVal
       if (uploadFile && (uploadFile.size === 0 || !uploadFile.type)) {
-        toast.error('Falha ao gerar a imagem recortada. Tente novamente.')
+        toast.error('Erro no processamento', {
+          description: 'Falha ao gerar a imagem recortada. Tente novamente.'
+        })
         return
       }
       if (uploadFile) {
@@ -168,16 +172,16 @@ function RouteComponent() {
           }
         } catch {}
       } else {
-        toast.error('Erro ao atualizar seu perfil')
+        const errorData = res?.data
+        toast.error(errorData?.title || 'Erro ao atualizar perfil', {
+          description: errorData?.detail || 'Não foi possível salvar as alterações.'
+        })
       }
     } catch (error: any) {
-      const apiMessage = error?.response?.data?.message ?? 'Erro ao atualizar seu perfil'
-      const apiCode = error?.response?.data?.code
-      if (apiCode === 'ERROR_CODE_ACCESS_DENIED') {
-        toast.error('Não permitido!', { description: 'Você não possui permissão para editar este perfil. Contate o administrador.' })
-      } else {
-        toast.error(apiMessage)
-      }
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar perfil', {
+        description: errorData?.detail || 'Ocorreu um erro ao tentar salvar as alterações.'
+      })
     }
   }
 
@@ -204,7 +208,9 @@ function RouteComponent() {
       setRemoveImage(false)
       setCropOpen(false)
     } catch {
-      toast.error('Não foi possível aplicar o recorte. Tente novamente.')
+      toast.error('Erro no recorte', {
+        description: 'Não foi possível aplicar o recorte. Tente novamente.'
+      })
     }
   }
 

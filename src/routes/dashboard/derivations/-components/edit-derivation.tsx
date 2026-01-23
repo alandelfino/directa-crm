@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+// import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Edit, Loader } from 'lucide-react'
+import { Edit, Loader, Type as TypeIcon, Palette, Image as ImageIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -20,13 +20,11 @@ const formSchema = z.object({
 
 type DerivationDetail = {
   id: number
-  nome?: string
-  name?: string
-  nomeCatalogo?: string
-  catalog_name?: string
-  store_name?: string
-  tipo?: 'Cor' | 'Texto' | 'Imagem' | 'color' | 'text' | 'image'
-  type?: 'text' | 'color' | 'image'
+  name: string
+  storeName: string
+  type: string
+  createdAt: string
+  updatedAt: string
 }
 
 export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId: number, onUpdated?: () => void }) {
@@ -43,7 +41,7 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
   const { data, isLoading, isError } = useQuery<DerivationDetail>({
     queryKey: ['derivation', derivationId],
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:JOs6IYNo/derivations/${derivationId}`)
+      const response = await privateInstance.get(`/tenant/derivations/${derivationId}`)
       if (response.status !== 200) throw new Error('Erro ao carregar derivação')
       return response.data
     },
@@ -54,15 +52,10 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
 
   useEffect(() => {
     if (!data) return
-    // Normaliza o tipo vindo do backend para o enum esperado (text|color|image)
-    const typeVal: 'text' | 'color' | 'image' | undefined =
-      data.type ??
-      (data.tipo === 'Cor' ? 'color' : data.tipo === 'Texto' ? 'text' : data.tipo === 'Imagem' ? 'image' :
-        data.tipo === 'color' ? 'color' : data.tipo === 'text' ? 'text' : data.tipo === 'image' ? 'image' : undefined)
     form.reset({
-      nome: data.nome ?? data.name ?? '',
-      nomeCatalogo: data.nomeCatalogo ?? data.catalog_name ?? data.store_name ?? '',
-      type: typeVal ?? 'text',
+      nome: data.name,
+      nomeCatalogo: data.storeName,
+      type: (data.type as 'text' | 'color' | 'image') ?? 'text',
     })
   }, [data])
 
@@ -70,10 +63,10 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
     mutationFn: (values: z.infer<typeof formSchema>) => {
       const payload = {
         name: values.nome,
-        store_name: values.nomeCatalogo,
+        storeName: values.nomeCatalogo,
         type: values.type,
       }
-      return privateInstance.put(`/api:JOs6IYNo/derivations/${derivationId}`, payload)
+      return privateInstance.put(`/tenant/derivations/${derivationId}`, payload)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 204) {
@@ -81,11 +74,17 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
         onUpdated?.()
         setOpen(false)
       } else {
-        toast.error('Erro ao atualizar derivação')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao atualizar derivação', {
+          description: errorData?.detail || 'Não foi possível atualizar a derivação.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao atualizar derivação')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar derivação', {
+        description: errorData?.detail || 'Não foi possível atualizar a derivação.'
+      })
     },
   })
 
@@ -146,20 +145,36 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
                 name='type'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo</FormLabel>
+                    <FormLabel>Selecione um tipo</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={isLoading}>
-                        <SelectTrigger className='w-full'>
-                          <SelectValue placeholder='Selecione o tipo' />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value='color'>Cor</SelectItem>
-                            <SelectItem value='text'>Texto</SelectItem>
-                            <SelectItem value='image'>Imagem</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      <div role='radiogroup' aria-label='Tipo de derivação' className='grid grid-cols-3 gap-3'>
+                        {[
+                          { value: 'text' as const, label: 'Texto', Icon: TypeIcon },
+                          { value: 'color' as const, label: 'Cor', Icon: Palette },
+                          { value: 'image' as const, label: 'Imagem', Icon: ImageIcon },
+                        ].map(({ value, label, Icon }) => {
+                          const selected = field.value === value
+                          return (
+                            <button
+                              type='button'
+                              key={value}
+                              role='radio'
+                              aria-checked={selected}
+                              onClick={() => field.onChange(value)}
+                              disabled={isLoading}
+                              className={`rounded-md border bg-background p-4 text-left shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring flex flex-col items-center gap-2 ${
+                                selected ? 'border-foreground' : 'border-muted'
+                              } hover:bg-muted/40 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              <Icon className={`h-6 w-6 ${selected ? 'text-foreground' : 'text-muted-foreground'}`} />
+                              <span className='text-sm font-medium'>{label}</span>
+                              <span className={`mt-2 inline-flex items-center justify-center h-4 w-4 rounded-full border ${selected ? 'border-foreground' : 'border-muted-foreground'}`}>
+                                <span className={`h-2 w-2 rounded-full ${selected ? 'bg-foreground' : 'bg-transparent'}`} />
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

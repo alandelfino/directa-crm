@@ -49,7 +49,10 @@ export function EditUnitSheet({
       }
       form.reset({ name: unit.name ?? "", type: unit.type ?? "integer" })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar unidade')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar unidade', {
+        description: errorData?.detail || 'Não foi possível carregar os dados da unidade.'
+      })
     } finally {
       setUnitLoading(false)
     }
@@ -72,11 +75,17 @@ export function EditUnitSheet({
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['units'] })
       } else {
-        toast.error('Erro ao salvar unidade')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar unidade', {
+          description: errorData?.detail || 'Não foi possível atualizar a unidade.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message ?? 'Erro ao salvar unidade')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao salvar unidade', {
+        description: errorData?.detail || 'Não foi possível atualizar a unidade.'
+      })
     },
   })
 

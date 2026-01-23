@@ -27,7 +27,10 @@ export function DeleteMediaSheet({ media, onDeleted }: { media: ApiMedia, onDele
       setOpen(false)
       onDeleted?.()
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Erro ao excluir mídia')
+      const errorData = e?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir mídia', {
+        description: errorData?.detail || 'Não foi possível excluir a mídia.'
+      })
     } finally {
       setDeleting(false)
     }
@@ -110,23 +113,23 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
 
     if (nextIndex >= 0) {
       deletingRef.current = true
-        ; (async () => {
-          const item = queue[nextIndex]
-          try {
-            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'deleting', error: undefined } : q))
-
-            const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${item.id}`)
-
-            if (res.status !== 200 && res.status !== 204) throw new Error('Falha ao excluir')
-
-            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done' } : q))
-          } catch (err: any) {
-            const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao excluir'
-            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
-          } finally {
-            deletingRef.current = false
-          }
-        })()
+      ;(async () => {
+        const item = queue[nextIndex]
+        try {
+          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'deleting', error: undefined } : q))
+          
+          const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${item.id}`)
+          
+          if (res.status !== 200 && res.status !== 204) throw new Error('Falha ao excluir')
+          
+          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done' } : q))
+        } catch (err: any) {
+          const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao excluir'
+          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
+        } finally {
+          deletingRef.current = false
+        }
+      })()
     } else if (queue.length > 0 && allProcessed && !hasNotified) {
       toast.success(`Processo finalizado: ${successCount} excluídos, ${errorCount} erros`)
       onDeleted?.()

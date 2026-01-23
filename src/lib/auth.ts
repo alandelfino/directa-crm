@@ -55,14 +55,14 @@ const getToken = () => {
 }
 
 const publicInstance = axios.create({
-    baseURL: "https://server.directacrm.com.br",
+    baseURL: "http://localhost:3000",
     headers: {
         "Content-Type": "application/json",
     },
 })
 
 const loginInstance = axios.create({
-    baseURL: "https://server.directacrm.com.br",
+    baseURL: "http://localhost:3000",
     headers: {
         "Content-Type": "application/json",
     },
@@ -70,32 +70,28 @@ const loginInstance = axios.create({
 
 loginInstance.interceptors.response.use((response) => {
     if (response.status === 200) {
-        const authToken = response.data.authToken
+        const token = response.data.token
         // Normaliza armazenamento do token para a chave preferida
         try {
-            normalizeTokenStorage(authToken)
+            normalizeTokenStorage(token)
         } catch {
-            localStorage.setItem(`${getSubdomain()}-directa-authToken`, authToken)
+            localStorage.setItem(`${getSubdomain()}-directa-authToken`, token)
         }
-        localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(response.data.user))
-        // Notifica UI (sidebar/nav) que o usuário foi carregado/atualizado
-        try {
-            const avatarUrl = response?.data?.user?.image?.url ?? response?.data?.user?.avatar_url ?? null
-            window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                detail: { 
-                    name: response?.data?.user?.name, 
-                    email: response?.data?.user?.email, 
-                    avatarUrl,
-                    verified_email: response?.data?.user?.verified_email
-                }
-            }))
-        } catch { }
+        // Atualiza dados do usuário
+        if (response.data.user) {
+            updateUserStorage(response.data.user)
+        }
+
+        // Atualiza dados da empresa
+        if (response.data.company) {
+            updateCompanyStorage(response.data.company)
+        }
     }
     return response
 })
 
 const privateInstance = axios.create({
-    baseURL: "https://server.directacrm.com.br",
+    baseURL: "http://localhost:3000",
 })
 
 privateInstance.interceptors.request.use((config) => {
@@ -142,7 +138,7 @@ export const auth = {
     },
     login: async (values: z.infer<typeof formSchema>) => {
         // Endpoint absoluto para o grupo de auth
-        const response = await loginInstance.post(`/api:eA5lqIuH/auth/login`, values)
+        const response = await loginInstance.post(`/tenant/sign-in`, values)
         // Garante que os dados do usuário estejam atualizados se não vierem no login
         if (response.status === 200 && !response.data?.user) {
             await auth.fetchUser()
@@ -150,7 +146,15 @@ export const auth = {
         return response
     },
     signup: async (values: z.infer<typeof signUpSchema>) => {
-        const response = await publicInstance.post(`/api:eA5lqIuH/auth/signup`, values)
+        const { confirmPassword, ...payload } = values
+        const response = await publicInstance.post(`/tenant/sign-up`, payload)
+        if (response.status === 200 || response.status === 201) {
+            updateUserStorage(response.data?.user)
+        }
+        return response
+    },
+    verifyEmail: async (token: string) => {
+        const response = await publicInstance.post(`/tenant/verify-email`, { token })
         return response
     },
     initGoogleLogin: async (redirectUri: string) => {
@@ -174,32 +178,8 @@ export const auth = {
             if (response.status === 200 && response.data?.token) {
                 normalizeTokenStorage(response.data.token)
 
-                const { name, email, image, verified_email } = response.data?.user || {}
                 // Se houver dados de usuário na resposta, armazena e notifica
-                if (name || email) {
-                    const avatarUrl = image?.url ?? null
-                    // Constrói objeto de usuário compatível com o resto da aplicação
-                    const user = {
-                        name,
-                        email,
-                        verified_email,
-                        avatar_url: avatarUrl,
-                        image: image
-                    }
-                    
-                    localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
-                    
-                    try {
-                        window.dispatchEvent(new CustomEvent('directa:user-updated', {
-                            detail: { 
-                                name, 
-                                email, 
-                                avatarUrl,
-                                verified_email
-                            }
-                        }))
-                    } catch { }
-                }
+                updateUserStorage(response.data?.user)
                 
                 // Busca o usuário completo (com ID, etc) para garantir consistência
                 await auth.fetchUser()
@@ -223,7 +203,7 @@ export const auth = {
         // Usar o servidor n7 para companies
         const response = await publicInstance.get(`/api:kdrFy_tm/companies/${getSubdomain()}`)
         if (response.status === 200) {
-            localStorage.setItem(`${getSubdomain()}-directa-company`, JSON.stringify(response.data))
+            updateCompanyStorage(response.data)
             return { status: response.status, data: response.data }
         }
         return { status: response.status, data: null }
@@ -261,4 +241,46 @@ function normalizeTokenStorage(token: string) {
     // Remove chaves antigas de desenvolvimento
     try { localStorage.removeItem('local-kayla-authToken') } catch {}
     try { localStorage.removeItem('127.0.0.1-kayla-authToken') } catch {}
+}
+
+function updateUserStorage(userData: any) {
+    if (!userData) return
+    
+    const { name, email, image, avatar_url, emailVerified, verified_email } = userData
+    const avatarUrl = image?.url ?? avatar_url ?? null
+    // Prefer emailVerified (from signup/login response) or verified_email (fallback)
+    const isVerified = emailVerified ?? verified_email
+    
+    const user = {
+        name,
+        email,
+        verified_email: isVerified,
+        avatar_url: avatarUrl,
+        image: image
+    }
+    
+    localStorage.setItem(`${getSubdomain()}-directa-user`, JSON.stringify(user))
+    
+    try {
+        window.dispatchEvent(new CustomEvent('directa:user-updated', {
+            detail: { 
+                name, 
+                email, 
+                avatarUrl,
+                verified_email: isVerified
+            }
+        }))
+    } catch { }
+}
+
+function updateCompanyStorage(companyData: any) {
+    if (!companyData) return
+    
+    localStorage.setItem(`${getSubdomain()}-directa-company`, JSON.stringify(companyData))
+    
+    try {
+        window.dispatchEvent(new CustomEvent('directa:company-updated', {
+            detail: companyData
+        }))
+    } catch { }
 }

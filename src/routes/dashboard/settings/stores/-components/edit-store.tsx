@@ -133,7 +133,10 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
           mobile_app_product_media_size_id: typeof s.mobile_app_product_media_size_id === 'number' ? s.mobile_app_product_media_size_id : undefined,
         })
       } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Erro ao carregar loja')
+        const errorData = err?.response?.data
+        toast.error(errorData?.title || 'Erro ao carregar loja', {
+          description: errorData?.detail || 'Não foi possível carregar os dados da loja.'
+        })
       } finally {
         setLoading(false)
       }
@@ -164,7 +167,10 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
       onSaved?.()
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao atualizar loja')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar loja', {
+        description: errorData?.detail || 'Não foi possível atualizar a loja.'
+      })
     }
   })
 

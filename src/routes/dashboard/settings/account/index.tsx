@@ -41,7 +41,7 @@ export function CompanyProfileContent() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState<boolean>(false)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['company-profile'],
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -68,9 +68,12 @@ export function CompanyProfileContent() {
 
   useEffect(() => {
     if (isError) {
-      toast.error('Erro ao carregar dados da empresa')
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar dados da empresa', {
+        description: errorData?.detail || 'Não foi possível carregar os dados da empresa.'
+      })
     }
-  }, [isError])
+  }, [isError, error])
 
   useEffect(() => {
     if (!data) return

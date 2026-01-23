@@ -31,8 +31,11 @@ export function EditDistributionCenterSheet({ distributionCenterId, onSaved }: {
         if (response.status !== 200 || !response.data) throw new Error('Falha ao carregar centro')
         const data = response.data as { name?: string }
         form.reset({ name: data.name ?? '' })
-      } catch {
-        toast.error('Erro ao carregar centro')
+      } catch (error: any) {
+        const errorData = error?.response?.data
+        toast.error(errorData?.title || 'Erro ao carregar centro', {
+          description: errorData?.detail || 'Não foi possível carregar os dados do centro.'
+        })
       } finally {
         setLoading(false)
       }
@@ -54,8 +57,11 @@ export function EditDistributionCenterSheet({ distributionCenterId, onSaved }: {
       setOpen(false)
       onSaved?.()
     },
-    onError: () => {
-      toast.error('Erro ao salvar centro')
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao salvar centro', {
+        description: errorData?.detail || 'Não foi possível atualizar o centro.'
+      })
     }
   })
 

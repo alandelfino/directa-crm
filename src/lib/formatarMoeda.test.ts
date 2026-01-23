@@ -51,7 +51,7 @@ export function runFormatarMoedaTests() {
   const invalidInput = formatarMoeda('abc')
   assert(invalidInput === '-', 'Entrada inválida')
 
-  ;(window as any).localStorage.setItem('empresaConfig', JSON.stringify({ currency: 'BRL ( R$ )', date_format: 'dd/mm/yyyy-HH:mm:ss', number_format: '0.000,00', time_zone: 'America/Sao_Paulo', image: { url: ' `https://server.directacrm.com.br/logo.png` ' }, website: ' `https://example.com/` ' }))
+  ;(window as any).localStorage.setItem('empresaConfig', JSON.stringify({ currency: 'BRL ( R$ )', date_format: 'dd/mm/yyyy-HH:mm:ss', number_format: '0.000,00', time_zone: 'America/Sao_Paulo', image: { url: ' `http://localhost:3000/logo.png` ' }, website: ' `https://example.com/` ' }))
   ;(window as any).localStorage.setItem('directa-company', JSON.stringify({ currency: 'USD' }))
   const info = getCurrencyInfo()
   assert(info.code === 'USD', 'Lê USD de directa-company')
@@ -62,7 +62,7 @@ export function runFormatarMoedaTests() {
   const tz = getCompanyTimeZone()
   assert(tz === 'America/Sao_Paulo', 'Fuso horário')
   const logo = getCompanyLogoUrl()
-  assert(logo === 'https://server.directacrm.com.br/logo.png', 'Logo URL limpa')
+  assert(logo === 'http://localhost:3000/logo.png', 'Logo URL limpa')
   const site = getCompanyWebsite()
   assert(site === 'https://example.com/', 'Website URL limpa')
 

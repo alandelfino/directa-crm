@@ -79,10 +79,9 @@ export function DerivatedProductPriceEditSheet({ item, onUpdated }: { item: any,
       onUpdated?.()
     },
     onError: (error: any) => {
-      const title = error?.response?.data?.payload?.title
-      const message = error?.response?.data?.message ?? 'Erro ao atualizar preço'
-      if (title) toast.error(title, { description: message })
-      else toast.error(message)
+      const title = error?.response?.data?.title ?? 'Erro ao atualizar preço'
+      const description = error?.response?.data?.detail
+      toast.error(title, { description })
     }
   })
 

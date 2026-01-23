@@ -60,7 +60,8 @@ export function MultiUploadSheet() {
           if (res.status !== 200 && res.status !== 201) throw new Error('Falha ao enviar')
           setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done', progress: 100 } : q))
         } catch (err: any) {
-          const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao enviar'
+          const errorData = err?.response?.data
+          const msg = errorData?.title || errorData?.detail || err?.message || 'Erro ao enviar'
           setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
         } finally {
           uploadingRef.current = false
@@ -83,7 +84,12 @@ export function MultiUploadSheet() {
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return
     const arr = Array.from(files).filter((f) => f.type.startsWith('image/'))
-    if (arr.length === 0) { toast.error('Selecione apenas imagens'); return }
+    if (arr.length === 0) {
+      toast.error('Selecione apenas imagens', {
+        description: 'Formatos suportados: JPG, PNG, WEBP, GIF'
+      })
+      return
+    }
     const nextItems: QueueItem[] = arr.map((f) => ({
       id: crypto.randomUUID(),
       file: f,

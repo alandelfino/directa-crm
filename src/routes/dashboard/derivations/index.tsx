@@ -7,12 +7,21 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Funnel, GitFork, Trash, Type as TypeIcon, Palette, Image as ImageIcon, List, ArrowUpRight, RefreshCw } from 'lucide-react'
+import { Edit, Funnel, GitFork, Trash, Type as TypeIcon, Palette, Image as ImageIcon, List, ArrowUpRight, RefreshCw,
+  ArrowUpDown,
+  ArrowDownAZ,
+  ArrowUpZA
+} from 'lucide-react'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewDerivationSheet } from './-components/new-derivation'
 import { EditDerivationSheet } from './-components/edit-derivation'
 import { DeleteDerivation } from './-components/delete-derivation'
 import { DerivationItemsSheet } from './-components/derivation-items'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 
 export const Route = createFileRoute('/dashboard/derivations/')({
   component: RouteComponent,
@@ -20,15 +29,11 @@ export const Route = createFileRoute('/dashboard/derivations/')({
 
 type Derivation = {
   id: number
-  nome?: string
-  name?: string
-  nomeCatalogo?: string
-  catalog_name?: string
-  store_name?: string
-  tipo?: 'Cor' | 'Texto' | 'Imagem' | 'color' | 'text' | 'image'
-  type?: 'text' | 'color' | 'image'
-  itens?: number
-  items?: number
+  name: string
+  storeName: string
+  type: string
+  createdAt: string
+  updatedAt: string
 }
 
 function RouteComponent() {
@@ -37,17 +42,49 @@ function RouteComponent() {
   const [selectedDerivations, setSelectedDerivations] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
 
+  // Filtros e Ordenação (Estado Aplicado)
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [orderBy, setOrderBy] = useState('desc')
+  const [filterName, setFilterName] = useState('')
+  const [filterNameOperator, setFilterNameOperator] = useState('cont')
+  const [filterStoreName, setFilterStoreName] = useState('')
+  const [filterStoreNameOperator, setFilterStoreNameOperator] = useState('cont')
+  const [filterType, setFilterType] = useState('all')
+  const [filterTypeOperator, setFilterTypeOperator] = useState('eq')
+
+  // Filtros e Ordenação (Estado Local do Popover)
+  const [localSortBy, setLocalSortBy] = useState('createdAt')
+  const [localOrderBy, setLocalOrderBy] = useState('desc')
+  const [localFilterName, setLocalFilterName] = useState('')
+  const [localFilterNameOperator, setLocalFilterNameOperator] = useState('cont')
+  const [localFilterStoreName, setLocalFilterStoreName] = useState('')
+  const [localFilterStoreNameOperator, setLocalFilterStoreNameOperator] = useState('cont')
+  const [localFilterType, setLocalFilterType] = useState('all')
+  const [localFilterTypeOperator, setLocalFilterTypeOperator] = useState('eq')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const activeFilterCount = (filterName ? 1 : 0) + (filterStoreName ? 1 : 0) + (filterType !== 'all' ? 1 : 0)
+
   const { data, isLoading, isRefetching, isError, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    queryKey: ['derivations', currentPage, perPage],
+    queryKey: ['derivations', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterStoreName, filterStoreNameOperator, filterType, filterTypeOperator],
     queryFn: async () => {
-      // Ajuste os parâmetros conforme o Swagger do endpoint Derivations
-      const response = await privateInstance.get(`api:JOs6IYNo/derivations?page=${currentPage}&per_page=${Math.min(50, perPage)}`)
+      const params: any = {
+        page: currentPage,
+        limit: perPage,
+        sortBy,
+        orderBy
+      }
+
+      if (filterName) params.name = JSON.stringify({ operator: filterNameOperator, value: filterName })
+      if (filterStoreName) params.storeName = JSON.stringify({ operator: filterStoreNameOperator, value: filterStoreName })
+      if (filterType && filterType !== 'all') params.type = JSON.stringify({ operator: filterTypeOperator, value: filterType })
+
+      const response = await privateInstance.get('/tenant/derivations', { params })
       if (response.status !== 200) {
         throw new Error('Erro ao carregar derivações')
       }
-      return await response.data as any
+      return response.data
     }
   })
 
@@ -56,12 +93,7 @@ function RouteComponent() {
   const selectedDerivationType: 'text' | 'color' | 'image' | undefined = useMemo(() => {
     const d = selectedDerivation
     if (!d) return undefined
-    const t = d.type ?? (
-      d.tipo === 'color' ? 'color' :
-        d.tipo === 'text' ? 'text' :
-          d.tipo === 'image' ? 'image' : undefined
-    )
-    return t as any
+    return d.type as any
   }, [selectedDerivation])
 
   const columns: ColumnDef<Derivation>[] = [
@@ -85,24 +117,20 @@ function RouteComponent() {
     {
       id: 'name',
       header: 'Nome',
-      cell: (d) => d.nome ?? d.name ?? '',
+      cell: (d) => d.name,
       className: 'border-r'
     },
     {
       id: 'catalog',
       header: 'Nome no catálogo',
-      cell: (d) => d.store_name ?? d.nomeCatalogo ?? d.catalog_name ?? '-',
+      cell: (d) => d.storeName,
       className: 'border-r'
     },
     {
       id: 'type',
       header: 'Tipo',
       cell: (d) => {
-        const t = d.type ?? (
-          d.tipo === 'color' ? 'color' :
-            d.tipo === 'text' ? 'text' :
-              d.tipo === 'image' ? 'image' : undefined
-        )
+        const t = d.type
         const label = t === 'color' ? 'Cor' : t === 'text' ? 'Texto' : t === 'image' ? 'Imagem' : '-'
         const Icon = t === 'color' ? Palette : t === 'text' ? TypeIcon : t === 'image' ? ImageIcon : null
         return (
@@ -117,24 +145,20 @@ function RouteComponent() {
     },
     {
       id: 'items',
-      header: 'Itens',
-      cell: (d) => <span className='block'>{(d as any).items ?? d.itens ?? 0}</span>,
-      headerClassName: 'w-[100px] border-r',
-      className: 'w-[100px]'
+      header: 'Criado em',
+      cell: (d) => d.createdAt ? new Date(d.createdAt).toLocaleDateString('pt-BR') : '-',
+      headerClassName: 'w-[120px] border-r',
+      className: 'w-[120px]'
     },
   ]
 
   useEffect(() => {
     if (!data) return
 
-    const items = Array.isArray((data as any).items) ? (data as any).items : Array.isArray(data) ? data : []
+    const items = data.items || []
     setDerivations(items)
-
-    const itemsTotal = typeof (data as any).itemsTotal === 'number' ? (data as any).itemsTotal : items.length
-    setTotalItems(itemsTotal)
-
-    // pageTotal não é exigido aqui, DataTable calcula por totalItems/perPage
-  }, [data, perPage])
+    setTotalItems(data.total || 0)
+  }, [data])
 
   useEffect(() => {
     if (isError) {
@@ -177,9 +201,188 @@ function RouteComponent() {
 
           {/* Filters */}
           <div className='flex items-center gap-2 flex-1'>
-            <Button variant={'outline'} size="sm">
-              <Funnel className="size-[0.85rem]" /> Filtros
-            </Button>
+            <Popover open={isFilterOpen} onOpenChange={(open) => {
+              if (open) {
+                setLocalSortBy(sortBy)
+                setLocalOrderBy(orderBy)
+                setLocalFilterName(filterName)
+                setLocalFilterNameOperator(filterNameOperator)
+                setLocalFilterStoreName(filterStoreName)
+                setLocalFilterStoreNameOperator(filterStoreNameOperator)
+                setLocalFilterType(filterType)
+                setLocalFilterTypeOperator(filterTypeOperator)
+              }
+              setIsFilterOpen(open)
+            }}>
+              <PopoverTrigger asChild>
+                <Button variant={'outline'} size="sm">
+                  <Funnel className="size-[0.85rem]" /> Filtros
+                  {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-5" align="start">
+                <div className="flex flex-col gap-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <ArrowUpDown className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Ordenação</h4>
+                    </div>
+                    <div className="flex gap-2 w-full">
+                      <div className="flex-1">
+                        <Select value={localSortBy} onValueChange={setLocalSortBy}>
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder="Campo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="id">ID</SelectItem>
+                            <SelectItem value="createdAt">Criado em</SelectItem>
+                            <SelectItem value="name">Nome</SelectItem>
+                            <SelectItem value="storeName">Nome Loja</SelectItem>
+                            <SelectItem value="type">Tipo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
+                        title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                      >
+                        {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Funnel className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Filtros</h4>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="name"
+                            value={localFilterName}
+                            onChange={(e) => setLocalFilterName(e.target.value)}
+                            className="h-9 flex-1"
+                            placeholder="Filtrar por nome..."
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="storeName" className="text-xs font-medium text-muted-foreground">Nome no Catálogo</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterStoreNameOperator} onValueChange={setLocalFilterStoreNameOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="storeName"
+                            value={localFilterStoreName}
+                            onChange={(e) => setLocalFilterStoreName(e.target.value)}
+                            className="h-9 flex-1"
+                            placeholder="Filtrar por nome na loja..."
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="type" className="text-xs font-medium text-muted-foreground">Tipo</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterTypeOperator} onValueChange={setLocalFilterTypeOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={localFilterType} onValueChange={setLocalFilterType}>
+                            <SelectTrigger id="type" className="h-9 w-full flex-1">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="text">Texto</SelectItem>
+                              <SelectItem value="color">Cor</SelectItem>
+                              <SelectItem value="image">Imagem</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                      setLocalSortBy('createdAt')
+                      setLocalOrderBy('desc')
+                      setLocalFilterNameOperator('cont')
+                      setLocalFilterStoreName('')
+                      setLocalFilterStoreNameOperator('cont')
+                      setLocalFilterType('all')
+                      setLocalFilterTypeOperator('eq')
+                      
+                      setSortBy('createdAt')
+                      setOrderBy('desc')
+                      setFilterName('')
+                      setFilterNameOperator('cont')
+                      setFilterStoreName('')
+                      setFilterStoreNameOperator('cont')
+                      setFilterType('all')
+                      setFilterTypeOperator('eq')
+                      setCurrentPage(1)
+                      setIsFilterOpen(false)
+                    }}>
+                      Limpar tudo
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => {
+                      setSortBy(localSortBy)
+                      setOrderBy(localOrderBy)
+                      setFilterName(localFilterName)
+                      setFilterNameOperator(localFilterNameOperator)
+                      setFilterStoreName(localFilterStoreName)
+                      setFilterStoreNameOperator(localFilterStoreNameOperator)
+                      setFilterType(localFilterType)
+                      setFilterTypeOperator(localFilterTypeOperator)
+                      setCurrentPage(1) // Reset page on filter apply
+                      setIsFilterOpen(false)
+                    }}>
+                      Aplicar
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className='flex items-center gap-2'>

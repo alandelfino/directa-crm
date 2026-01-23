@@ -114,7 +114,7 @@ function InvitesPage() {
       console.error('Erro ao aceitar convite:', error)
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro ao aceitar convite', {
-        description: errorData?.message || 'Não foi possível processar sua solicitação.'
+        description: errorData?.detail || 'Não foi possível processar sua solicitação.'
       })
     }
   })
@@ -136,7 +136,7 @@ function InvitesPage() {
       console.error('Erro ao rejeitar convite:', error)
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro ao rejeitar convite', {
-        description: errorData?.message || 'Não foi possível processar sua solicitação.'
+        description: errorData?.detail || 'Não foi possível processar sua solicitação.'
       })
     }
   })

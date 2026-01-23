@@ -33,7 +33,10 @@ export function InvitationActionsCell({ invitation, onChanged }: { invitation: I
       onChanged?.()
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao atualizar convite')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar convite', {
+        description: errorData?.detail || 'Não foi possível atualizar o status do convite.'
+      })
     }
   })
 
@@ -54,7 +57,9 @@ export function InvitationActionsCell({ invitation, onChanged }: { invitation: I
       onChanged?.()
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cancelar convite')
+      toast.error(error?.response?.data?.title ?? 'Erro ao cancelar convite', {
+        description: error?.response?.data?.detail ?? 'Não foi possível cancelar o convite. Tente novamente.'
+      })
     }
   })
 

@@ -16,16 +16,24 @@ export function DeleteProductDialog({ productId, onDeleted }: { productId: numbe
       return response
     },
     onSuccess: (response) => {
-      if (response.status === 200) {
+      if (response.status === 200 || response.status === 204) {
         toast.success('Produto excluído com sucesso!')
         setOpen(false)
         onDeleted?.()
         queryClient.invalidateQueries({ queryKey: ['products'] })
       } else {
-        toast.error('Erro ao excluir produto')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao excluir produto', {
+          description: errorData?.detail || 'Não foi possível excluir o produto.'
+        })
       }
     },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao excluir produto') }
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir produto', {
+        description: errorData?.detail || 'Não foi possível excluir o produto.'
+      })
+    }
   })
 
   return (

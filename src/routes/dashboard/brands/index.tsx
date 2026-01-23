@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, Funnel, RefreshCw, Trash, Tag } from 'lucide-react'
+import { Edit, Funnel, RefreshCw, Trash, Tag, ArrowUp, ArrowDown, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -13,6 +13,12 @@ import { DeleteBrand } from './-components/delete-brand'
 import { DataTable } from '@/components/data-table'
 import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 
 
 
@@ -22,22 +28,16 @@ export const Route = createFileRoute('/dashboard/brands/')({
 
 type Brand = {
   id: number
-  created_at: number
-  updated_at: number
   name: string
-  company_id: number
-  products?: number
+  createdAt: string
+  updatedAt: string
 }
 
 type BrandsResponse = {
-  itemsReceived: number
-  curPage: number
-  nextPage: number | null
-  prevPage: number | null
-  offset: number
-  perPage: number
-  itemsTotal: number
-  pageTotal: number
+  page: number
+  limit: number
+  totalPages: number
+  total: number
   items: Brand[]
 }
 
@@ -48,50 +48,44 @@ function RouteComponent() {
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+  // Filtros e Ordenação (Estado Aplicado)
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [orderBy, setOrderBy] = useState('desc')
+  const [filterName, setFilterName] = useState('')
+  const [filterNameOperator, setFilterNameOperator] = useState('cont')
+
+  // Filtros e Ordenação (Estado Local do Popover)
+  const [localSortBy, setLocalSortBy] = useState('createdAt')
+  const [localOrderBy, setLocalOrderBy] = useState('desc')
+  const [localFilterName, setLocalFilterName] = useState('')
+  const [localFilterNameOperator, setLocalFilterNameOperator] = useState('cont')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  
+  const activeFilterCount = (filterName ? 1 : 0)
+
+  const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    queryKey: ['brands', currentPage, perPage],
+    queryKey: ['brands', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator],
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:tc5G7www/brands?page=${currentPage}&per_page=${Math.min(50, perPage)}`)
+      const params: any = {
+        page: currentPage,
+        limit: perPage,
+        sortBy,
+        orderBy
+      }
+
+      if (filterName) params.name = JSON.stringify({ operator: filterNameOperator, value: filterName })
+
+      const response = await privateInstance.get('/tenant/brands', { params })
       if (response.status !== 200) {
         throw new Error('Erro ao carregar marcas')
       }
-      return await response.data as BrandsResponse
+      return response.data as BrandsResponse
     }
   })
 
   const [brands, setBrands] = useState<Brand[]>([])
-
-  const normalizeEpoch = (v?: number): number | undefined => {
-    if (typeof v !== 'number' || !Number.isFinite(v)) return undefined
-    const abs = Math.abs(v)
-    if (abs < 1e11) return Math.round(v * 1000)
-    if (abs > 1e14) return Math.round(v / 1000)
-    return v
-  }
-  const fmtDateOnly = (v?: number) => {
-    const ms = normalizeEpoch(v)
-    if (!ms) return '-'
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const d = new Date(ms)
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        hour12: false,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).formatToParts(d)
-      const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
-      const dd = get('day')
-      const MM = get('month')
-      const yyyy = get('year')
-      return `${dd}/${MM}/${yyyy}`
-    } catch {
-      return new Date(ms).toLocaleDateString('pt-BR')
-    }
-  }
 
   const columns: ColumnDef<Brand>[] = [
     {
@@ -120,27 +114,18 @@ function RouteComponent() {
       id: 'name',
       header: 'Nome',
       cell: (brand) => <span className='block truncate min-w-0' title={brand.name}>{brand.name}</span>,
-      width: '280px',
-      headerClassName: 'w-[280px] min-w-[280px] border-r',
-      className: 'w-[280px] min-w-[280px] p-2!'
+      headerClassName: 'min-w-[280px] border-r',
+      className: 'min-w-[280px] p-2!'
     },
     {
-      id: 'created_at',
-      header: 'Data de criação',
+      id: 'createdAt',
+      header: 'Criado em',
       cell: (brand) => (
-        <span className='text-sm'>{fmtDateOnly(brand.created_at)}</span>
+        <span className='text-sm'>{brand.createdAt ? new Date(brand.createdAt).toLocaleDateString('pt-BR') : '-'}</span>
       ),
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
       className: 'w-[180px] min-w-[180px] p-2!'
-    },
-    {
-      id: 'products',
-      header: 'Produtos',
-      cell: (brand) => (typeof brand.products === 'number' ? brand.products : 0),
-      width: '90px',
-      headerClassName: 'w-[90px] min-w-[90px] border-r',
-      className: 'w-[90px] min-w-[90px] p-2!'
     },
   ]
 
@@ -150,21 +135,18 @@ function RouteComponent() {
     const items = Array.isArray(data.items) ? data.items : []
     setBrands(items)
 
-    const itemsTotal = typeof data.itemsTotal === 'number' ? data.itemsTotal : items.length
-    setTotalItems(itemsTotal)
-
-    const pageTotal = typeof data.pageTotal === 'number' ? data.pageTotal : Math.max(1, Math.ceil(itemsTotal / perPage))
-    setTotalPages(pageTotal)
-
-    // Não sobrescrever currentPage com data.curPage para evitar conflitos de navegação
-    // O currentPage deve ser controlado apenas pelas funções de navegação
-  }, [data, perPage])
+    setTotalItems(data.total || 0)
+    setTotalPages(data.totalPages || 1)
+  }, [data])
 
   useEffect(() => {
     if (isError) {
-      toast.error('Erro ao carregar marcas')
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar marcas', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de marcas.'
+      })
     }
-  }, [isError])
+  }, [isError, error])
 
   // Resetar seleção quando mudar de página ou itens por página
   useEffect(() => {
@@ -216,10 +198,122 @@ function RouteComponent() {
 
           {/* Filters */}
           <div className='flex items-center gap-2 flex-1'>
+            <Popover open={isFilterOpen} onOpenChange={(open) => {
+              if (open) {
+                setLocalSortBy(sortBy)
+                setLocalOrderBy(orderBy)
+                setLocalFilterName(filterName)
+                setLocalFilterNameOperator(filterNameOperator)
+              }
+              setIsFilterOpen(open)
+            }}>
+              <PopoverTrigger asChild>
+                <Button variant={'outline'} size="sm">
+                  <Funnel className="size-[0.85rem]" /> Filtros
+                  {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-5" align="start">
+                <div className="flex flex-col gap-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <ArrowUpDown className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Ordenação</h4>
+                    </div>
+                    <div className="flex gap-2 w-full">
+                      <div className="flex-1">
+                        <Select value={localSortBy} onValueChange={setLocalSortBy}>
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder="Campo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="id">ID</SelectItem>
+                            <SelectItem value="createdAt">Criado em</SelectItem>
+                            <SelectItem value="name">Nome</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
+                        title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                      >
+                        {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Funnel className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Filtros</h4>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="name"
+                            value={localFilterName}
+                            onChange={(e) => setLocalFilterName(e.target.value)}
+                            className="h-9 flex-1"
+                            placeholder="Filtrar por nome..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-            <Button variant={'outline'} size="sm">
-              <Funnel className="size-[0.85rem]" /> Filtros
-            </Button>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                      setLocalSortBy('createdAt')
+                      setLocalOrderBy('desc')
+                      setLocalFilterName('')
+                      setLocalFilterNameOperator('cont')
+                      
+                      setSortBy('createdAt')
+                      setOrderBy('desc')
+                      setFilterName('')
+                      setFilterNameOperator('cont')
+                      setCurrentPage(1)
+                      setIsFilterOpen(false)
+                    }}>
+                      Limpar tudo
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => {
+                      setSortBy(localSortBy)
+                      setOrderBy(localOrderBy)
+                      setFilterName(localFilterName)
+                      setFilterNameOperator(localFilterNameOperator)
+                      setCurrentPage(1) // Reset page on filter apply
+                      setIsFilterOpen(false)
+                    }}>
+                      Aplicar
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
           </div>
 

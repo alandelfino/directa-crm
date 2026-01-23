@@ -51,7 +51,7 @@ function UserLayout() {
   }, [])
 
   async function signOut() {
-    try { await privateInstance.post('/api:eA5lqIuH/auth/logout', {}) } catch { }
+    try { await privateInstance.post('/tenant/sign-out', {}) } catch { }
     try {
       const sub = getSubdomain()
       localStorage.removeItem(`${sub}-directa-authToken`)
@@ -71,14 +71,14 @@ function UserLayout() {
         if (res.status === 200 || res.status === 201) {
             toast.success("Email de confirmação enviado!", { id: "resend-email", description: undefined })
         } else {
-            const errorTitle = res.data?.payload?.title || "Erro ao enviar email"
-            const errorMessage = res.data?.message || "Erro desconhecido"
-            toast.error(errorTitle, { id: "resend-email", description: errorMessage })
+            const errorTitle = res.data?.title || "Erro ao enviar email"
+            const errorDetail = res.data?.detail || "Erro desconhecido"
+            toast.error(errorTitle, { id: "resend-email", description: errorDetail })
         }
     } catch (e: any) {
-        const errorTitle = e?.response?.data?.payload?.title || "Erro ao enviar email"
-        const errorMessage = e?.response?.data?.message || "Erro desconhecido"
-        toast.error(errorTitle, { id: "resend-email", description: errorMessage })
+        const errorTitle = e?.response?.data?.title || "Erro ao enviar email"
+        const errorDetail = e?.response?.data?.detail || "Erro desconhecido"
+        toast.error(errorTitle, { id: "resend-email", description: errorDetail })
     }
   }
 

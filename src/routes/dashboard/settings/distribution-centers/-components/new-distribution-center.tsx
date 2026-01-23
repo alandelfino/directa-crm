@@ -38,7 +38,10 @@ export function NewDistributionCenterSheet({ onCreated }: { onCreated?: () => vo
       form.reset({ name: '' })
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao criar centro de distribuição')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao criar centro de distribuição', {
+        description: errorData?.detail || 'Não foi possível criar o centro de distribuição.'
+      })
     }
   })
 

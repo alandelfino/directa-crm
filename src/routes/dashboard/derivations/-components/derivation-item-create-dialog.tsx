@@ -29,10 +29,9 @@ const getSchemaByType = (t: 'text' | 'color' | 'image') => {
   return base.merge(z.object({ value: z.string().min(1, { message: 'Valor é obrigatório' }) }))
 }
 
-export function DerivationItemCreateDialog({ derivationId, derivationType, itemsCount = 0, onCreated }: {
+export function DerivationItemCreateDialog({ derivationId, derivationType, onCreated }: {
   derivationId: number
   derivationType: 'text' | 'color' | 'image'
-  itemsCount?: number
   onCreated?: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -46,8 +45,8 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, items
 
   const { isPending: creating, mutate: createItem } = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
-      const payload: any = { derivation_id: derivationId, value: values.value, order: itemsCount + 1, name: values.nome }
-      const response = await privateInstance.post(`/api:JOs6IYNo/derivation_items`, payload)
+      const payload: any = { derivationId: derivationId, value: values.value, name: values.nome }
+      const response = await privateInstance.post(`/tenant/derivation-items`, payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao cadastrar item')
       return response
     },
@@ -58,7 +57,12 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, items
       setPickerOpen(false)
       onCreated?.()
     },
-    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar item')
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar item', {
+        description: errorData?.detail || 'Não foi possível criar o item.'
+      })
+    }
   })
 
   return (

@@ -28,8 +28,7 @@ const getSchemaByType = (t: 'text' | 'color' | 'image') => {
   return base.merge(z.object({ value: z.string().min(1, { message: 'Valor é obrigatório' }) }))
 }
 
-export function DerivationItemEditDialog({ derivationId, derivationType, item, onUpdated }: {
-  derivationId: number
+export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
   derivationType: 'text' | 'color' | 'image'
   item: DerivationItem
   onUpdated?: () => void
@@ -45,14 +44,14 @@ export function DerivationItemEditDialog({ derivationId, derivationType, item, o
 
   useEffect(() => {
     if (open) {
-      form.reset({ nome: item.name ?? item.nome ?? '', value: item.value ?? '' })
+      form.reset({ nome: item.name ?? '', value: item.value ?? '' })
     }
   }, [open, item])
 
   const { isPending: updating, mutate: updateItem } = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
-      const payload: any = { value: values.value, order: item.order, derivation_id: derivationId, name: values.nome }
-      const response = await privateInstance.put(`/api:JOs6IYNo/derivation_items/${item.id}`, payload)
+      const payload: any = { value: values.value, name: values.nome }
+      const response = await privateInstance.put(`/tenant/derivation-items/${item.id}`, payload)
       if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao atualizar item')
       return response
     },
@@ -62,7 +61,12 @@ export function DerivationItemEditDialog({ derivationId, derivationType, item, o
       setPickerOpen(false)
       onUpdated?.()
     },
-    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Erro ao atualizar item')
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar item', {
+        description: errorData?.detail || 'Não foi possível salvar as alterações.'
+      })
+    }
   })
 
   return (

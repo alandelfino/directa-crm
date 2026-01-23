@@ -31,8 +31,11 @@ export function EditTeamSheet({ teamId, onSaved }: { teamId: number, onSaved?: (
         const response = await privateInstance.get<Team>(`/api:VPDORr9u/teams/${teamId}`)
         if (response.status !== 200 || !response.data) throw new Error('Falha ao carregar equipe')
         form.reset({ name: response.data.name, description: response.data.description ?? '' })
-      } catch {
-        toast.error('Erro ao carregar equipe')
+      } catch (err: any) {
+        const errorData = err?.response?.data
+        toast.error(errorData?.title || 'Erro ao carregar equipe', {
+          description: errorData?.detail || 'Não foi possível carregar os dados da equipe.'
+        })
       } finally {
         setLoading(false)
       }
@@ -54,8 +57,11 @@ export function EditTeamSheet({ teamId, onSaved }: { teamId: number, onSaved?: (
       setOpen(false)
       onSaved?.()
     },
-    onError: () => {
-      toast.error('Erro ao salvar equipe')
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao salvar equipe', {
+        description: errorData?.detail || 'Não foi possível atualizar a equipe.'
+      })
     }
   })
 

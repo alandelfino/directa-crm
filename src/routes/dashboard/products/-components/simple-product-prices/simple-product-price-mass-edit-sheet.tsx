@@ -100,7 +100,8 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
           await privateInstance.put(`/api:c3X9fE5j/product_prices`, payload)
           currentResults.success++
         } catch (error: any) {
-          const message = error?.response?.data?.message ?? 'Erro desconhecido'
+          const errorData = error?.response?.data
+          const message = errorData?.title || errorData?.detail || 'Erro desconhecido'
           currentResults.errors.push({ id: item.id, message })
           console.error(`Error updating price for item ${item.id}`, error)
         } finally {

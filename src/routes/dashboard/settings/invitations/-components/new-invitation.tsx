@@ -77,7 +77,10 @@ export function NewInvitationSheet({ onCreated }: { onCreated?: () => void }) {
       form.reset({ email: '', team_id: '', user_profile_id: '' })
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao criar convite')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao criar convite', {
+        description: errorData?.detail || 'Não foi possível enviar o convite. Tente novamente.'
+      })
     }
   })
 

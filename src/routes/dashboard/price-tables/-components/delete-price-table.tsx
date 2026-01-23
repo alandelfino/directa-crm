@@ -17,7 +17,12 @@ export function DeletePriceTable({ priceTableId, disabled = false }: { priceTabl
       return response.data
     },
     onSuccess: () => { toast.success('Tabela de preço excluída com sucesso!'); setOpen(false); queryClient.invalidateQueries({ queryKey: ['price-tables'] }) },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao excluir tabela de preço') },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir tabela de preço', {
+        description: errorData?.detail || 'Não foi possível excluir a tabela de preço.'
+      })
+    },
   })
 
   const handleConfirmDelete = async () => { if (!priceTableId) { toast.error('Selecione a tabela de preço'); return } await mutateAsync() }

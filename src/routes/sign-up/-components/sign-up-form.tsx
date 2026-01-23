@@ -46,22 +46,22 @@ export function SignUpForm({
     mutationFn: auth.signup,
     onSuccess: (response) => {
       // O backend retorna {"status": "success"} ou similar
-      if (response.status === 200 || response.data?.status === 'success') {
+      if (response.status === 200 || response.status === 201 || response.data?.status === 'success') {
         toast.success("Conta criada com sucesso!", {
             description: "Você já pode fazer login."
         })
         navigate({ to: "/sign-in" })
       } else {
         const errorData = response?.data
-        toast.error(errorData?.payload.title || 'Erro no cadastro', {
-          description: errorData?.message || 'Não foi possível criar sua conta.'
+        toast.error(errorData?.title || 'Erro no cadastro', {
+          description: errorData?.detail || 'Não foi possível criar sua conta.'
         })
       }
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
-      toast.error(errorData?.payload?.title || 'Erro no cadastro', {
-        description: errorData?.message || 'Ocorreu um erro ao tentar realizar o cadastro.'
+      toast.error(errorData?.title || 'Erro no cadastro', {
+        description: errorData?.detail || 'Ocorreu um erro ao tentar realizar o cadastro.'
       })
     },
   })

@@ -141,7 +141,10 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
       })
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao criar loja')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao criar loja', {
+        description: errorData?.detail || 'Não foi possível criar a loja.'
+      })
     }
   })
 

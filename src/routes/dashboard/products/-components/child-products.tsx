@@ -47,7 +47,7 @@ export function ChildProductsSheet({ productId }: { productId: number }) {
   const [mainScroller, setMainScroller] = useState<HTMLDivElement | null>(null)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
 
-  const { data, isLoading, isRefetching, refetch } = useQuery({
+  const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({
     queryKey: ['product-derivations', productId],
     enabled: open,
     refetchOnWindowFocus: false,
@@ -60,6 +60,15 @@ export function ChildProductsSheet({ productId }: { productId: number }) {
       return response.data as ChildsResponse
     }
   })
+
+  useEffect(() => {
+    if (isError) {
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar derivações', {
+        description: errorData?.detail || 'Não foi possível carregar as derivações do produto.'
+      })
+    }
+  }, [isError, error])
 
   useEffect(() => {
     if (!data) return
@@ -120,7 +129,10 @@ export function ChildProductsSheet({ productId }: { productId: number }) {
               setItems((prev) => prev.map((it) => it.id === p.id ? { ...it, active: nextActive } : it))
               toast.success(nextActive ? 'Derivação ativada' : 'Derivação desativada')
             } catch (err: any) {
-              toast.error(err?.response?.data?.message ?? err?.message ?? 'Erro ao atualizar status')
+              const errorData = err?.response?.data
+              toast.error(errorData?.title || 'Erro ao atualizar status', {
+                description: errorData?.detail || 'Não foi possível alterar o status da derivação.'
+              })
             } finally {
               setUpdatingId(null)
             }

@@ -10,6 +10,7 @@ interface ApiCategory {
   id: string | number
   name: string
   parent_id?: string | number | null
+  parentId?: string | number | null
   children?: ApiCategory[]
 }
 

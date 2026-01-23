@@ -40,11 +40,17 @@ export function NewUnitSheet({
         // Atualiza a listagem de unidades
         queryClient.invalidateQueries({ queryKey: ['units'] })
       } else {
-        toast.error('Erro ao cadastrar unidade')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao cadastrar unidade', {
+          description: errorData?.detail || 'Não foi possível cadastrar a unidade.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar unidade')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar unidade', {
+        description: errorData?.detail || 'Não foi possível cadastrar a unidade.'
+      })
     },
   })
 

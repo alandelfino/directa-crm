@@ -73,7 +73,7 @@ function RouteComponent() {
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+  const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryKey: ['products', currentPage, perPage],
@@ -153,7 +153,14 @@ function RouteComponent() {
     setTotalPages(pageTotal)
   }, [data, perPage])
 
-  useEffect(() => { if (isError) toast.error('Erro ao carregar produtos') }, [isError])
+  useEffect(() => {
+    if (isError) {
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar produtos', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de produtos.'
+      })
+    }
+  }, [isError, error])
   useEffect(() => { setSelected([]) }, [currentPage, perPage])
   useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
   useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])

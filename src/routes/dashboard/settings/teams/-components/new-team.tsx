@@ -36,13 +36,11 @@ export function NewTeamSheet({ onCreated }: { onCreated?: () => void }) {
       onCreated?.()
       form.reset({ name: '', description: '' })
     },
-    onError: (error: unknown) => {
-      let message = 'Erro ao criar equipe'
-      if (typeof error === 'object' && error !== null) {
-        const e = error as { response?: { data?: { message?: string } } }
-        message = e.response?.data?.message ?? message
-      }
-      toast.error(message)
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao criar equipe', {
+        description: errorData?.detail || 'Não foi possível criar a equipe.'
+      })
     }
   })
 

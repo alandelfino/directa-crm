@@ -72,8 +72,9 @@ export function EditMediaSizeSheet({
         description: data.description ?? "",
       })
     } catch (error: any) {
-      toast.error(error?.response?.data?.payload?.title ?? "Erro!", {
-        description: error?.response?.data?.message ?? 'Erro ao carregar tamanho de mídia'
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || "Erro ao carregar tamanho de mídia", {
+        description: errorData?.detail || 'Não foi possível carregar o tamanho de mídia.'
       })
       closeSheet()
     } finally {
@@ -97,14 +98,16 @@ export function EditMediaSizeSheet({
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['media-sizes'] })
       } else {
-        toast.error("Erro!", {
-          description: 'Erro ao salvar tamanho de mídia'
+        const errorData = response?.data
+        toast.error(errorData?.title || "Erro!", {
+          description: errorData?.detail || 'Erro ao salvar tamanho de mídia'
         })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.payload?.title ?? "Erro!", {
-        description: error?.response?.data?.message ?? 'Erro ao salvar tamanho de mídia'
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || "Erro!", {
+        description: errorData?.detail || 'Erro ao salvar tamanho de mídia'
       })
     },
   })

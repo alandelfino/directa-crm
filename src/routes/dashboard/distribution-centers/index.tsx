@@ -56,7 +56,7 @@ function RouteComponent() {
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+  const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryKey: ['distribution-centers', currentPage, perPage],
@@ -104,7 +104,14 @@ function RouteComponent() {
     setTotalPages(pageTotal)
   }, [data, perPage])
 
-  useEffect(() => { if (isError) toast.error('Erro ao carregar centros de distribuição') }, [isError])
+  useEffect(() => {
+    if (isError) {
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar centros de distribuição', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de centros de distribuição.'
+      })
+    }
+  }, [isError, error])
   useEffect(() => { setSelected([]) }, [currentPage, perPage])
   useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
   useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])

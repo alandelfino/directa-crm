@@ -65,7 +65,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
     },
   })
 
-  const { data, isError } = useQuery({
+  const { data, isError, error } = useQuery({
     queryKey: ['company-profile', 'edit-sheet'],
     enabled: open,
     refetchOnWindowFocus: false,
@@ -93,9 +93,12 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
 
   useEffect(() => {
     if (isError) {
-      toast.error('Erro ao carregar dados da empresa')
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar dados', {
+        description: errorData?.detail || 'Não foi possível carregar as informações da empresa.'
+      })
     }
-  }, [isError])
+  }, [isError, error])
 
   useEffect(() => {
     if (!data || !open) return
@@ -129,14 +132,18 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
     try {
       const MAX_SIZE = 10 * 1024 * 1024
       if (file.size > MAX_SIZE) {
-        toast.error('Arquivo muito grande. Tamanho máximo permitido é 10MB.')
+        toast.error('Arquivo muito grande', {
+          description: 'Tamanho máximo permitido é 10MB.'
+        })
         return
       }
       setRemovedLogo(false)
       originalFileRef.current = file
       setCropOpen(true)
     } catch {
-      toast.error('Falha ao carregar a imagem da logo')
+      toast.error('Erro na imagem', {
+        description: 'Falha ao carregar a imagem da logo.'
+      })
     }
   }
 
@@ -157,7 +164,9 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
       try { window.dispatchEvent(new CustomEvent('directa:company-updated', { detail: nextCompany })) } catch {}
       setCropOpen(false)
     } catch {
-      toast.error('Falha ao aplicar recorte da imagem')
+      toast.error('Erro no recorte', {
+        description: 'Falha ao aplicar recorte da imagem.'
+      })
       setCropOpen(false)
     }
   }
@@ -211,11 +220,16 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
         } catch {}
         toast.success('Dados da empresa atualizados!')
       } else {
-        toast.error('Erro ao atualizar os dados da empresa')
+        const errorData = (res.data as any)
+        toast.error(errorData?.title || 'Erro na atualização', {
+          description: errorData?.detail || 'Erro ao atualizar os dados da empresa'
+        })
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao atualizar os dados da empresa'
-      toast.error(msg)
+      const errorData = err?.response?.data
+      toast.error(errorData?.title || 'Erro na atualização', {
+        description: errorData?.detail || 'Erro ao atualizar os dados da empresa'
+      })
     }
   }
 

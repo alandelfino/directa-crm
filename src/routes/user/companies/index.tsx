@@ -104,36 +104,30 @@ function UserCompaniesPage() {
     enabled: isEmailVerified === true,
     queryFn: async () => {
       // Listar empresas do usuário autenticado via endpoint de auth (escopo de /user)
-      const res = await privateInstance.get('/api:eA5lqIuH/auth/companies')
-      const rawItems = Array.isArray(res.data) ? res.data : (res.data?.items ?? [])
+      const res = await privateInstance.get('/tenant/companies')
+      const rawItems = Array.isArray(res.data?.items) ? res.data.items : (Array.isArray(res.data) ? res.data : [])
       const normalized: UserCompany[] = rawItems
         .map((it: any) => {
-          const c = it?.company ?? {}
-          const rawCompanyId = typeof c?.id === 'number' ? c.id : (typeof it?.company_id === 'number' ? it.company_id : undefined)
-          const id = Number(rawCompanyId)
-          const name = String(c?.name ?? it?.name ?? '')
-          const alias = typeof c?.alias === 'string' ? c.alias : (typeof it?.alias === 'string' ? it.alias : null)
-          const imageUrl = c?.image?.url
-          const description = typeof c?.description === 'string' ? c.description : (typeof it?.description === 'string' ? it.description : null)
-          const website = typeof c?.website === 'string' ? c.website : (typeof it?.website === 'string' ? it.website : null)
-          const active = typeof it?.active === 'boolean' ? it.active : (typeof c?.active === 'boolean' ? c.active : undefined)
-          const status = typeof c?.status === 'string' ? c.status : (typeof it?.status === 'string' ? it.status : 'active')
-
+          // O novo endpoint retorna { id, name, createdAt, updatedAt, userId }
+          // Mapear para estrutura UserCompany mantendo compatibilidade onde possível
+          const id = Number(it?.id)
+          const name = String(it?.name ?? '')
+          
           return {
             id: Number.isFinite(id) ? id : undefined as any,
             company_id: Number.isFinite(id) ? id : undefined,
-            created_at: Number(c?.created_at) || Date.now(),
-            user_id: typeof it?.user_id === 'number' ? it.user_id : null,
+            created_at: new Date(it?.createdAt).getTime() || Date.now(),
+            user_id: Number(it?.userId) || null,
             name,
-            alias,
-            is_me: Boolean(it?.is_me),
-            active,
-            status,
-            users_profile_id: typeof it?.users_profile_id === 'number' ? it.users_profile_id : undefined,
-            image: (imageUrl && typeof imageUrl === 'string') ? { url: imageUrl } : null,
-            description,
-            website,
-            country: typeof it?.country === 'string' ? it.country : null,
+            alias: null, // Novo endpoint não retorna alias
+            is_me: false,
+            active: true, // Assumir ativo se listado
+            status: 'active',
+            users_profile_id: undefined,
+            image: null, // Novo endpoint não retorna imagem
+            description: null,
+            website: null,
+            country: null,
           }
         })
         .filter((uc: UserCompany) => Number.isFinite(uc.id) && !!uc.name)
@@ -155,14 +149,16 @@ function UserCompaniesPage() {
     setLoggingCompanyId(companyId)
     try {
       // Enviar a propriedade `company_id` da listagem como `company_id` na requisição
-      const res = await privateInstance.post('/api:eA5lqIuH/auth/login-company', { company_id: companyId })
-      const authToken: string | undefined = res?.data?.authToken
+      const res = await privateInstance.post('/tenant/companies/sign-in', { company_id: companyId })
+      const token: string | undefined = res?.data?.token
       const user = res?.data?.user
       const company = res?.data?.company ?? { id: companyId, name: uc.name, alias: uc.alias, image: uc.image ?? null }
       const sub = getSubdomain()
-      if (authToken) { auth.normalizeTokenStorage(authToken) }
+      if (token) { auth.normalizeTokenStorage(token) }
       if (user) {
-        localStorage.setItem(`${sub}-directa-user`, JSON.stringify(user))
+        // Mapear user.emailVerified para verified_email
+        const userToStore = { ...user, verified_email: user.emailVerified }
+        localStorage.setItem(`${sub}-directa-user`, JSON.stringify(userToStore))
         try {
           const avatarUrl = user?.image?.url ?? user?.avatar_url ?? null
           window.dispatchEvent(new CustomEvent('directa:user-updated', { detail: { name: user?.name, email: user?.email, avatarUrl } }))
@@ -174,10 +170,10 @@ function UserCompaniesPage() {
     } catch (err: any) {
       console.error('Falha ao autenticar na empresa:', err)
       const errorData = err?.response?.data
-      const title = errorData?.payload?.title || 'Erro ao acessar empresa'
-      const message = errorData?.message || 'Não foi possível realizar o login na empresa.'
+      const title = errorData?.title || 'Erro ao acessar empresa'
+      const detail = errorData?.detail || 'Não foi possível realizar o login na empresa.'
       toast.error(title, {
-        description: message
+        description: detail
       })
     } finally {
       setLoggingCompanyId(null)
@@ -187,7 +183,7 @@ function UserCompaniesPage() {
   const { isPending: isRevoking, mutateAsync: revokeAccess } = useMutation({
     mutationFn: async () => {
       const companyId = revokingCompany?.company_id ?? revokingCompany?.id
-      const res = await privateInstance.post('https://server.directacrm.com.br/api:eA5lqIuH/auth/remove-access', { company_id: companyId })
+      const res = await privateInstance.post('/api:eA5lqIuH/auth/remove-access', { company_id: companyId })
       return res.data
     },
     onSuccess: () => {
@@ -198,10 +194,10 @@ function UserCompaniesPage() {
       queryClient.invalidateQueries({ queryKey: ['auth', 'companies'] })
     },
     onError: (error: any) => {
-      const title = error?.response?.data?.payload?.title
-      const message = error?.response?.data?.message ?? 'Falha ao revogar acesso'
-      if (title) toast.error(title, { description: message })
-      else toast.error(message)
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao revogar acesso', {
+        description: errorData?.detail || 'Falha ao revogar acesso.'
+      })
     }
   })
 

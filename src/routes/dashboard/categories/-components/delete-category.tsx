@@ -12,26 +12,32 @@ export function DeleteCategory({ categoryId, disabled = false }: { categoryId: n
 
   const { isPending, mutate } = useMutation({
     mutationFn: async () => {
-      return await privateInstance.delete(`/api:ojk_IOB-/categories/${categoryId}`)
+      return await privateInstance.delete(`/tenant/categories/${categoryId}`)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 204) {
         toast.success('Categoria excluída com sucesso!')
         setOpen(false)
         queryClient.invalidateQueries({ queryKey: ['categories'] })
-        queryClient.invalidateQueries({ queryKey: ['category', categoryId] })
+        queryClient.removeQueries({ queryKey: ['category', categoryId] })
       } else {
-        toast.error('Erro ao excluir categoria')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao excluir categoria', {
+          description: errorData?.detail || 'Não foi possível excluir a categoria.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao excluir categoria')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir categoria', {
+        description: errorData?.detail || 'Não foi possível excluir a categoria.'
+      })
     }
   })
 
   const handleConfirmDelete = () => {
     if (!categoryId) {
-      toast.error('Selecione uma categoria para excluir')
+      toast.error('Erro na seleção', { description: 'Selecione uma categoria para excluir' })
       return
     }
     mutate()

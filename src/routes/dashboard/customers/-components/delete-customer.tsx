@@ -17,11 +17,17 @@ export function DeleteCustomerDialog({ customerId }: { customerId: number }) {
         toast.success('Cliente excluído!')
         queryClient.invalidateQueries({ queryKey: ['customers'] })
       } else {
-        toast.error('Erro ao excluir cliente')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao excluir cliente', {
+          description: errorData?.detail || 'Não foi possível excluir o cliente.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message ?? 'Erro ao excluir')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir cliente', {
+        description: errorData?.detail || 'Não foi possível excluir o cliente.'
+      })
     }
   })
 

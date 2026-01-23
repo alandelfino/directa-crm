@@ -91,7 +91,10 @@ function getSubdomain() {
           toast.error('Sessão expirada ou dados locais não encontrados. Por favor, faça login novamente.')
         }
       } catch (err: any) {
-        toast.error(err?.message ?? 'Erro ao carregar seu perfil')
+        const errorData = err?.response?.data
+        toast.error(errorData?.title || 'Erro ao carregar perfil', {
+          description: errorData?.detail || 'Não foi possível carregar os dados do perfil.'
+        })
       } finally {
         setLoadingMe(false)
       }
@@ -109,7 +112,9 @@ function getSubdomain() {
       const uploadFile: File | undefined = removeImage ? undefined : imageVal
       // Validação básica do arquivo gerado pelo crop
       if (uploadFile && (uploadFile.size === 0 || !uploadFile.type)) {
-        toast.error('Falha ao gerar a imagem recortada. Tente novamente.')
+        toast.error('Erro no processamento', {
+          description: 'Falha ao gerar a imagem recortada. Tente novamente.'
+        })
         return
       }
       if (uploadFile) {
@@ -211,18 +216,16 @@ function getSubdomain() {
           }
         } catch {}
       } else {
-        toast.error('Erro ao atualizar seu perfil')
+        const errorData = res?.data
+        toast.error(errorData?.title || 'Erro ao atualizar perfil', {
+          description: errorData?.detail || 'Não foi possível salvar as alterações.'
+        })
       }
     } catch (error: any) {
-      const apiMessage = error?.response?.data?.message ?? 'Erro ao atualizar seu perfil'
-      const apiCode = error?.response?.data?.code
-      if (apiCode === 'ERROR_CODE_ACCESS_DENIED') {
-        toast.error('Não permitido!', {
-          description: 'Você não possui permissão para editar este perfil. Contate o administrador.'
-        })
-      } else {
-        toast.error(apiMessage)
-      }
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar perfil', {
+        description: errorData?.detail || 'Ocorreu um erro ao tentar salvar as alterações.'
+      })
     }
   }
 

@@ -45,7 +45,7 @@ function RouteComponent() {
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+  const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     queryKey: ['profiles', currentPage, perPage],
     queryFn: async () => {
@@ -128,9 +128,12 @@ function RouteComponent() {
 
   useEffect(() => {
     if (isError) {
-      toast.error('Erro ao carregar perfis')
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar perfis', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de perfis.'
+      })
     }
-  }, [isError])
+  }, [isError, error])
 
   useEffect(() => {
     setSelectedProfiles([])

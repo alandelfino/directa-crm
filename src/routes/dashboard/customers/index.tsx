@@ -100,7 +100,7 @@ function RouteComponent() {
         return out
     }
 
-    const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+    const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
         refetchOnWindowFocus: false,
         refetchOnMount: false,
         queryKey: ['customers', currentPage, perPage, sortBy, orderBy],
@@ -158,7 +158,14 @@ function RouteComponent() {
         setTotalPages(pageTotal)
     }, [data, perPage])
 
-    useEffect(() => { if (isError) toast.error('Erro ao carregar clientes') }, [isError])
+    useEffect(() => {
+        if (isError) {
+            const errorData = (error as any)?.response?.data
+            toast.error(errorData?.title || 'Erro ao carregar clientes', {
+                description: errorData?.detail || 'Não foi possível carregar a lista de clientes.'
+            })
+        }
+    }, [isError, error])
     useEffect(() => { setSelected([]) }, [currentPage, perPage])
     useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
     useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])

@@ -42,14 +42,17 @@ export function EditBrandSheet({
     async function fetchBrand() {
         try {
             setBrandLoading(true)
-      const response = await privateInstance.get(`/api:tc5G7www/brands/${brandId}`)
+            const response = await privateInstance.get(`/api:tc5G7www/brands/${brandId}`)
             const brand = response?.data
             if (!brand) {
                 throw new Error('Resposta inválida ao buscar marca')
             }
             form.reset({ name: brand.name ?? "" })
         } catch (error: any) {
-            toast.error(error?.response?.data?.message ?? 'Erro ao carregar marca')
+            const errorData = error?.response?.data
+            toast.error(errorData?.title || 'Erro ao carregar marca', {
+                description: errorData?.detail || 'Não foi possível carregar os dados da marca.'
+            })
         } finally {
             setBrandLoading(false)
         }
@@ -63,7 +66,7 @@ export function EditBrandSheet({
 
     const { isPending, mutate } = useMutation({
         mutationFn: (values: z.infer<typeof formSchema>) => {
-    return privateInstance.put(`/api:tc5G7www/brands/${brandId}`, values)
+    return privateInstance.put(`/tenant/brands/${brandId}`, values)
         },
         onSuccess: (response) => {
             if (response.status === 200) {
@@ -72,11 +75,17 @@ export function EditBrandSheet({
                 // Atualiza a listagem de marcas
                 queryClient.invalidateQueries({ queryKey: ['brands'] })
             } else {
-                toast.error('Erro ao salvar marca')
+                const errorData = (response.data as any)
+                toast.error(errorData?.title || 'Erro ao salvar marca', {
+                    description: errorData?.detail || 'Não foi possível atualizar a marca.'
+                })
             }
         },
-        onError: (error) => {
-            toast.error(error.message)
+        onError: (error: any) => {
+            const errorData = error?.response?.data
+            toast.error(errorData?.title || 'Erro ao salvar marca', {
+                description: errorData?.detail || 'Não foi possível atualizar a marca.'
+            })
         },
     })
 

@@ -18,20 +18,22 @@ export function DeleteProfile({ profileId }: { profileId: number }) {
       }
       return response.data
     },
-    onSuccess: () => {
-      toast.success('Perfil excluído com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['profiles'] })
+    onSuccess: (response) => {
+      if (response.status === 200 || response.status === 204) {
+        toast.success('Perfil excluído com sucesso!')
+        queryClient.invalidateQueries({ queryKey: ['profiles'] })
+      } else {
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao excluir perfil', {
+          description: errorData?.detail || 'Não foi possível excluir o perfil.'
+        })
+      }
     },
     onError: (error: any) => {
-      const apiMessage = error?.response?.data?.message ?? 'Erro ao excluir perfil'
-      const apiCode = error?.response?.data?.code
-      if (apiCode === 'ERROR_CODE_ACCESS_DENIED') {
-        toast.error('Não permitido!', {
-          description: apiMessage
-        })
-      } else {
-        toast.error(apiMessage)
-      }
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir perfil', {
+        description: errorData?.detail || 'Não foi possível excluir o perfil.'
+      })
     }
   })
 

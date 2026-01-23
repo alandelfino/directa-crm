@@ -11,7 +11,7 @@ export function DerivationItemDeleteDialog({ itemId, onDeleted }: { itemId: numb
   const [open, setOpen] = useState(false)
   const { isPending: deleting, mutate: deleteItem } = useMutation({
     mutationFn: async () => {
-      const response = await privateInstance.delete(`/api:JOs6IYNo/derivation_items/${itemId}`)
+      const response = await privateInstance.delete(`/tenant/derivation-items/${itemId}`)
       if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao excluir item')
       return response
     },
@@ -21,13 +21,10 @@ export function DerivationItemDeleteDialog({ itemId, onDeleted }: { itemId: numb
       onDeleted?.()
     },
     onError: (error: any) => {
-      const title = error?.response?.data?.payload?.title
-      const message = error?.response?.data?.message ?? 'Erro ao excluir item'
-      if (title) {
-        toast.error(title, { description: message })
-      } else {
-        toast.error(message)
-      }
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir item', {
+        description: errorData?.detail || 'Não foi possível excluir o item.'
+      })
     }
   })
 

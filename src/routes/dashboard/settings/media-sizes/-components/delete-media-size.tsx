@@ -29,14 +29,16 @@ export function DeleteMediaSize({ mediaSizeId }: { mediaSizeId: number }) {
                 setOpen(false)
                 queryClient.invalidateQueries({ queryKey: ['media-sizes'] })
             } else {
-                toast.error("Erro!", {
-                    description: 'Erro ao excluir tamanho de mídia'
+                const errorData = (response.data as any)
+                toast.error(errorData?.title || "Erro ao excluir tamanho de mídia", {
+                    description: errorData?.detail || 'Não foi possível excluir o tamanho de mídia.'
                 })
             }
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.payload?.title ?? 'Erro!', {
-                description: error?.response?.data?.message ?? 'Erro ao excluir tamanho de mídia'
+            const errorData = error?.response?.data
+            toast.error(errorData?.title || "Erro ao excluir tamanho de mídia", {
+                description: errorData?.detail || 'Não foi possível excluir o tamanho de mídia.'
             })
         }
     })

@@ -19,14 +19,11 @@ export function DeleteTeam({ teamId, onDeleted }: { teamId: number, onDeleted?: 
       toast.success('Equipe excluída com sucesso!')
       onDeleted?.()
     },
-    onError: (error) => {
-      if (error instanceof Error && 'response' in error && (error as any).response?.status === 403) {
-        toast.error("Não permitido!", {
-          description: (error as any).response?.data?.message,
-        })
-      } else {
-        toast.error("Erro ao excluir equipe")
-      }
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir equipe', {
+        description: errorData?.detail || 'Não foi possível excluir a equipe.'
+      })
     }
   })
 

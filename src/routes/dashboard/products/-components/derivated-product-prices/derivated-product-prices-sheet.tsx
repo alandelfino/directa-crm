@@ -63,10 +63,10 @@ function EditablePriceCell({
       onSaved(newPrice)
     },
     onError: (error: any) => {
-      const title = error?.response?.data?.payload?.title
-      const message = error?.response?.data?.message ?? 'Erro ao atualizar preço'
-      if (title) toast.error(title, { description: message })
-      else toast.error(message)
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar preço', {
+        description: errorData?.detail || 'Não foi possível atualizar o preço da derivação.'
+      })
     }
   })
 

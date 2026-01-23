@@ -62,7 +62,9 @@ function RouteComponent() {
       refetch()
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cancelar convite')
+      toast.error(error?.response?.data?.title ?? 'Erro ao cancelar convite', {
+        description: error?.response?.data?.detail ?? 'Não foi possível cancelar o convite. Tente novamente.'
+      })
     }
   })
 

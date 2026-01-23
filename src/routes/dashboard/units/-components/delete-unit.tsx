@@ -20,17 +20,23 @@ export function DeleteUnit({ unitId, disabled = false }: { unitId: number; disab
                 setOpen(false)
                 queryClient.invalidateQueries({ queryKey: ['units'] })
             } else {
-                toast.error('Erro ao excluir unidade')
+                const errorData = (response.data as any)
+                toast.error(errorData?.title || 'Erro ao excluir unidade', {
+                    description: errorData?.detail || 'Não foi possível excluir a unidade.'
+                })
             }
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.message ?? 'Erro ao excluir unidade')
+            const errorData = error?.response?.data
+            toast.error(errorData?.title || 'Erro ao excluir unidade', {
+                description: errorData?.detail || 'Não foi possível excluir a unidade.'
+            })
         }
     })
 
     const handleConfirmDelete = () => {
         if (!unitId) {
-            toast.error('Selecione uma unidade para excluir')
+            toast.error('Erro na seleção', { description: 'Selecione uma unidade para excluir' })
             return
         }
         mutate()

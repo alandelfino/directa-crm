@@ -46,7 +46,7 @@ function RouteComponent() {
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
-  const { data, isLoading, isRefetching, isError, refetch } = useQuery({
+  const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryKey: ['units', currentPage, perPage],
@@ -116,9 +116,12 @@ function RouteComponent() {
 
   useEffect(() => {
     if (isError) {
-      toast.error('Erro ao carregar unidades de medida')
+      const errorData = (error as any)?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar unidades de medida', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de unidades de medida.'
+      })
     }
-  }, [isError])
+  }, [isError, error])
 
   // Resetar seleção quando mudar de página ou itens por página
   useEffect(() => {

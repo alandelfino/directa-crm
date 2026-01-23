@@ -107,14 +107,10 @@ export function EditUserCompanySheet({ uc, onSaved }: { uc: UserCompany, onSaved
       setOpen(false)
       onSaved?.()
     },
-    onError: (error: unknown) => {
-      let message = 'Erro ao atualizar usuário'
-      if (typeof error === 'object' && error !== null) {
-        const e = error as { response?: { data?: { message?: string } } }
-        message = e.response?.data?.message ?? message
-      }
-      toast.error("Não permitido!", {
-        description: message,
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar usuário', {
+        description: errorData?.detail || 'Não foi possível atualizar as informações do usuário.',
       })
     },
   })

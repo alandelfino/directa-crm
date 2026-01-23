@@ -38,11 +38,17 @@ export function NewProfileSheet({
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['profiles'] })
       } else {
-        toast.error('Erro ao cadastrar perfil')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao cadastrar perfil', {
+          description: errorData?.detail || 'Não foi possível cadastrar o perfil.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar perfil')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar perfil', {
+        description: errorData?.detail || 'Não foi possível cadastrar o perfil.'
+      })
     },
   })
 

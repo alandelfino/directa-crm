@@ -30,7 +30,10 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
       if (!item) throw new Error('Resposta inválida')
       form.reset({ name: item.name ?? "" })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar centro de distribuição')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar centro de distribuição', {
+        description: errorData?.detail || 'Não foi possível carregar os dados do centro de distribuição.'
+      })
     } finally { setLoading(false) }
   }
 
@@ -44,9 +47,19 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['distribution-centers'] })
         onSaved?.()
-      } else { toast.error('Erro ao salvar centro de distribuição') }
+      } else {
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar centro de distribuição', {
+          description: errorData?.detail || 'Não foi possível atualizar o centro de distribuição.'
+        })
+      }
     },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao salvar centro de distribuição') },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao salvar centro de distribuição', {
+        description: errorData?.detail || 'Não foi possível atualizar o centro de distribuição.'
+      })
+    },
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) { mutate(values) }

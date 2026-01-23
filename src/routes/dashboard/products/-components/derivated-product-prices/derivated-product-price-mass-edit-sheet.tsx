@@ -69,7 +69,8 @@ export function DerivatedProductPriceMassEditSheet({ selectedIds, onUpdated, tri
           await privateInstance.put(`/api:c3X9fE5j/derivated_product_price/${id}`, payload)
           currentResults.success++
         } catch (error: any) {
-          const message = error?.response?.data?.message ?? 'Erro desconhecido'
+          const errorData = error?.response?.data
+          const message = errorData?.title || errorData?.detail || 'Erro desconhecido'
           currentResults.errors.push({ id, message })
           console.error(`Error updating price ${id}`, error)
         } finally {

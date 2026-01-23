@@ -31,13 +31,12 @@ export function NewDerivationSheet({ onCreated }: { onCreated?: () => void }) {
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      // Adaptar payload conforme o Swagger (se os nomes diferirem)
       const payload = {
         name: values.nome,
-        store_name: values.nomeCatalogo,
+        storeName: values.nomeCatalogo,
         type: values.type,
       }
-      return privateInstance.post(`/api:JOs6IYNo/derivations`, payload)
+      return privateInstance.post('/tenant/derivations', payload)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
@@ -46,11 +45,17 @@ export function NewDerivationSheet({ onCreated }: { onCreated?: () => void }) {
         form.reset()
         setOpen(false)
       } else {
-        toast.error('Erro ao cadastrar derivação')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao cadastrar derivação', {
+          description: errorData?.detail || 'Não foi possível cadastrar a derivação.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar derivação')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar derivação', {
+        description: errorData?.detail || 'Não foi possível cadastrar a derivação.'
+      })
     },
   })
 

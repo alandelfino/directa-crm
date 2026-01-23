@@ -46,7 +46,10 @@ export function EditProfileSheet({
       }
       form.reset({ name: profile.name ?? "" })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar perfil')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar perfil', {
+        description: errorData?.detail || 'Não foi possível carregar os dados do perfil.'
+      })
     } finally {
       setProfileLoading(false)
     }
@@ -81,11 +84,17 @@ export function EditProfileSheet({
 
         closeSheet()
       } else {
-        toast.error('Erro ao salvar perfil')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar perfil', {
+          description: errorData?.detail || 'Não foi possível salvar as alterações.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message ?? 'Erro ao salvar perfil')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao salvar perfil', {
+        description: errorData?.detail || 'Não foi possível salvar as alterações.'
+      })
     },
   })
 

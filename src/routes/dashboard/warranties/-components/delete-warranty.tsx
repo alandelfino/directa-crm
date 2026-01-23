@@ -20,11 +20,17 @@ export function DeleteWarranty({ warrantyId, disabled = false }: { warrantyId: n
         setOpen(false)
         queryClient.invalidateQueries({ queryKey: ['warranties'] })
       } else {
-        toast.error('Erro ao excluir garantia')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao excluir garantia', {
+          description: errorData?.detail || 'Não foi possível excluir a garantia.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao excluir garantia')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir garantia', {
+        description: errorData?.detail || 'Não foi possível excluir a garantia.'
+      })
     }
   })
 

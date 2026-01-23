@@ -59,11 +59,17 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['warranties'] })
       } else {
-        toast.error('Erro ao cadastrar garantia')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao cadastrar garantia', {
+          description: errorData?.detail || 'Não foi possível cadastrar a garantia.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar garantia')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar garantia', {
+        description: errorData?.detail || 'Não foi possível cadastrar a garantia.'
+      })
     },
   })
 

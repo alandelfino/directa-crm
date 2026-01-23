@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { publicInstance } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { Loader2, FolderCheck, AlertOctagon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -17,26 +17,22 @@ function EmailConfirmationPage() {
   useEffect(() => {
     const verifyEmail = async () => {
       try {
-        const response = await publicInstance.post('/api:eA5lqIuH/auth/email-confirmation', { token })
-        if (response.data.status === 'success') {
+        const response = await auth.verifyEmail(token)
+        if (response.status === 200 || response.status === 201) {
           setStatus('success')
         } else {
-            if (response.data.code) {
-                 setStatus('error')
-                 setErrorData({
-                    title: response.data.payload?.title || "Erro na verificação",
-                    message: response.data.message || "Não foi possível verificar o email."
-                })
-            } else {
-                setStatus('success')
-            }
+            setStatus('error')
+            setErrorData({
+                title: response.data?.title || "Erro na verificação",
+                message: response.data?.detail || "Não foi possível verificar o email."
+            })
         }
       } catch (error: any) {
         setStatus('error')
         const responseData = error.response?.data
         setErrorData({
-            title: responseData?.payload?.title || "Erro na verificação",
-            message: responseData?.message || "Não foi possível verificar o email."
+            title: responseData?.title || "Erro na verificação",
+            message: responseData?.detail || "Não foi possível verificar o email."
         })
       }
     }

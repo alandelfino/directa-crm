@@ -100,11 +100,17 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
         onCreated?.()
         queryClient.invalidateQueries({ queryKey: ['products'] })
       } else {
-        toast.error('Erro ao salvar produto')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar produto', {
+          description: errorData?.detail || 'Não foi possível cadastrar o produto.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao criar produto')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao criar produto', {
+        description: errorData?.detail || 'Não foi possível cadastrar o produto.'
+      })
     }
   })
 

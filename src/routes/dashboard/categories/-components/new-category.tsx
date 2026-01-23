@@ -36,7 +36,14 @@ export function NewCategorySheet({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get("/api:ojk_IOB-/categories?page=1&per_page=50")
+      const res = await privateInstance.get("/tenant/categories", {
+        params: {
+          page: 1,
+          limit: 100, // Fetch more to populate select
+          sortBy: 'name',
+          orderBy: 'asc'
+        }
+      })
       if (res.status !== 200) {
         throw new Error("Erro ao carregar categorias")
       }
@@ -49,8 +56,6 @@ export function NewCategorySheet({
     if (!data) return []
     if (Array.isArray(data)) return data as ApiCategory[]
     if (Array.isArray((data as any).items)) return (data as any).items as ApiCategory[]
-    if (Array.isArray((data as any).categories)) return (data as any).categories as ApiCategory[]
-    if (Array.isArray((data as any).data)) return (data as any).data as ApiCategory[]
     return []
   }, [categoriesResponse])
 
@@ -64,9 +69,9 @@ export function NewCategorySheet({
       // Garante que parent_id seja número e que 0 representa raiz
       const payload = {
         name: values.name,
-        parent_id: Number(values.parent_id ?? 0),
+        parentId: Number(values.parent_id ?? 0),
       }
-      return privateInstance.post("/api:ojk_IOB-/categories", payload)
+      return privateInstance.post("/tenant/categories", payload)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
@@ -75,11 +80,17 @@ export function NewCategorySheet({
         // Atualiza a listagem de categorias
         queryClient.invalidateQueries({ queryKey: ["categories"] })
       } else {
-        toast.error("Erro ao cadastrar categoria")
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || "Erro ao cadastrar categoria", {
+          description: errorData?.detail || "Não foi possível criar a categoria."
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? "Erro ao cadastrar categoria")
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || "Erro ao cadastrar categoria", {
+        description: errorData?.detail || "Não foi possível criar a categoria."
+      })
     },
   })
 

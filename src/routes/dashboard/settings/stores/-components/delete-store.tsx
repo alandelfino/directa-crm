@@ -22,7 +22,10 @@ export function DeleteStore({ storeId, onDeleted }: { storeId: number, onDeleted
       queryClient.invalidateQueries({ queryKey: ['stores'] })
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message ?? 'Erro ao excluir loja')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao excluir loja', {
+        description: errorData?.detail || 'Não foi possível excluir a loja.'
+      })
     }
   })
 

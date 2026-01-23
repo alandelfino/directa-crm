@@ -232,7 +232,10 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
         category_ids: categoryIds,
       })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar produto')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar produto', {
+        description: errorData?.detail || 'Não foi possível carregar os dados do produto.'
+      })
     } finally {
       setLoading(false)
     }
@@ -272,10 +275,18 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
         onSaved?.()
         queryClient.invalidateQueries({ queryKey: ['products'] })
       } else {
-        toast.error('Erro ao salvar produto')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar produto', {
+          description: errorData?.detail || 'Não foi possível salvar as alterações.'
+        })
       }
     },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao atualizar produto') }
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar produto', {
+        description: errorData?.detail || 'Não foi possível salvar as alterações.'
+      })
+    }
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) { mutate(values) }

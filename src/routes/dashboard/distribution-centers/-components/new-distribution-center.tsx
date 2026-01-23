@@ -31,10 +31,18 @@ export function NewDistributionCenterSheet({ className, ...props }: React.Compon
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['distribution-centers'] })
       } else {
-        toast.error('Erro ao cadastrar centro de distribuição')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao cadastrar centro de distribuição', {
+          description: errorData?.detail || 'Não foi possível cadastrar o centro de distribuição.'
+        })
       }
     },
-    onError: (error: any) => { toast.error(error?.response?.data?.message ?? 'Erro ao cadastrar centro de distribuição') },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao cadastrar centro de distribuição', {
+        description: errorData?.detail || 'Não foi possível cadastrar o centro de distribuição.'
+      })
+    },
   })
 
   const form = useForm<z.infer<typeof formSchema>>({ resolver: zodResolver(formSchema), defaultValues: { name: "" } })

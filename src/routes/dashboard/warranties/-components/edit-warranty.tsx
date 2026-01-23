@@ -64,7 +64,10 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
       })
       setPriceDisplay(formatCurrencyBRL(warranty.price ?? 0))
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Erro ao carregar garantia')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao carregar garantia', {
+        description: errorData?.detail || 'Não foi possível carregar os dados da garantia.'
+      })
     } finally {
       setLoading(false)
     }
@@ -84,11 +87,17 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['warranties'] })
       } else {
-        toast.error('Erro ao salvar garantia')
+        const errorData = (response.data as any)
+        toast.error(errorData?.title || 'Erro ao salvar garantia', {
+          description: errorData?.detail || 'Não foi possível atualizar a garantia.'
+        })
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message ?? 'Erro ao atualizar garantia')
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar garantia', {
+        description: errorData?.detail || 'Não foi possível atualizar a garantia.'
+      })
     }
   })
 

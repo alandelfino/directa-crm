@@ -14,8 +14,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
-  store_name: z.string().min(1, { message: "Loja é obrigatória" }),
-  period: z.enum(["day", "month", "year"] as const, { message: "Período é obrigatório" }),
+  storeName: z.string().min(1, { message: "Loja é obrigatória" }),
+  period: z.enum(["days", "months", "years"] as const, { message: "Período é obrigatório" }),
   amount: z.coerce.number().int().min(1, { message: "Quantidade deve ser pelo menos 1" }),
   price: z.coerce.number().int().min(0, { message: "Preço deve ser >= 0" }),
 })
@@ -36,8 +36,8 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: "",
-      store_name: "",
-      period: "month",
+      storeName: "",
+      period: "months",
       amount: 12,
       price: 0,
     },
@@ -52,13 +52,13 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
   async function fetchWarranty() {
     try {
       setLoading(true)
-      const response = await privateInstance.get(`/api:PcyOgAiT/warranties/${warrantyId}`)
+      const response = await privateInstance.get(`/tenant/warranties/${warrantyId}`)
       const warranty = response?.data
       if (!warranty) throw new Error('Resposta inválida ao buscar garantia')
       form.reset({
         name: warranty.name ?? "",
-        store_name: warranty.store_name ?? "",
-        period: warranty.period ?? "month",
+        storeName: warranty.storeName ?? "",
+        period: warranty.period ?? "months",
         amount: warranty.amount ?? 12,
         price: warranty.price ?? 0,
       })
@@ -80,7 +80,7 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
   }, [open, warrantyId])
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/api:PcyOgAiT/warranties/${warrantyId}`, values),
+    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/warranties/${warrantyId}`, values),
     onSuccess: (response) => {
       if (response.status === 200) {
         toast.success('Garantia atualizada com sucesso!')
@@ -136,7 +136,7 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="store_name" render={({ field }) => (
+              <FormField control={form.control} name="storeName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Loja</FormLabel>
                   <FormControl>
@@ -157,9 +157,9 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="day">Dia</SelectItem>
-                            <SelectItem value="month">Mês</SelectItem>
-                            <SelectItem value="year">Ano</SelectItem>
+                            <SelectItem value="days">Dias</SelectItem>
+                            <SelectItem value="months">Meses</SelectItem>
+                            <SelectItem value="years">Anos</SelectItem>
                           </SelectGroup>
                         </SelectContent>
                       </Select>

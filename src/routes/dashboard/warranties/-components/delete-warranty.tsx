@@ -12,7 +12,7 @@ export function DeleteWarranty({ warrantyId, disabled = false }: { warrantyId: n
 
   const { isPending, mutate } = useMutation({
     mutationFn: async () => {
-      return await privateInstance.delete(`/api:PcyOgAiT/warranties/${warrantyId}`)
+      return await privateInstance.delete(`/tenant/warranties/${warrantyId}`)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 204) {

@@ -12,7 +12,7 @@ export function DeletePriceTable({ priceTableId, disabled = false }: { priceTabl
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async () => {
-      const response = await privateInstance.delete(`/api:m3u66HYX/price_tables/${priceTableId}`)
+      const response = await privateInstance.delete(`/tenant/price-tables/${priceTableId}`)
       if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao excluir tabela de preço')
       return response.data
     },

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
@@ -11,7 +11,7 @@ export function DeleteStore({ storeId, onDeleted }: { storeId: number, onDeleted
   const queryClient = useQueryClient()
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async () => {
-      const response = await privateInstance.delete(`/api:gI4qBCGQ/stores/${storeId}`)
+      const response = await privateInstance.delete(`/tenant/stores/${storeId}`)
       if (response.status !== 200) throw new Error('Erro ao excluir loja')
       return response.data
     },
@@ -34,8 +34,8 @@ export function DeleteStore({ storeId, onDeleted }: { storeId: number, onDeleted
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={'outline'}>
-          <Trash /> Excluir
+        <Button variant={'outline'} size="sm">
+          <Trash className="size-[0.85rem]" /> Excluir
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -44,9 +44,14 @@ export function DeleteStore({ storeId, onDeleted }: { storeId: number, onDeleted
           <DialogDescription>Esta ação não pode ser desfeita.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant={'outline'} size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant={'destructive'} size="sm" onClick={confirmDelete} disabled={isPending}>
-            {isPending ? <Loader className='animate-spin' /> : 'Confirmar exclusão'}
+          <DialogClose asChild>
+            <Button variant="outline" size="sm">Cancelar</Button>
+          </DialogClose>
+          <Button variant="destructive" size="sm" onClick={(e) => {
+            e.preventDefault()
+            confirmDelete()
+          }} disabled={isPending}>
+            {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : 'Excluir'}
           </Button>
         </DialogFooter>
       </DialogContent>

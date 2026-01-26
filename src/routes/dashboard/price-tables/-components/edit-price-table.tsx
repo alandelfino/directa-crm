@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl } from '@/components/ui/form'
+import { Form, FormField, FormItem, FormLabel, FormMessage, FormControl, FormDescription } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
@@ -10,23 +10,27 @@ import { toast } from 'sonner'
 import { Edit, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Switch } from '@/components/ui/switch'
 
-const formSchema = z.object({ name: z.string().min(1, { message: 'Nome é obrigatório' }) })
+const formSchema = z.object({ 
+  name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  active: z.boolean().default(true),
+})
 
 export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceTableId: number; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const queryClient = useQueryClient()
 
-  const form = useForm<z.infer<typeof formSchema>>({ resolver: zodResolver(formSchema) as any, defaultValues: { name: '' } })
+  const form = useForm<z.infer<typeof formSchema>>({ resolver: zodResolver(formSchema) as any, defaultValues: { name: '', active: true } })
 
   async function fetchItem() {
     try {
       setLoading(true)
-      const response = await privateInstance.get(`/api:m3u66HYX/price_tables/${priceTableId}`)
+      const response = await privateInstance.get(`/tenant/price-tables/${priceTableId}`)
       if (response.status !== 200 || !response.data) throw new Error('Falha ao carregar tabela de preço')
       const it = response.data as any
-      form.reset({ name: it.name ?? '' })
+      form.reset({ name: it.name ?? '', active: it.active ?? true })
     } catch (err: any) {
       const errorData = err?.response?.data
       toast.error(errorData?.title || 'Erro ao carregar tabela de preço', {
@@ -39,7 +43,7 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await privateInstance.put(`/api:m3u66HYX/price_tables/${priceTableId}`, { name: values.name })
+      const response = await privateInstance.put(`/tenant/price-tables/${priceTableId}`, values)
       if (response.status !== 200) throw new Error('Erro ao atualizar tabela de preço')
       return response.data
     },
@@ -76,6 +80,24 @@ export function EditPriceTableSheet({ priceTableId, disabled = false }: { priceT
                     <Input placeholder='Digite o nome...' {...field} disabled={loading || isPending} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name='active' render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Ativo</FormLabel>
+                    <FormDescription>
+                      Indica se a tabela de preço está ativa para uso.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={loading || isPending}
+                    />
+                  </FormControl>
                 </FormItem>
               )} />
             </div>

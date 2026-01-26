@@ -19,7 +19,7 @@ const formSchema = z.object({
   height: z.preprocess((val) => Number(val), z.number({ error: "Altura é obrigatória" }).int().positive({ message: "Altura deve ser um número positivo" })),
   device: z.enum(['desktop', 'tablet', 'mobile', 'mobile_app'], { error: "Dispositivo é obrigatório" }),
   fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze'], { error: "Ajuste é obrigatório" }),
-  quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100")),
+  quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(1, "Mínimo de 1").max(100, "Máximo de 100")),
   background: z.string({ error: "Background é obrigatório" }).min(1, "Background é obrigatório"),
   format: z.enum(['jpeg', 'auto']).refine(val => val !== undefined, { message: "Formato é obrigatório" }),
   description: z.string().optional(),
@@ -51,7 +51,7 @@ export function NewMediaSizeSheet() {
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      return privateInstance.post('/api:jJaPcZVn/media_size', values)
+      return privateInstance.post('/tenant/media-sizes', values)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
@@ -193,18 +193,18 @@ export function NewMediaSizeSheet() {
                 />
 
                 <FormField
-                  control={form.control}
-                  name="quality"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Qualidade (70-100)</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="85" {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    control={form.control}
+                    name="quality"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Qualidade (1-100)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="85" min={1} max={100} {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

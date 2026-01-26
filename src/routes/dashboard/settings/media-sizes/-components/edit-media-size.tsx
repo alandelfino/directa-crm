@@ -19,7 +19,7 @@ const formSchema = z.object({
   height: z.preprocess((val) => Number(val), z.number({ error: "Altura é obrigatória" }).int().positive({ message: "Altura deve ser um número positivo" })),
   device: z.enum(['desktop', 'tablet', 'mobile', 'mobile_app']).refine(val => val !== undefined, { message: "Dispositivo é obrigatório" }),
   fit: z.enum(['scale-down', 'contain', 'cover', 'crop', 'pad', 'squeeze']).refine(val => val !== undefined, { message: "Ajuste é obrigatório" }),
-  quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(70, "Mínimo de 70").max(100, "Máximo de 100")),
+  quality: z.preprocess((val) => Number(val), z.number({ error: "Qualidade é obrigatória" }).int().min(1, "Mínimo de 1").max(100, "Máximo de 100")),
   background: z.string({ error: "Background é obrigatório" }).min(1, "Background é obrigatório"),
   format: z.enum(['jpeg', 'auto'], { error: "Formato é obrigatório" }),
   description: z.string().optional(),
@@ -90,7 +90,7 @@ export function EditMediaSizeSheet({
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      return privateInstance.put(`/api:jJaPcZVn/media_size/${mediaSizeId}`, values)
+      return privateInstance.put(`/tenant/media-sizes/${mediaSizeId}`, values)
     },
     onSuccess: (response) => {
       if (response.status === 200) {
@@ -240,9 +240,9 @@ export function EditMediaSizeSheet({
                   name="quality"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Qualidade (70-100)</FormLabel>
+                      <FormLabel>Qualidade (1-100)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="85" min={70} max={100} {...field} value={field.value ?? ''} disabled={loading || isPending} />
+                        <Input type="number" placeholder="85" min={1} max={100} {...field} value={field.value ?? ''} disabled={loading || isPending} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

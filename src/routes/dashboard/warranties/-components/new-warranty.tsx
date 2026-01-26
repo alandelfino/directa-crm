@@ -14,9 +14,9 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
-  store_name: z.string().min(1, { message: "Loja é obrigatória" }),
+  storeName: z.string().min(1, { message: "Loja é obrigatória" }),
   // Use tuple literal with `as const` to satisfy Zod enum overload and provide message via supported param key
-  period: z.enum(["day", "month", "year"] as const, { message: "Período é obrigatório" }),
+  period: z.enum(["days", "months", "years"] as const, { message: "Período é obrigatório" }),
   amount: z.coerce.number().int().min(1, { message: "Quantidade deve ser pelo menos 1" }),
   price: z.coerce.number().int().min(0, { message: "Preço deve ser >= 0" }),
 })
@@ -35,8 +35,8 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: "",
-      store_name: "",
-      period: "month",
+      storeName: "",
+      period: "months",
       amount: 12,
       price: 0,
     },
@@ -51,7 +51,7 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       // Xano warranties POST
-      return privateInstance.post('/api:PcyOgAiT/warranties', values)
+      return privateInstance.post('/tenant/warranties', values)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
@@ -102,7 +102,7 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="store_name" render={({ field }) => (
+              <FormField control={form.control} name="storeName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome na loja</FormLabel>
                   <FormControl>
@@ -123,9 +123,9 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="day">Dia</SelectItem>
-                            <SelectItem value="month">Mês</SelectItem>
-                            <SelectItem value="year">Ano</SelectItem>
+                            <SelectItem value="days">Dias</SelectItem>
+                            <SelectItem value="months">Meses</SelectItem>
+                            <SelectItem value="years">Anos</SelectItem>
                           </SelectGroup>
                         </SelectContent>
                       </Select>

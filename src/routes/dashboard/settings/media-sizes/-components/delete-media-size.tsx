@@ -21,7 +21,7 @@ export function DeleteMediaSize({ mediaSizeId }: { mediaSizeId: number }) {
 
     const { isPending, mutate } = useMutation({
         mutationFn: async () => {
-            return await privateInstance.delete(`/api:jJaPcZVn/media_size/${mediaSizeId}`)
+            return await privateInstance.delete(`/media-sizes/${mediaSizeId}`)
         },
         onSuccess: (response) => {
             if (response.status === 200 || response.status === 204) {

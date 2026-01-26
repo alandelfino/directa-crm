@@ -19,28 +19,25 @@ export const Route = createFileRoute('/dashboard/settings/media-sizes/')({
 
 type MediaSize = {
   id: number
-  company_id?: number | null
-  created_at: number
-  updated_at: number
   name: string
   width: number
   height: number
-  description?: string
-  fit?: string
-  quality?: number
-  background?: string
-  format?: string
-  device?: string
+  fit: string
+  quality: number
+  description: string
+  background: string
+  format: string
+  device: string
+  createdAt: string
+  updatedAt: string
 }
 
 type MediaSizesResponse = {
-  itemsReceived?: number
-  curPage?: number
-  nextPage?: number | null
-  prevPage?: number | null
-  itemsTotal?: number
-  pageTotal?: number
-  items?: MediaSize[]
+  page: number
+  limit: number
+  totalPages: number
+  total: number
+  items: MediaSize[]
 }
 
 const fitTranslations: Record<string, string> = {
@@ -64,7 +61,14 @@ function RouteComponent() {
     refetchOnMount: false,
     queryKey: ['media-sizes', currentPage, perPage],
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:jJaPcZVn/media_size?page=${currentPage}&per_page=${Math.min(50, perPage)}`)
+      const response = await privateInstance.get(`/tenant/media-sizes`, {
+        params: {
+          page: currentPage,
+          limit: Math.min(100, perPage),
+          sortBy: 'createdAt',
+          orderBy: 'desc'
+        }
+      })
       if (response.status !== 200) {
         throw new Error('Erro ao carregar tamanhos de mídia')
       }
@@ -113,9 +117,6 @@ function RouteComponent() {
       header: 'Nome',
       cell: (item) => (
         <div className="flex items-center gap-2">
-          {(!item.company_id || item.company_id <= 0) && (
-            <Badge variant="outline" className="text-[10px] rounded-md px-2 py-[0.2rem] h-5">Global</Badge>
-          )}
           <span>{item.name}</span>
         </div>
       ),
@@ -176,10 +177,10 @@ function RouteComponent() {
     const items = Array.isArray(data.items) ? data.items : []
     setItems(items)
 
-    const itemsTotal = typeof data.itemsTotal === 'number' ? data.itemsTotal : items.length
+    const itemsTotal = typeof data.total === 'number' ? data.total : items.length
     setTotalItems(itemsTotal)
 
-    const pageTotal = typeof data.pageTotal === 'number' ? data.pageTotal : Math.max(1, Math.ceil(itemsTotal / perPage))
+    const pageTotal = typeof data.totalPages === 'number' ? data.totalPages : Math.max(1, Math.ceil(itemsTotal / perPage))
     setTotalPages(pageTotal)
   }, [data, perPage])
 

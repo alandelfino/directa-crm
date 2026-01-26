@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, Funnel, RefreshCw, Trash, Tag, ArrowUp, ArrowDown, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
+import { Edit, Funnel, RefreshCw, Trash, Tag, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'

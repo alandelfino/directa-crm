@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
 import { Image as ImageIcon, ZoomIn, Package, AlertCircle, Info, X, ExternalLink, Plus, Loader2, CheckCircle, XCircle, Trash2 } from 'lucide-react'
-import { MediaSelectorDialog, type ApiMedia } from '../../media/-components/media-selector-dialog'
+import { MediaSelectorDialog } from '../../media/-components/media-selector-dialog'
+import type { MediaItem } from '../../media/index'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -144,7 +145,7 @@ function DerivationImages({ derivation }: { derivation: ChildProduct }) {
   })
 
   type QueueItem = {
-    media: ApiMedia
+    media: MediaItem
     status: 'idle' | 'processing' | 'success' | 'error'
     errorMessage?: string
   }
@@ -185,7 +186,7 @@ function DerivationImages({ derivation }: { derivation: ChildProduct }) {
     queryClient.invalidateQueries({ queryKey: ['derivation-images', derivation.id] })
   }
 
-  const handleSelect = (medias: ApiMedia[]) => {
+  const handleSelect = (medias: MediaItem[]) => {
     if (medias.length === 0) return
     const queue = medias.map(m => ({ media: m, status: 'idle' } as QueueItem))
     setUploadQueue(queue)
@@ -325,7 +326,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
   const queryClient = useQueryClient()
 
   type QueueItem = {
-    media: ApiMedia
+    media: MediaItem
     status: 'idle' | 'processing' | 'success' | 'error'
     errorMessage?: string
   }
@@ -377,7 +378,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
     })
   }
 
-  const handleSelectToAll = (medias: ApiMedia[]) => {
+  const handleSelectToAll = (medias: MediaItem[]) => {
     if (medias.length === 0) return
     if (!derivations || derivations.length === 0) return
 

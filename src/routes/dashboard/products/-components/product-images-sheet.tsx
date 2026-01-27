@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
 import { Image as ImageIcon, ZoomIn, Package, AlertCircle, Info, X, ExternalLink, Plus, Loader2, CheckCircle, XCircle, Trash2 } from 'lucide-react'
-import { MediaSelectorDialog, type ApiMedia } from '../../media/-components/media-selector-dialog'
+import { MediaSelectorDialog } from '../../media/-components/media-selector-dialog'
+import type { MediaItem } from '../../media/index'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'
 import { toast } from 'sonner'
@@ -127,7 +128,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
   })
 
   type QueueItem = {
-    media: ApiMedia
+    media: MediaItem
     status: 'idle' | 'processing' | 'success' | 'error'
     errorMessage?: string
   }
@@ -198,7 +199,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
     }
   }
 
-  const handleSelect = (medias: ApiMedia[]) => {
+  const handleSelect = (medias: MediaItem[]) => {
     if (medias.length === 0) return
     const queue = medias.map(m => ({ media: m, status: 'idle' } as QueueItem))
     setUploadQueue(queue)

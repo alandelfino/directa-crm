@@ -9,16 +9,11 @@ import { z } from 'zod'
 import { useEffect, useState } from 'react'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-
-type ApiMedia = {
-  id: number | string
-  name?: string
-  url?: string | null
-}
+import type { MediaItem } from '../index'
 
 const schema = z.object({ name: z.string().min(1, { message: 'Nome é obrigatório' }) })
 
-export function EditMediaDialog({ media, onClose, onSaved }: { media: ApiMedia | null, onClose?: () => void, onSaved?: () => void }) {
+export function EditMediaDialog({ media, onClose, onSaved }: { media: MediaItem | null, onClose?: () => void, onSaved?: () => void }) {
   const open = !!media
   const [saving, setSaving] = useState(false)
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { name: '' } })
@@ -32,7 +27,7 @@ export function EditMediaDialog({ media, onClose, onSaved }: { media: ApiMedia |
     if (!media) return
     try {
       setSaving(true)
-      const res = await privateInstance.put(`/api:qSTOvw0A/medias/${media.id}`, { name: values.name })
+      const res = await privateInstance.put(`/tenant/medias/${media.id}`, { name: values.name })
       if (res.status !== 200 && res.status !== 204) throw new Error('Erro ao atualizar mídia')
       toast.success('Mídia atualizada!')
       onSaved?.()

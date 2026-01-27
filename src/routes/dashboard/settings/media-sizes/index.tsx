@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Edit, RefreshCw, Trash, Scan, ArrowUpRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'

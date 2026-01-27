@@ -5,8 +5,7 @@ import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-type ApiMedia = { id: number | string, name?: string }
+import type { MediaItem } from '../index'
 
 type QueueItem = {
   id: number | string
@@ -14,14 +13,14 @@ type QueueItem = {
   error?: string
 }
 
-export function DeleteMediaSheet({ media, onDeleted }: { media: ApiMedia, onDeleted?: () => void }) {
+export function DeleteMediaSheet({ media, onDeleted }: { media: MediaItem, onDeleted?: () => void }) {
   const [open, setOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const submit = async () => {
     try {
       setDeleting(true)
-      const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${media.id}`)
+      const res = await privateInstance.delete(`/tenant/medias/${media.id}`)
       if (res.status !== 200 && res.status !== 204) throw new Error('Erro ao excluir mídia')
       toast.success('Mídia excluída!')
       setOpen(false)
@@ -118,7 +117,7 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
         try {
           setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'deleting', error: undefined } : q))
           
-          const res = await privateInstance.delete(`/api:qSTOvw0A/medias/${item.id}`)
+          const res = await privateInstance.delete(`/tenant/medias/${item.id}`)
           
           if (res.status !== 200 && res.status !== 204) throw new Error('Falha ao excluir')
           

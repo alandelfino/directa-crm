@@ -4,12 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
-import { RefreshCw, Store as StoreIcon, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Funnel, Trash, Edit as EditStoreIcon } from 'lucide-react'
+import { RefreshCw, Calculator, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Funnel, Trash, Edit as EditIcon } from 'lucide-react'
 import { privateInstance } from '@/lib/auth'
 import { Checkbox } from '@/components/ui/checkbox'
-import { EditStoreSheet } from './-components/edit-store'
-import { NewStoreSheet } from './-components/new-store'
-import { DeleteStore } from './-components/delete-store'
+import { EditPriceTableSheet } from './-components/edit-price-table'
+import { NewPriceTableSheet } from './-components/new-price-table'
+import { DeletePriceTable } from './-components/delete-price-table'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
@@ -18,36 +18,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 
-type StoreItem = {
+type PriceTableItem = {
   id: number
   name: string
-  description: string
-  priceTableId: number
   active: boolean
-  companyId: number
-  desktopProductMediaSizeId: number
-  tabletProductMediaSizeId: number
-  mobileProductMediaSizeId: number
-  mobileAppProductMediaSizeId: number
   createdAt: string
   updatedAt: string
 }
 
-type StoresResponse = {
+type PriceTablesResponse = {
   page: number
   limit: number
   totalPages: number
   total: number
-  items: StoreItem[]
+  items: PriceTableItem[]
 }
 
-export const Route = createFileRoute('/dashboard/settings/stores/')({
+export const Route = createFileRoute('/dashboard/settings/price-tables/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const [selected, setSelected] = useState<number[]>([])
-  const [items, setItems] = useState<StoreItem[]>([])
+  const [items, setItems] = useState<PriceTableItem[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [totalItems, setTotalItems] = useState(0)
@@ -69,7 +62,7 @@ function RouteComponent() {
   const activeFilterCount = (filterName ? 1 : 0)
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
-    queryKey: ['stores', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator],
+    queryKey: ['price-tables', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator],
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
@@ -84,9 +77,10 @@ function RouteComponent() {
         params.name = JSON.stringify({ operator: filterNameOperator, value: filterName })
       }
 
-      const response = await privateInstance.get('/tenant/stores', { params })
-      if (response.status !== 200) throw new Error('Erro ao carregar lojas')
-      return response.data as StoresResponse
+      // Trying the tenant endpoint pattern
+      const response = await privateInstance.get('/tenant/price-tables', { params })
+      if (response.status !== 200) throw new Error('Erro ao carregar tabelas de preço')
+      return response.data as PriceTablesResponse
     }
   })
 
@@ -104,8 +98,8 @@ function RouteComponent() {
   useEffect(() => {
     if (isError) {
       const errorData = (error as any)?.response?.data
-      toast.error(errorData?.title || 'Erro ao carregar lojas', {
-        description: errorData?.detail || 'Não foi possível carregar a lista de lojas.'
+      toast.error(errorData?.title || 'Erro ao carregar tabelas de preço', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de tabelas de preço.'
       })
     }
   }, [isError, error])
@@ -136,7 +130,7 @@ function RouteComponent() {
     }
   }
 
-  const columns: ColumnDef<StoreItem>[] = useMemo(() => [
+  const columns: ColumnDef<PriceTableItem>[] = useMemo(() => [
     {
       id: 'select',
       width: '60px',
@@ -155,7 +149,6 @@ function RouteComponent() {
       cell: (s) => (
         <div className="flex flex-col">
           <span className="font-medium">{s.name ?? '—'}</span>
-          {s.description && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{s.description}</span>}
         </div>
       ),
       headerClassName: 'min-w-[15rem] border-r border-neutral-200 px-4 py-2.5',
@@ -205,8 +198,8 @@ function RouteComponent() {
     <div className='flex flex-col w-full h-full'>
       <div className='flex items-center justify-between p-4'>
         <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Lojas</h2>
-          <p className='text-sm text-muted-foreground'>Gerencie as lojas da conta.</p>
+          <h2 className='text-lg font-semibold'>Tabelas de Preço</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie as tabelas de preço da conta.</p>
         </div>
           <div className='flex items-center gap-2'>
             <Popover open={isFilterOpen} onOpenChange={(open) => {
@@ -329,7 +322,7 @@ function RouteComponent() {
             </Button>
 
             {selected.length === 1 ? (
-              <DeleteStore storeId={selected[0]} onDeleted={() => { setSelected([]); refetch(); }} />
+              <DeletePriceTable id={selected[0]} onDeleted={() => { setSelected([]); refetch(); }} />
             ) : (
               <Button variant={'outline'} size="sm" disabled>
                 <Trash className="size-[0.85rem]" /> Excluir
@@ -337,13 +330,13 @@ function RouteComponent() {
             )}
 
             {selected.length === 1 ? (
-              <EditStoreSheet storeId={selected[0]} onSaved={() => { setSelected([]); refetch(); }} />
+              <EditPriceTableSheet id={selected[0]} onSaved={() => { setSelected([]); refetch(); }} />
             ) : (
               <Button variant={'outline'} size="sm" disabled>
-                <EditStoreIcon className="size-[0.85rem]" /> Editar
+                <EditIcon className="size-[0.85rem]" /> Editar
               </Button>
             )}
-            <NewStoreSheet onCreated={() => refetch()} />
+            <NewPriceTableSheet onCreated={() => refetch()} />
           </div>
       </div>
       
@@ -358,23 +351,23 @@ function RouteComponent() {
             totalItems={totalItems}
             perPage={perPage}
             rowClassName='h-12'
-            emptyMessage='Nenhuma loja encontrada'
+            emptyMessage='Nenhuma tabela de preço encontrada'
             emptySlot={(
               <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <StoreIcon className="size-6" />
+                    <Calculator className="size-6" />
                   </EmptyMedia>
-                  <EmptyTitle>Nenhuma loja encontrada</EmptyTitle>
+                  <EmptyTitle>Nenhuma tabela de preço encontrada</EmptyTitle>
                   <EmptyDescription>
                     {activeFilterCount > 0 
-                      ? "Nenhuma loja corresponde aos filtros selecionados." 
-                      : "Comece criando sua primeira loja para gerenciar."}
+                      ? "Nenhuma tabela corresponde aos filtros selecionados." 
+                      : "Comece criando sua primeira tabela de preço."}
                   </EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>
                   <div className='flex gap-2'>
-                    <NewStoreSheet onCreated={() => refetch()} />
+                    <NewPriceTableSheet onCreated={() => refetch()} />
                     <Button variant={'ghost'} size='sm' disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
                       {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className='size-[0.85rem]' />}
                     </Button>

@@ -13,21 +13,12 @@ import { BulkDeleteMediasSheet } from './delete-media-sheet'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-
-export type ApiMedia = {
-  id: number | string
-  name?: string
-  url?: string | null
-  mime?: string | null
-  size?: number | null
-  created_at?: number | string
-  updated_at?: number | string
-}
+import type { MediaItem } from '../index'
 
 type MediaSelectorDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  onSelect?: (medias: ApiMedia[]) => void
+  onSelect?: (medias: MediaItem[]) => void
   multiple?: boolean
   trigger?: React.ReactNode
 }
@@ -41,10 +32,10 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
     else setInternalOpen(value)
   }
 
-  const [selected, setSelected] = useState<ApiMedia | null>(null)
+  const [selected, setSelected] = useState<MediaItem | null>(null)
   const [page, setPage] = useState<number>(1)
   const [perPage, setPerPage] = useState<number>(20)
-  const [selectedIds, setSelectedIds] = useState<(number | string)[]>([])
+  const [selectedIds, setSelectedIds] = useState<(number)[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   const { data, isLoading, isRefetching, refetch, isPending } = useQuery({
@@ -53,7 +44,14 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
     refetchOnMount: false,
     enabled: open,
     queryFn: async () => {
-      const res = await privateInstance.get(`/api:qSTOvw0A/medias?page=${page}&per_page=${Math.min(50, perPage)}`)
+      const res = await privateInstance.get(`/tenant/medias`, {
+        params: {
+          page,
+          limit: Math.min(100, perPage),
+          sortBy: 'createdAt',
+          orderBy: 'desc'
+        }
+      })
       if (res.status !== 200) throw new Error('Erro ao carregar mídias')
       return res.data
     },
@@ -63,65 +61,28 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
     const d: any = data
     if (!d) {
       return {
-        items: [] as ApiMedia[],
-        curPage: page,
-        pageTotal: 1,
-        itemsTotal: 0,
-        perPage,
-        nextPage: null as number | null,
-        prevPage: null as number | null,
+        items: [] as MediaItem[],
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        total: 0,
       }
     }
     
-    const isNewStructure = 'itemsReceived' in d || 'itemsTotal' in d
-
-    if (isNewStructure) {
-      const rawItems = Array.isArray(d.items) ? d.items : []
-      const items: ApiMedia[] = rawItems.map((it: any) => ({
-        id: it.uuid ?? it.id,
-        name: it.file_name ?? it.name,
-        url: it.url ?? it?.image?.url,
-        mime: it.mime_type ?? it.mime,
-        size: it.file_size ?? it.size,
-        created_at: it.created_at,
-        updated_at: it.updated_at
-      }))
-
-      const curPage = typeof d.curPage === 'number' ? d.curPage : page
-      const pageTotal = typeof d.pageTotal === 'number' ? d.pageTotal : 1
-      const itemsTotal = typeof d.itemsTotal === 'number' ? d.itemsTotal : items.length
-      const perPageVal = typeof d.perPage === 'number' ? d.perPage : perPage
-      const nextPage = typeof d.nextPage === 'number' ? d.nextPage : null
-      const prevPage = typeof d.prevPage === 'number' ? d.prevPage : null
-
-      return { items, curPage, pageTotal, itemsTotal, perPage: perPageVal, nextPage, prevPage }
+    return {
+      items: (d.items || []) as MediaItem[],
+      page: d.page || 1,
+      limit: d.limit || 20,
+      totalPages: d.totalPages || 1,
+      total: d.total || 0,
     }
+  }, [data])
 
-    const mediasObj = d.medias ?? d
-    const rawItems: any[] = Array.isArray(mediasObj?.items)
-      ? (mediasObj.items as any[])
-      : (Array.isArray(d) ? (d as any[]) : [])
-    const items: ApiMedia[] = rawItems.map((it) => {
-      const img = it?.image ?? {}
-      const mime = it?.mime ?? img?.mime ?? img?.type ?? img?.content_type ?? img?.mimetype ?? null
-      const size = it?.size ?? img?.size ?? img?.bytes ?? null
-      const url = it.url ?? img?.url
-      return { ...it, mime, size, url }
-    })
-    const curPage = typeof mediasObj?.curPage === 'number' ? mediasObj.curPage : page
-    const pageTotal = typeof mediasObj?.pageTotal === 'number' ? mediasObj.pageTotal : 1
-    const itemsTotal = typeof mediasObj?.itemsTotal === 'number' ? mediasObj.itemsTotal : items.length
-    const perPageVal = typeof mediasObj?.perPage === 'number' ? mediasObj.perPage : perPage
-    const nextPage = typeof mediasObj?.nextPage === 'number' ? mediasObj.nextPage : (curPage < pageTotal ? curPage + 1 : null)
-    const prevPage = typeof mediasObj?.prevPage === 'number' ? mediasObj.prevPage : (curPage > 1 ? curPage - 1 : null)
-    return { items, curPage, pageTotal, itemsTotal, perPage: perPageVal, nextPage, prevPage }
-  }, [data, page, perPage])
+  const medias: MediaItem[] = payload.items
 
-  const medias: ApiMedia[] = payload.items
-
-  const isSelected = (id: number | string) => selectedIds.includes(id)
+  const isSelected = (id: number) => selectedIds.includes(id)
   
-  const toggleSelect = (id: number | string) => {
+  const toggleSelect = (id: number) => {
     if (multiple) {
       setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
     } else {
@@ -149,6 +110,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
   const formatBytes = (bytes?: number | null) => {
     if (!bytes || typeof bytes !== 'number' || bytes < 0) return '—'
     const kb = bytes / 1024
+
     if (kb < 1024) return `${Math.round(kb)} KB`
     const mb = kb / 1024
     if (mb < 1024) return `${mb.toFixed(1)} MB`
@@ -277,9 +239,9 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
 
           {/* Footer de paginação */}
           {(() => {
-            const totalItems = payload.itemsTotal ?? medias.length
-            const totalPages = Math.max(1, payload.pageTotal ?? Math.ceil(totalItems / Math.max(perPage, 1)))
-            const startIndex = totalItems > 0 ? (payload.curPage - 1) * perPage : 0
+            const totalItems = payload.total
+            const totalPages = payload.totalPages
+            const startIndex = totalItems > 0 ? (payload.page - 1) * perPage : 0
             const endIndex = totalItems > 0 ? Math.min(startIndex + medias.length, startIndex + perPage, totalItems) : 0
 
             return (
@@ -304,21 +266,21 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
 
                   <Separator orientation='vertical' className="h-4" />
 
-                  <span className='text-xs text-muted-foreground'>Pág. {payload.curPage}/{totalPages}</span>
+                  <span className='text-xs text-muted-foreground'>Pág. {payload.page}/{totalPages}</span>
 
                   <Separator orientation='vertical' className="h-4" />
 
                   <div className="flex gap-1">
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage(1)} disabled={payload.curPage === 1}>
+                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage(1)} disabled={payload.page === 1}>
                       <ChevronsLeft className="size-3" />
                     </Button>
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={payload.curPage === 1}>
+                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={payload.page === 1}>
                       <ChevronLeft className="size-3" />
                     </Button>
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage((p) => p + 1)} disabled={payload.curPage >= totalPages}>
+                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage((p) => p + 1)} disabled={payload.page >= totalPages}>
                       <ChevronRight className="size-3" />
                     </Button>
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage(totalPages)} disabled={payload.curPage >= totalPages}>
+                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage(totalPages)} disabled={payload.page >= totalPages}>
                       <ChevronsRight className="size-3" />
                     </Button>
                   </div>

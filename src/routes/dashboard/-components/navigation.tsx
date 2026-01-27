@@ -97,11 +97,6 @@ export function Navigation() {
                     href: '/dashboard/warranties',
                 },
                 {
-                    label: 'Tabelas de preço',
-                    icon: <BadgeDollarSign />,
-                    href: '/dashboard/price-tables',
-                },
-                {
                     label: 'Produtos',
                     icon: <Package />,
                     href: '/dashboard/products',

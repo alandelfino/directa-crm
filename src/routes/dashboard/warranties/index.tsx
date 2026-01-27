@@ -36,13 +36,11 @@ type Warranty = {
 }
 
 type WarrantiesResponse = {
-  data: Warranty[]
-  meta: {
-    page: number
-    limit: number
-    totalPages: number
-    total: number
-  }
+  items: Warranty[]
+  page: number
+  limit: number
+  totalPages: number
+  total: number
 }
 
 function RouteComponent() {
@@ -148,11 +146,11 @@ function RouteComponent() {
   useEffect(() => {
     if (!data) return
 
-    const itemsArr = Array.isArray(data.data) ? data.data : []
+    const itemsArr = Array.isArray(data.items) ? data.items : []
     setItems(itemsArr)
 
-    setTotalItems(data.meta?.total || 0)
-    setTotalPages(data.meta?.totalPages || 1)
+    setTotalItems(data.total || 0)
+    setTotalPages(data.totalPages || 1)
   }, [data])
 
   useEffect(() => {

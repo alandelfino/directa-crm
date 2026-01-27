@@ -14,7 +14,7 @@ import { useEffect, useState } from "react"
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
-  type: z.enum(["integer", "decimal"], { message: "Tipo é obrigatório" }),
+  numberType: z.enum(["integer", "decimal"], { message: "Tipo é obrigatório" }),
 })
 
 export function EditUnitSheet({
@@ -27,10 +27,10 @@ export function EditUnitSheet({
   const queryClient = useQueryClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema as any),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      type: "integer",
+      numberType: "integer",
     },
   })
 
@@ -42,12 +42,12 @@ export function EditUnitSheet({
   async function fetchUnit() {
     try {
       setUnitLoading(true)
-      const response = await privateInstance.get(`/api:-b71x_vk/unit_of_measurement/${unitId}`)
+      const response = await privateInstance.get(`/tenant/unit-of-measurement/${unitId}`)
       const unit = response?.data
       if (!unit) {
         throw new Error('Resposta inválida ao buscar unidade')
       }
-      form.reset({ name: unit.name ?? "", type: unit.type ?? "integer" })
+      form.reset({ name: unit.name ?? "", numberType: unit.numberType ?? "integer" })
     } catch (error: any) {
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro ao carregar unidade', {
@@ -66,8 +66,7 @@ export function EditUnitSheet({
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      // Xano especifica PUT com name e type obrigatórios
-      return privateInstance.put(`/api:-b71x_vk/unit_of_measurement/${unitId}`, values)
+      return privateInstance.put(`/tenant/unit-of-measurement/${unitId}`, values)
     },
     onSuccess: (response) => {
       if (response.status === 200) {
@@ -129,7 +128,7 @@ export function EditUnitSheet({
               />
               <FormField
                 control={form.control}
-                name="type"
+                name="numberType"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>

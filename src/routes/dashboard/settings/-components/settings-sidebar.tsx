@@ -6,6 +6,7 @@ export function SettingsSidebar() {
   const items = [
     { label: 'Conta', href: '/dashboard/settings/account' },
     { label: 'Lojas', href: '/dashboard/settings/stores' },
+    { label: 'Tabelas de Preço', href: '/dashboard/settings/price-tables' },
     { label: 'Tamanhos de mídias', href: '/dashboard/settings/media-sizes' },
     { label: 'Cobranças', href: '/dashboard/settings/billings' },
     { separator: true },

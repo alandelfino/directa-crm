@@ -49,7 +49,7 @@ export function MultiUploadSheet() {
           const fd = new FormData()
           fd.append('name', item.name)
           fd.append('file', item.file)
-          const res = await privateInstance.post('/api:qSTOvw0A/medias', fd, {
+          const res = await privateInstance.post('/tenant/medias', fd, {
             headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: (e) => {
               const total = e.total ?? item.file.size

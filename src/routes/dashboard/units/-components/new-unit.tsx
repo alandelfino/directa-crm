@@ -14,7 +14,7 @@ import { useState } from "react"
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
-  type: z.enum(["integer", "decimal"], { message: "Tipo é obrigatório" }),
+  numberType: z.enum(["integer", "decimal"], { message: "Tipo é obrigatório" }),
 })
 
 export function NewUnitSheet({
@@ -31,7 +31,7 @@ export function NewUnitSheet({
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      return privateInstance.post('/api:-b71x_vk/unit_of_measurement', values)
+      return privateInstance.post('/tenant/unit-of-measurement', values)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
@@ -55,10 +55,10 @@ export function NewUnitSheet({
   })
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema as any),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      type: "integer",
+      numberType: "integer",
     },
   })
 
@@ -99,7 +99,7 @@ export function NewUnitSheet({
 
               <FormField
                 control={form.control}
-                name="type"
+                name="numberType"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>

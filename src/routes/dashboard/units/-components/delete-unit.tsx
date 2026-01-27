@@ -12,7 +12,7 @@ export function DeleteUnit({ unitId, disabled = false }: { unitId: number; disab
 
     const { isPending, mutate } = useMutation({
         mutationFn: async () => {
-            return await privateInstance.delete(`/api:-b71x_vk/unit_of_measurement/${unitId}`)
+            return await privateInstance.delete(`/tenant/unit-of-measurement/${unitId}`)
         },
         onSuccess: (response) => {
             if (response.status === 200 || response.status === 204) {

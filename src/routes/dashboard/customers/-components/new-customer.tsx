@@ -12,10 +12,6 @@ import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const states = [
-  "Acre","Alagoas","Amapá","Amazonas","Bahia","Ceará","Distrito Federal","Espírito Santo","Goiás","Maranhão","Mato Grosso","Mato Grosso do Sul","Minas Gerais","Pará","Paraíba","Paraná","Pernambuco","Piauí","Rio de Janeiro","Rio Grande do Norte","Rio Grande do Sul","Rondônia","Roraima","Santa Catarina","São Paulo","Sergipe","Tocantins"
-] as const
-
 const formSchema = z.object({
   nameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
   lastNameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),

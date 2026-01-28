@@ -12,10 +12,6 @@ import { privateInstance } from "@/lib/auth"
 import { useEffect, useState } from "react"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const states = [
-  "Acre","Alagoas","Amapá","Amazonas","Bahia","Ceará","Distrito Federal","Espírito Santo","Goiás","Maranhão","Mato Grosso","Mato Grosso do Sul","Minas Gerais","Pará","Paraíba","Paraná","Pernambuco","Piauí","Rio de Janeiro","Rio Grande do Norte","Rio Grande do Sul","Rondônia","Roraima","Santa Catarina","São Paulo","Sergipe","Tocantins"
-] as const
-
 const formSchema = z.object({
   nameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
   lastNameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
@@ -26,7 +22,7 @@ const formSchema = z.object({
   email: z.string().email({ message: "Email inválido" }).min(1, { message: "Campo obrigatório" }),
 })
 
-export function EditCustomerSheet({ className, customerId, onOpenChange, ...props }: React.ComponentProps<"form"> & { customerId: number, onOpenChange?: (open: boolean) => void }) {
+export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved, ...props }: React.ComponentProps<"form"> & { customerId: number, onOpenChange?: (open: boolean) => void, onSaved?: () => void }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const queryClient = useQueryClient()

@@ -12,7 +12,7 @@ export function DeleteDistributionCenter({ distributionCenterId, disabled = fals
 
   const { isPending, mutate } = useMutation({
     mutationFn: async () => {
-      return await privateInstance.delete(`/api:k-mANdpH/distribution_centers/${distributionCenterId}`)
+      return await privateInstance.delete(`/tenant/distribution-centers/${distributionCenterId}`)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 204) {

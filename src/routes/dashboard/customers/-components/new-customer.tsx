@@ -17,47 +17,33 @@ const states = [
 ] as const
 
 const formSchema = z.object({
-  name_or_company_name: z.string().min(1, { message: "Campo obrigatório" }),
-  last_name_or_trade_name: z.string().min(1, { message: "Campo obrigatório" }),
-  person_type: z.enum(["individuals","legal_entities"] as const, { message: "Campo obrigatório" }),
-  cpf_or_cnpj: z.string().min(1, { message: "Campo obrigatório" }),
-  rg_or_ie: z.string().min(1, { message: "Campo obrigatório" }),
+  nameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
+  lastNameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
+  personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
+  cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
+  rgOrIe: z.string().min(1, { message: "Campo obrigatório" }),
+  phone: z.string().min(1, { message: "Campo obrigatório" }),
   email: z.string().email({ message: "Email inválido" }).min(1, { message: "Campo obrigatório" }),
-  website: z.string().url({ message: "URL inválida" }).optional().or(z.literal("")),
-  address_street: z.string().min(1, { message: "Campo obrigatório" }),
-  address_number: z.coerce.number().int().optional(),
-  neighborhood: z.string().min(1, { message: "Campo obrigatório" }),
-  address_supplement: z.string().optional().or(z.literal("")),
-  address_city: z.string().min(1, { message: "Campo obrigatório" }),
-  address_state: z.enum(states as any, { message: "Campo obrigatório" }),
-  postal_code: z.string().min(1, { message: "Campo obrigatório" }),
 })
 
-export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"form">) {
+export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props }: React.ComponentProps<"form"> & { onOpenChange?: (open: boolean) => void, onCreated?: () => void }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      name_or_company_name: "",
-      last_name_or_trade_name: "",
-      person_type: "legal_entities",
-      cpf_or_cnpj: "",
-      rg_or_ie: "",
+      nameOrCompanyName: "",
+      lastNameOrTradeName: "",
+      personType: "natural",
+      cpfOrCnpj: "",
+      rgOrIe: "",
+      phone: "",
       email: "",
-      website: "",
-      address_street: "",
-      address_number: undefined,
-      neighborhood: "",
-      address_supplement: "",
-      address_city: "",
-      address_state: undefined,
-      postal_code: "",
     },
   })
 
   // Assistir o tipo de pessoa para ajustar labels dinamicamente
-  const personType = form.watch('person_type')
+  const personType = form.watch('personType')
 
   // Funções de máscara CPF/CNPJ
   const onlyDigits = (v: string) => (v ?? '').replace(/\D/g, '')
@@ -76,25 +62,40 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
     d = d.replace(/^(\d{2}\.\d{3}\.\d{3}\/\d{4})(\d)/, '$1-$2')
     return d
   }
+  
+  const formatPhone = (v: string) => {
+    let d = onlyDigits(v).slice(0, 11)
+    d = d.replace(/^(\d{2})(\d)/, '($1) $2')
+    d = d.replace(/(\d)(\d{4})$/, '$1-$2')
+    return d
+  }
 
   // Ajustar o tamanho do valor quando o tipo muda
   useEffect(() => {
-    const current = onlyDigits(form.getValues('cpf_or_cnpj'))
-    const maxLen = personType === 'legal_entities' ? 14 : 11
-    form.setValue('cpf_or_cnpj', current.slice(0, maxLen))
+    const current = onlyDigits(form.getValues('cpfOrCnpj'))
+    const maxLen = personType === 'entity' ? 14 : 11
+    form.setValue('cpfOrCnpj', current.slice(0, maxLen))
   }, [personType])
 
   const closeSheet = () => {
     setOpen(false)
+    if (onOpenChange) onOpenChange(false)
     form.reset()
+  }
+  
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+    if (onOpenChange) onOpenChange(newOpen)
+    if (!newOpen) form.reset()
   }
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.post(`/api:Th9UjqzY/customers`, values),
+    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.post(`/tenant/customers`, values),
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
         toast.success('Cliente criado com sucesso!')
         queryClient.invalidateQueries({ queryKey: ['customers'] })
+        if (onCreated) onCreated()
         closeSheet()
       } else {
         const errorData = response?.data as any
@@ -116,7 +117,7 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button size="sm">
           <Plus className="size-[0.85rem]" /> Novo cliente
@@ -131,7 +132,7 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
             </SheetHeader>
             <div className="flex-1 min-h-0 overflow-y-auto grid auto-rows-min gap-6 px-4 py-4">
               {/* Tipo de pessoa no topo */}
-              <FormField control={form.control} name="person_type" render={({ field }) => (
+              <FormField control={form.control} name="personType" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo</FormLabel>
                   <FormControl>
@@ -141,8 +142,8 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectItem value="individuals">Pessoa Física</SelectItem>
-                          <SelectItem value="legal_entities">Pessoa Jurídica</SelectItem>
+                          <SelectItem value="natural">Pessoa Física</SelectItem>
+                          <SelectItem value="entity">Pessoa Jurídica</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
@@ -151,9 +152,9 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="name_or_company_name" render={({ field }) => (
+              <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{personType === 'legal_entities' ? 'Razão Social' : 'Nome'}</FormLabel>
+                  <FormLabel>{personType === 'entity' ? 'Razão Social' : 'Nome'}</FormLabel>
                   <FormControl>
                     <Input placeholder="Digite o nome do cliente..." {...field} disabled={isPending} />
                   </FormControl>
@@ -161,9 +162,9 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="last_name_or_trade_name" render={({ field }) => (
+              <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{personType === 'legal_entities' ? 'Nome Fantasia' : 'Sobrenome'}</FormLabel>
+                  <FormLabel>{personType === 'entity' ? 'Nome Fantasia' : 'Sobrenome'}</FormLabel>
                   <FormControl>
                     <Input placeholder="Opcional" {...field} disabled={isPending} />
                   </FormControl>
@@ -171,19 +172,17 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
                 </FormItem>
               )} />
 
-              
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="cpf_or_cnpj" render={({ field }) => (
+                <FormField control={form.control} name="cpfOrCnpj" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{personType === 'legal_entities' ? 'CNPJ' : 'CPF'}</FormLabel>
+                    <FormLabel>{personType === 'entity' ? 'CNPJ' : 'CPF'}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={personType === 'legal_entities' ? '00.000.000/0000-00' : '000.000.000-00'}
-                        value={personType === 'legal_entities' ? formatCnpj(field.value ?? '') : formatCpf(field.value ?? '')}
+                        placeholder={personType === 'entity' ? '00.000.000/0000-00' : '000.000.000-00'}
+                        value={personType === 'entity' ? formatCnpj(field.value ?? '') : formatCpf(field.value ?? '')}
                         onChange={(e) => {
                           const digits = onlyDigits(e.target.value)
-                          const maxLen = personType === 'legal_entities' ? 14 : 11
+                          const maxLen = personType === 'entity' ? 14 : 11
                           field.onChange(digits.slice(0, maxLen))
                         }}
                         disabled={isPending}
@@ -193,9 +192,9 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
                   </FormItem>
                 )} />
 
-                <FormField control={form.control} name="rg_or_ie" render={({ field }) => (
+                <FormField control={form.control} name="rgOrIe" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{personType === 'legal_entities' ? 'Inscrição Estadual (IE)' : 'RG'}</FormLabel>
+                    <FormLabel>{personType === 'entity' ? 'Inscrição Estadual (IE)' : 'RG'}</FormLabel>
                     <FormControl>
                       <Input placeholder="Opcional" {...field} disabled={isPending} />
                     </FormControl>
@@ -204,105 +203,30 @@ export function NewCustomerSheet({ className, ...props }: React.ComponentProps<"
                 )} />
               </div>
 
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="email@exemplo.com" {...field} disabled={isPending} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="website" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Website</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://exemplo.com" {...field} disabled={isPending} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="address_street" render={({ field }) => (
+                <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Rua</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Rua" {...field} disabled={isPending} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="address_number" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={0} step={1} placeholder="Número" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)} disabled={isPending} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="neighborhood" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bairro</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Bairro" {...field} disabled={isPending} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="address_supplement" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Complemento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Complemento" {...field} disabled={isPending} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="address_city" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cidade</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Cidade" {...field} disabled={isPending} />
+                      <Input placeholder="email@exemplo.com" {...field} disabled={isPending} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
 
-                <FormField control={form.control} name="address_state" render={({ field }) => (
+                <FormField control={form.control} name="phone" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Estado</FormLabel>
+                    <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione o estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {states.map((uf) => (
-                              <SelectItem value={uf} key={uf}>{uf}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="postal_code" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CEP</FormLabel>
-                    <FormControl>
-                      <Input placeholder="00000-000" {...field} disabled={isPending} />
+                      <Input 
+                        placeholder="(00) 00000-0000" 
+                        value={formatPhone(field.value ?? '')}
+                        onChange={(e) => {
+                           const digits = onlyDigits(e.target.value)
+                           field.onChange(digits.slice(0, 11))
+                        }}
+                        disabled={isPending} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

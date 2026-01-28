@@ -23,7 +23,7 @@ export function NewDistributionCenterSheet({ className, ...props }: React.Compon
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      return privateInstance.post('/api:k-mANdpH/distribution_centers', values)
+      return privateInstance.post('/tenant/distribution-centers', values)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {

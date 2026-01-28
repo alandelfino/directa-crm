@@ -5,17 +5,18 @@ import { Trash2, Loader } from "lucide-react"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
 
-export function DeleteCustomerDialog({ customerId }: { customerId: number }) {
+export function DeleteCustomerDialog({ customerId, onDeleted }: { customerId: number, onDeleted?: () => void }) {
   const queryClient = useQueryClient()
   const { isPending, mutate } = useMutation({
     mutationFn: async () => {
-      const res = await privateInstance.delete(`/api:Th9UjqzY/customers/${customerId}`)
+      const res = await privateInstance.delete(`/tenant/customers/${customerId}`)
       return res
     },
     onSuccess: (response) => {
       if (response.status === 200) {
         toast.success('Cliente excluído!')
         queryClient.invalidateQueries({ queryKey: ['customers'] })
+        if (onDeleted) onDeleted()
       } else {
         const errorData = (response.data as any)
         toast.error(errorData?.title || 'Erro ao excluir cliente', {

@@ -25,7 +25,7 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
   async function fetchItem() {
     try {
       setLoading(true)
-      const response = await privateInstance.get(`/api:k-mANdpH/distribution_centers/${distributionCenterId}`)
+      const response = await privateInstance.get(`/tenant/distribution-centers/${distributionCenterId}`)
       const item = response?.data as any
       if (!item) throw new Error('Resposta inválida')
       form.reset({ name: item.name ?? "" })
@@ -40,7 +40,7 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
   useEffect(() => { if (open && distributionCenterId) fetchItem() }, [open, distributionCenterId])
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/api:k-mANdpH/distribution_centers/${distributionCenterId}`, values),
+    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/distribution-centers/${distributionCenterId}`, values),
     onSuccess: (response) => {
       if (response.status === 200) {
         toast.success("Centro de distribuição atualizado com sucesso!")

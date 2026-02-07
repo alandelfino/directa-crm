@@ -18,14 +18,14 @@ import { useEffect, useState, useMemo } from 'react'
  
 
 const formSchema = z.object({
-  sku: z.string().min(1, { message: 'Campo obrigatório' }).regex(/^[a-z0-9-]+$/, 'Use apenas minúsculas, números e hífen (-)'),
-  name: z.string().min(1, { message: 'Campo obrigatório' }),
-  description: z.string().optional().or(z.literal('')),
-  type: z.enum(['simple', 'with_derivations'] as const, { message: 'Campo obrigatório' }),
-  active: z.boolean({ message: 'Campo obrigatório' }),
-  promotional_price_active: z.boolean({ message: 'Campo obrigatório' }),
-  managed_inventory: z.boolean({ message: 'Campo obrigatório' }),
-  unit_id: z.preprocess(
+  sku: z.string().optional(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  type: z.enum(['simple', 'with_derivations'] as const).optional(),
+  active: z.boolean().optional(),
+  promotionalPriceActive: z.boolean().optional(),
+  managedInventory: z.boolean().optional(),
+  unitId: z.preprocess(
     (v) => {
       if (v === '' || v === null || v === undefined) return undefined
       if (typeof v === 'string') {
@@ -35,11 +35,13 @@ const formSchema = z.object({
       return v
     },
     z
-      .number({ message: 'Campo obrigatório' })
-      .refine((v) => !Number.isNaN(v), { message: 'Campo obrigatório' })
+      .number()
+      .refine((v) => !Number.isNaN(v))
       .int()
+      .min(1)
+      .optional()
   ),
-  brand_id: z.preprocess(
+  brandId: z.preprocess(
     (v) => {
       if (v === '' || v === null || v === undefined) return undefined
       if (typeof v === 'string') {
@@ -49,18 +51,16 @@ const formSchema = z.object({
       return v
     },
     z
-      .number({ message: 'Campo obrigatório' })
-      .refine((v) => !Number.isNaN(v), { message: 'Campo obrigatório' })
+      .number()
+      .refine((v) => !Number.isNaN(v))
       .int()
+      .min(1)
+      .optional()
   ),
-  derivation_ids: z.array(z.number()).default([]),
-  warranty_ids: z.array(z.number()).default([]),
-  store_ids: z.array(z.number()).default([]),
-  category_ids: z.array(z.number()).min(1, 'Selecione pelo menos uma categoria').default([]),
-}).superRefine((data, ctx) => {
-  if (data.type === 'with_derivations' && (!data.derivation_ids || data.derivation_ids.length === 0)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['derivation_ids'], message: 'Selecione pelo menos uma derivação' })
-  }
+  derivations: z.array(z.number()).optional(),
+  warranties: z.array(z.number()).optional(),
+  stores: z.array(z.number()).min(1).optional(),
+  categories: z.array(z.number()).min(1).optional(),
 })
 
 export function EditProductSheet({ productId, onSaved }: { productId: number, onSaved?: () => void }) {
@@ -76,166 +76,43 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
       description: '',
       type: 'simple',
       active: true,
-      promotional_price_active: false,
-      managed_inventory: false,
-      unit_id: undefined,
-      brand_id: undefined,
-      warranty_ids: [],
-      store_ids: [],
-      derivation_ids: [],
-      category_ids: [],
+      promotionalPriceActive: false,
+      managedInventory: false,
+      unitId: undefined,
+      brandId: undefined,
+      warranties: [],
+      stores: [],
+      derivations: [],
+      categories: [],
     }
   })
 
   async function fetchProduct() {
     try {
       setLoading(true)
-      const response = await privateInstance.get(`/api:c3X9fE5j/products/${productId}`)
+      const response = await privateInstance.get(`/tenant/products/${productId}`)
       const p = response?.data
       if (!p) throw new Error('Resposta inválida ao buscar produto')
-      const rawDerivationsFromItems = Array.isArray((p as any)?.derivations?.items) ? (p as any).derivations.items : null
-      const rawDerivationsArray = Array.isArray((p as any)?.derivations) ? (p as any).derivations : null
-      let rawDerivationIds = Array.isArray((p as any)?.derivation_ids)
-        ? ((p as any).derivation_ids as any[])
-        : Array.isArray(rawDerivationsFromItems)
-          ? (rawDerivationsFromItems as any[]).map((d: any) => d?.derivation_id ?? d?.derivation?.id ?? d?.id)
-          : Array.isArray(rawDerivationsArray)
-            ? (rawDerivationsArray as any[]).map((d: any) => d?.derivation_id ?? d?.derivation?.id ?? d?.id)
-            : []
 
-      if (!rawDerivationIds || rawDerivationIds.length === 0) {
-        const entries = queryClient.getQueriesData({ queryKey: ['products'] }) as any[]
-        for (const [, listData] of entries) {
-          const itemsArr = Array.isArray((listData as any)?.items) ? (listData as any).items : Array.isArray(listData) ? listData : []
-          const found = itemsArr.find((it: any) => Number(it?.id) === Number(productId))
-          if (found) {
-            const fromItems = Array.isArray(found?.derivations?.items) ? found.derivations.items : null
-            const fromArray = Array.isArray(found?.derivations) ? found.derivations : null
-            rawDerivationIds = Array.isArray(found?.derivation_ids)
-              ? found.derivation_ids
-              : Array.isArray(fromItems)
-                ? (fromItems as any[]).map((d: any) => d?.derivation_id ?? d?.derivation?.id ?? d?.id)
-                : Array.isArray(fromArray)
-                  ? (fromArray as any[]).map((d: any) => d?.derivation_id ?? d?.derivation?.id ?? d?.id)
-                  : []
-            break
-          }
-        }
-      }
-
-      const derivationIds = (rawDerivationIds as any[]).map((v: any) => Number(v)).filter((n) => Number.isFinite(n))
-
-      let rawWarrantyIds = Array.isArray((p as any)?.warranty_ids)
-        ? ((p as any).warranty_ids as any[])
-        : Array.isArray((p as any)?.warranties?.items)
-          ? ((p as any).warranties.items as any[]).map((w: any) => w?.warranty_id ?? w?.id)
-          : Array.isArray((p as any)?.warranties)
-            ? ((p as any).warranties as any[]).map((w: any) => w?.warranty_id ?? w?.id)
-            : Array.isArray((p as any)?.waranties)
-              ? ((p as any).waranties as any[]).map((w: any) => w?.warranty_id ?? w?.id)
-              : []
-
-      if (!rawWarrantyIds || rawWarrantyIds.length === 0) {
-        const entries = queryClient.getQueriesData({ queryKey: ['products'] }) as any[]
-        for (const [, listData] of entries) {
-          const itemsArr = Array.isArray((listData as any)?.items) ? (listData as any).items : Array.isArray(listData) ? listData : []
-          const found = itemsArr.find((it: any) => Number(it?.id) === Number(productId))
-          if (found) {
-            const fromItems = Array.isArray(found?.warranties?.items) ? found.warranties.items : null
-            const fromArray = Array.isArray(found?.warranties) ? found.warranties : null
-            const fromTypoArray = Array.isArray(found?.waranties) ? found.waranties : null
-            rawWarrantyIds = Array.isArray(found?.warranty_ids)
-              ? found.warranty_ids
-              : Array.isArray(fromItems)
-                ? (fromItems as any[]).map((w: any) => w?.warranty_id ?? w?.id)
-                : Array.isArray(fromArray)
-                  ? (fromArray as any[]).map((w: any) => w?.warranty_id ?? w?.id)
-                  : Array.isArray(fromTypoArray)
-                    ? (fromTypoArray as any[]).map((w: any) => w?.warranty_id ?? w?.id)
-                    : []
-            break
-          }
-        }
-      }
-      const warrantyIds = (rawWarrantyIds as any[]).map((v: any) => Number(v)).filter((n) => Number.isFinite(n))
-
-      let rawStoreIds = Array.isArray((p as any)?.store_ids)
-        ? ((p as any).store_ids as any[])
-        : Array.isArray((p as any)?.stores?.items)
-          ? ((p as any).stores.items as any[]).map((s: any) => s?.store_id ?? s?.id)
-          : Array.isArray((p as any)?.stores)
-            ? ((p as any).stores as any[]).map((s: any) => s?.store_id ?? s?.id)
-            : []
-
-      if (!rawStoreIds || rawStoreIds.length === 0) {
-        const entries = queryClient.getQueriesData({ queryKey: ['products'] }) as any[]
-        for (const [, listData] of entries) {
-          const itemsArr = Array.isArray((listData as any)?.items) ? (listData as any).items : Array.isArray(listData) ? listData : []
-          const found = itemsArr.find((it: any) => Number(it?.id) === Number(productId))
-          if (found) {
-            const fromItems = Array.isArray(found?.stores?.items) ? found.stores.items : null
-            const fromArray = Array.isArray(found?.stores) ? found.stores : null
-            rawStoreIds = Array.isArray(found?.store_ids)
-              ? found.store_ids
-              : Array.isArray(fromItems)
-                ? (fromItems as any[]).map((s: any) => s?.store_id ?? s?.id)
-                : Array.isArray(fromArray)
-                  ? (fromArray as any[]).map((s: any) => s?.store_id ?? s?.id)
-                  : []
-            break
-          }
-        }
-      }
-      const storeIds = (rawStoreIds as any[]).map((v: any) => Number(v)).filter((n) => Number.isFinite(n))
-
-      let rawCategoryIds = Array.isArray((p as any)?.category_ids)
-        ? ((p as any).category_ids as any[])
-        : Array.isArray((p as any)?.categories?.items)
-          ? ((p as any).categories.items as any[]).map((c: any) => c?.category_id ?? c?.id)
-          : Array.isArray((p as any)?.categories)
-            ? ((p as any).categories as any[]).map((c: any) => c?.category_id ?? c?.id)
-            : []
-
-      if (!rawCategoryIds || rawCategoryIds.length === 0) {
-        const entries = queryClient.getQueriesData({ queryKey: ['products'] }) as any[]
-        for (const [, listData] of entries) {
-          const itemsArr = Array.isArray((listData as any)?.items) ? (listData as any).items : Array.isArray(listData) ? listData : []
-          const found = itemsArr.find((it: any) => Number(it?.id) === Number(productId))
-          if (found) {
-            const fromItems = Array.isArray(found?.categories?.items) ? found.categories.items : null
-            const fromArray = Array.isArray(found?.categories) ? found.categories : null
-            rawCategoryIds = Array.isArray(found?.category_ids)
-              ? found.category_ids
-              : Array.isArray(fromItems)
-                ? (fromItems as any[]).map((c: any) => c?.category_id ?? c?.id)
-                : Array.isArray(fromArray)
-                  ? (fromArray as any[]).map((c: any) => c?.category_id ?? c?.id)
-                  : []
-            break
-          }
-        }
-      }
-      const categoryIds = (rawCategoryIds as any[]).map((v: any) => Number(v)).filter((n) => Number.isFinite(n))
       form.reset({
-        sku: p.sku ?? '',
-        name: p.name ?? '',
-        description: p.description ?? '',
-        type: p.type ?? 'simple',
-        active: !!p.active,
-        promotional_price_active: !!p.promotional_price_active,
-        managed_inventory: !!p.managed_inventory,
-        unit_id: typeof p.unit_id === 'number' ? p.unit_id : undefined,
-        brand_id: typeof p.brand_id === 'number' ? p.brand_id : undefined,
-        warranty_ids: warrantyIds,
-        store_ids: storeIds,
-        derivation_ids: derivationIds,
-        category_ids: categoryIds,
+        sku: p.sku,
+        name: p.name,
+        description: p.description,
+        type: p.type,
+        active: p.active,
+        promotionalPriceActive: p.promotional_price_active ?? p.promotionalPriceActive ?? false,
+        managedInventory: p.managed_inventory ?? p.managedInventory ?? false,
+        unitId: p.unit_id ?? p.unitId,
+        brandId: p.brand_id ?? p.brandId,
+        warranties: p.warranty_ids ?? p.warranties?.map((w: any) => w.id) ?? [],
+        stores: p.store_ids ?? p.stores?.map((s: any) => s.id) ?? [],
+        derivations: p.derivation_ids ?? p.derivations?.map((d: any) => d.id) ?? [],
+        categories: p.category_ids ?? p.categories?.map((c: any) => c.id) ?? [],
       })
-    } catch (error: any) {
-      const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao carregar produto', {
-        description: errorData?.detail || 'Não foi possível carregar os dados do produto.'
-      })
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao carregar produto')
+      setOpen(false)
     } finally {
       setLoading(false)
     }
@@ -251,22 +128,22 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
         description: '',
         type: 'simple',
         active: true,
-        promotional_price_active: false,
-        managed_inventory: false,
-        unit_id: undefined,
-        brand_id: undefined,
-        warranty_ids: [],
-        store_ids: [],
-        derivation_ids: [],
-        category_ids: [],
+        promotionalPriceActive: false,
+        managedInventory: false,
+        unitId: undefined,
+        brandId: undefined,
+        warranties: [],
+        stores: [],
+        derivations: [],
+        categories: [],
       })
     }
   }, [open])
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const { type, derivation_ids, ...payload } = values
-      return privateInstance.put(`/api:c3X9fE5j/products/${productId}`, payload)
+      const { type, derivations, ...payload } = values
+      return privateInstance.put(`/tenant/products/${productId}`, payload)
     },
     onSuccess: (response) => {
       if (response.status === 200) {
@@ -299,7 +176,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const response = await privateInstance.get('/api:tc5G7www/brands?per_page=50')
+      const response = await privateInstance.get('/tenant/brands?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar marcas')
       return response.data as any
     }
@@ -312,7 +189,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const response = await privateInstance.get('/api:-b71x_vk/unit_of_measurement?per_page=50')
+      const response = await privateInstance.get('/tenant/unit_of_measurement?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar unidades')
       return response.data as any
     }
@@ -326,7 +203,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get('/api:ojk_IOB-/categories?page=1&per_page=50')
+      const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },
@@ -461,13 +338,13 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                     </div>
 
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='category_ids' render={({ field }) => (
+                      <FormField control={form.control} name='categories' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Categorias</FormLabel>
                           <FormControl>
                             <CategoryTreeSelect
                               value={field.value || []}
-                              onChange={(next) => form.setValue('category_ids', next.map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                              onChange={(next) => form.setValue('categories', next.map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                               disabled={isPending || loading}
                               items={categoryItems}
                               rootChildren={categoryRootChildren}
@@ -505,18 +382,18 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                         </FormItem>
                       )} />
                       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
-                        <FormField control={form.control} name='derivation_ids' render={({ field }) => (
+                        <FormField control={form.control} name='derivations' render={({ field }) => (
                           <FormItem>
                             <FormLabel>Derivações</FormLabel>
                             <FormControl>
                               <TagsSelect
                                 value={field.value || []}
-                                onChange={(next) => form.setValue('derivation_ids', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                                disabled
+                                onChange={(next) => form.setValue('derivations', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                                disabled={loading || isPending}
                                 enabled={open}
                                 queryKey={['derivations']}
                                 fetcher={async () => {
-                                  const response = await privateInstance.get('/api:JOs6IYNo/derivations?per_page=50')
+                                  const response = await privateInstance.get('/tenant/derivations?limit=100')
                                   if (response.status !== 200) throw new Error('Erro ao carregar derivações')
                                   return response.data as any
                                 }}
@@ -535,7 +412,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                     
 
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <FormField control={form.control} name='unit_id' render={({ field }) => (
+                      <FormField control={form.control} name='unitId' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Unidade</FormLabel>
                           <FormControl>
@@ -567,7 +444,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='brand_id' render={({ field }) => (
+                      <FormField control={form.control} name='brandId' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Marca</FormLabel>
                           <FormControl>
@@ -601,18 +478,18 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                   </div>
 
                   <div className='grid grid-cols-1 gap-4'>
-              <FormField control={form.control} name='warranty_ids' render={({ field }) => (
+              <FormField control={form.control} name='warranties' render={({ field }) => (
                 <FormItem>
                   <FormLabel>Garantias</FormLabel>
                   <FormControl>
                     <TagsSelect
-                      value={field.value || []}
-                      onChange={(next) => form.setValue('warranty_ids', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                      value={(field.value as any[]) || []}
+                      onChange={(next) => form.setValue('warranties', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                       disabled={loading || isPending}
                       enabled={open}
                       queryKey={['warranties']}
                       fetcher={async () => {
-                        const response = await privateInstance.get('/api:PcyOgAiT/warranties?page=1&per_page=50')
+                        const response = await privateInstance.get('/tenant/warranties?limit=100')
                         if (response.status !== 200) throw new Error('Erro ao carregar garantias')
                         return response.data as any
                       }}
@@ -628,18 +505,18 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                   </div>
 
                   <div className='grid grid-cols-1 gap-4'>
-                    <FormField control={form.control} name='store_ids' render={({ field }) => (
+                    <FormField control={form.control} name='stores' render={({ field }) => (
                       <FormItem>
                         <FormLabel>Lojas</FormLabel>
                         <FormControl>
                           <TagsSelect
-                            value={field.value || []}
-                            onChange={(next) => form.setValue('store_ids', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                            value={(field.value as any[]) || []}
+                            onChange={(next) => form.setValue('stores', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                             disabled={loading || isPending}
                             enabled={open}
                             queryKey={['stores']}
                             fetcher={async () => {
-                              const response = await privateInstance.get('/api:c3X9fE5j/stores?per_page=100')
+                              const response = await privateInstance.get('/tenant/stores?limit=100')
                               if (response.status !== 200) throw new Error('Erro ao carregar lojas')
                               return response.data as any
                             }}
@@ -671,7 +548,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='promotional_price_active' render={({ field }) => (
+                      <FormField control={form.control} name='promotionalPriceActive' render={({ field }) => (
                         <FormItem>
                           <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>
@@ -688,7 +565,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
 
                       
 
-                      <FormField control={form.control} name='managed_inventory' render={({ field }) => (
+                      <FormField control={form.control} name='managedInventory' render={({ field }) => (
                         <FormItem>
                           <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>

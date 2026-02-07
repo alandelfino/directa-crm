@@ -55,20 +55,32 @@ function RouteComponent() {
     const [orderBy, setOrderBy] = useState('desc')
     const [filterName, setFilterName] = useState('')
     const [filterNameOperator, setFilterNameOperator] = useState('cont')
+    const [filterLastName, setFilterLastName] = useState('')
+    const [filterLastNameOperator, setFilterLastNameOperator] = useState('cont')
+    const [filterCpf, setFilterCpf] = useState('')
+    const [filterCpfOperator, setFilterCpfOperator] = useState('cont')
+    const [filterEmail, setFilterEmail] = useState('')
+    const [filterEmailOperator, setFilterEmailOperator] = useState('cont')
 
     // Local Filter State (for Popover)
     const [localSortBy, setLocalSortBy] = useState('createdAt')
     const [localOrderBy, setLocalOrderBy] = useState('desc')
     const [localFilterName, setLocalFilterName] = useState('')
     const [localFilterNameOperator, setLocalFilterNameOperator] = useState('cont')
+    const [localFilterLastName, setLocalFilterLastName] = useState('')
+    const [localFilterLastNameOperator, setLocalFilterLastNameOperator] = useState('cont')
+    const [localFilterCpf, setLocalFilterCpf] = useState('')
+    const [localFilterCpfOperator, setLocalFilterCpfOperator] = useState('cont')
+    const [localFilterEmail, setLocalFilterEmail] = useState('')
+    const [localFilterEmailOperator, setLocalFilterEmailOperator] = useState('cont')
     const [isFilterOpen, setIsFilterOpen] = useState(false)
 
-    const activeFilterCount = (filterName ? 1 : 0)
+    const activeFilterCount = (filterName ? 1 : 0) + (filterLastName ? 1 : 0) + (filterCpf ? 1 : 0) + (filterEmail ? 1 : 0)
 
     const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
         refetchOnWindowFocus: false,
         refetchOnMount: false,
-        queryKey: ['customers', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator],
+        queryKey: ['customers', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterLastName, filterLastNameOperator, filterCpf, filterCpfOperator, filterEmail, filterEmailOperator],
         queryFn: async () => {
             const searchParams = new URLSearchParams()
             searchParams.append('page', currentPage.toString())
@@ -80,6 +92,24 @@ function RouteComponent() {
                 searchParams.append('nameOrCompanyName', JSON.stringify({
                     operator: filterNameOperator,
                     value: filterName
+                }))
+            }
+            if (filterLastName) {
+                searchParams.append('lastNameOrTradeName', JSON.stringify({
+                    operator: filterLastNameOperator,
+                    value: filterLastName
+                }))
+            }
+            if (filterCpf) {
+                searchParams.append('cpfOrCnpj', JSON.stringify({
+                    operator: filterCpfOperator,
+                    value: filterCpf
+                }))
+            }
+            if (filterEmail) {
+                searchParams.append('email', JSON.stringify({
+                    operator: filterEmailOperator,
+                    value: filterEmail
                 }))
             }
 
@@ -122,7 +152,7 @@ function RouteComponent() {
         }
     }, [isError, error])
 
-    useEffect(() => { setSelected([]) }, [currentPage, perPage, sortBy, orderBy, filterName])
+    useEffect(() => { setSelected([]) }, [currentPage, perPage, sortBy, orderBy, filterName, filterLastName, filterCpf, filterEmail])
     useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
     useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])
 
@@ -153,6 +183,7 @@ function RouteComponent() {
             className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
         },
         { id: 'nameOrCompanyName', header: 'Nome/Razão Social', width: '280px', cell: (c) => c.nameOrCompanyName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2!' },
+        { id: 'lastNameOrTradeName', header: 'Sobrenome/Fantasia', width: '200px', cell: (c) => c.lastNameOrTradeName ?? '—', headerClassName: 'w-[200px] min-w-[200px] border-r', className: 'w-[200px] min-w-[200px] p-2!' },
         { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2!' },
         { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2!' },
         { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r', className: 'w-[150px] min-w-[150px] p-2!' },
@@ -171,6 +202,12 @@ function RouteComponent() {
                                 setLocalOrderBy(orderBy)
                                 setLocalFilterName(filterName)
                                 setLocalFilterNameOperator(filterNameOperator)
+                                setLocalFilterLastName(filterLastName)
+                                setLocalFilterLastNameOperator(filterLastNameOperator)
+                                setLocalFilterCpf(filterCpf)
+                                setLocalFilterCpfOperator(filterCpfOperator)
+                                setLocalFilterEmail(filterEmail)
+                                setLocalFilterEmailOperator(filterEmailOperator)
                             }
                             setIsFilterOpen(open)
                         }}>
@@ -225,59 +262,152 @@ function RouteComponent() {
                                             <h4 className="font-semibold leading-none">Filtros</h4>
                                         </div>
                                         <div className="grid gap-3">
-                                            <div className="grid gap-1.5">
-                                                <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome/Razão Social</Label>
-                                                <div className="flex gap-2">
-                                                    <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
-                                                        <SelectTrigger className="w-[130px] h-9">
-                                                            <SelectValue placeholder="Op." />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="cont">Contém</SelectItem>
-                                                            <SelectItem value="eq">Igual</SelectItem>
-                                                            <SelectItem value="ne">Diferente</SelectItem>
-                                                            <SelectItem value="sw">Começa com</SelectItem>
-                                                            <SelectItem value="ew">Termina com</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Input
-                                                        id="name"
-                                                        value={localFilterName}
-                                                        onChange={(e) => setLocalFilterName(e.target.value)}
-                                                        className="h-9 flex-1"
-                                                        placeholder="Filtrar por nome..."
-                                                    />
-                                                </div>
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome/Razão Social</Label>
+                                            <div className="flex gap-2">
+                                                <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                                                    <SelectTrigger className="w-[130px] h-9">
+                                                        <SelectValue placeholder="Op." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="cont">Contém</SelectItem>
+                                                        <SelectItem value="eq">Igual</SelectItem>
+                                                        <SelectItem value="ne">Diferente</SelectItem>
+                                                        <SelectItem value="sw">Começa com</SelectItem>
+                                                        <SelectItem value="ew">Termina com</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input
+                                                    id="name"
+                                                    value={localFilterName}
+                                                    onChange={(e) => setLocalFilterName(e.target.value)}
+                                                    className="h-9 flex-1"
+                                                    placeholder="Filtrar por nome..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="lastname" className="text-xs font-medium text-muted-foreground">Sobrenome/Fantasia</Label>
+                                            <div className="flex gap-2">
+                                                <Select value={localFilterLastNameOperator} onValueChange={setLocalFilterLastNameOperator}>
+                                                    <SelectTrigger className="w-[130px] h-9">
+                                                        <SelectValue placeholder="Op." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="cont">Contém</SelectItem>
+                                                        <SelectItem value="eq">Igual</SelectItem>
+                                                        <SelectItem value="ne">Diferente</SelectItem>
+                                                        <SelectItem value="sw">Começa com</SelectItem>
+                                                        <SelectItem value="ew">Termina com</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input
+                                                    id="lastname"
+                                                    value={localFilterLastName}
+                                                    onChange={(e) => setLocalFilterLastName(e.target.value)}
+                                                    className="h-9 flex-1"
+                                                    placeholder="Filtrar por sobrenome..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="cpf" className="text-xs font-medium text-muted-foreground">CPF/CNPJ</Label>
+                                            <div className="flex gap-2">
+                                                <Select value={localFilterCpfOperator} onValueChange={setLocalFilterCpfOperator}>
+                                                    <SelectTrigger className="w-[130px] h-9">
+                                                        <SelectValue placeholder="Op." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="cont">Contém</SelectItem>
+                                                        <SelectItem value="eq">Igual</SelectItem>
+                                                        <SelectItem value="ne">Diferente</SelectItem>
+                                                        <SelectItem value="sw">Começa com</SelectItem>
+                                                        <SelectItem value="ew">Termina com</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input
+                                                    id="cpf"
+                                                    value={localFilterCpf}
+                                                    onChange={(e) => setLocalFilterCpf(e.target.value)}
+                                                    className="h-9 flex-1"
+                                                    placeholder="Filtrar por CPF/CNPJ..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</Label>
+                                            <div className="flex gap-2">
+                                                <Select value={localFilterEmailOperator} onValueChange={setLocalFilterEmailOperator}>
+                                                    <SelectTrigger className="w-[130px] h-9">
+                                                        <SelectValue placeholder="Op." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="cont">Contém</SelectItem>
+                                                        <SelectItem value="eq">Igual</SelectItem>
+                                                        <SelectItem value="ne">Diferente</SelectItem>
+                                                        <SelectItem value="sw">Começa com</SelectItem>
+                                                        <SelectItem value="ew">Termina com</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input
+                                                    id="email"
+                                                    value={localFilterEmail}
+                                                    onChange={(e) => setLocalFilterEmail(e.target.value)}
+                                                    className="h-9 flex-1"
+                                                    placeholder="Filtrar por email..."
+                                                />
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div className="flex gap-2 pt-2">
-                                        <Button variant="outline" size="default" className="flex-1" onClick={() => {
-                                            setLocalSortBy('createdAt')
-                                            setLocalOrderBy('desc')
-                                            setLocalFilterName('')
-                                            setLocalFilterNameOperator('cont')
-                                            
-                                            setSortBy('createdAt')
-                                            setOrderBy('desc')
-                                            setFilterName('')
-                                            setFilterNameOperator('cont')
-                                            setCurrentPage(1)
-                                            setIsFilterOpen(false)
-                                        }}>
-                                            Limpar tudo
-                                        </Button>
-                                        <Button size="sm" className="flex-1" onClick={() => {
-                                            setSortBy(localSortBy)
-                                            setOrderBy(localOrderBy)
-                                            setFilterName(localFilterName)
-                                            setFilterNameOperator(localFilterNameOperator)
-                                            setCurrentPage(1)
-                                            setIsFilterOpen(false)
-                                        }}>
-                                            Aplicar
-                                        </Button>
+                                <div className="flex gap-2 pt-2">
+                                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                                        setLocalSortBy('createdAt')
+                                        setLocalOrderBy('desc')
+                                        setLocalFilterName('')
+                                        setLocalFilterNameOperator('cont')
+                                        setLocalFilterLastName('')
+                                        setLocalFilterLastNameOperator('cont')
+                                        setLocalFilterCpf('')
+                                        setLocalFilterCpfOperator('cont')
+                                        setLocalFilterEmail('')
+                                        setLocalFilterEmailOperator('cont')
+                                        
+                                        setSortBy('createdAt')
+                                        setOrderBy('desc')
+                                        setFilterName('')
+                                        setFilterNameOperator('cont')
+                                        setFilterLastName('')
+                                        setFilterLastNameOperator('cont')
+                                        setFilterCpf('')
+                                        setFilterCpfOperator('cont')
+                                        setFilterEmail('')
+                                        setFilterEmailOperator('cont')
+                                        setCurrentPage(1)
+                                        setIsFilterOpen(false)
+                                    }}>
+                                        Limpar tudo
+                                    </Button>
+                                    <Button size="sm" className="flex-1" onClick={() => {
+                                        setSortBy(localSortBy)
+                                        setOrderBy(localOrderBy)
+                                        setFilterName(localFilterName)
+                                        setFilterNameOperator(localFilterNameOperator)
+                                        setFilterLastName(localFilterLastName)
+                                        setFilterLastNameOperator(localFilterLastNameOperator)
+                                        setFilterCpf(localFilterCpf)
+                                        setFilterCpfOperator(localFilterCpfOperator)
+                                        setFilterEmail(localFilterEmail)
+                                        setFilterEmailOperator(localFilterEmailOperator)
+                                        setCurrentPage(1)
+                                        setIsFilterOpen(false)
+                                    }}>
+                                        Aplicar
+                                    </Button>
                                     </div>
                                 </div>
                             </PopoverContent>

@@ -20,12 +20,12 @@ import { useEffect, useState, useMemo } from 'react'
   const formSchema = z.object({
     sku: z.string().min(1, { message: 'Campo obrigatório' }).regex(/^[a-z0-9-]+$/, 'Use apenas minúsculas, números e hífen (-)'),
     name: z.string().min(1, { message: 'Campo obrigatório' }),
-    description: z.string().optional().or(z.literal('')),
+    description: z.string().min(1, { message: 'Campo obrigatório' }),
     type: z.enum(['simple', 'with_derivations'] as const, { message: 'Campo obrigatório' }),
-    promotional_price_active: z.boolean().default(false),
-    active: z.boolean({ message: 'Campo obrigatório' }),
-    managed_inventory: z.boolean({ message: 'Campo obrigatório' }),
-  unit_id: z.preprocess(
+    active: z.boolean().default(true),
+    promotionalPriceActive: z.boolean().default(false),
+    managedInventory: z.boolean().default(false),
+  unitId: z.preprocess(
     (v) => {
       if (v === '' || v === null || v === undefined) return undefined
       if (typeof v === 'string') {
@@ -38,8 +38,9 @@ import { useEffect, useState, useMemo } from 'react'
       .number({ message: 'Campo obrigatório' })
       .refine((v) => !Number.isNaN(v), { message: 'Campo obrigatório' })
       .int()
+      .min(1, 'Selecione uma unidade')
   ),
-  brand_id: z.preprocess(
+  brandId: z.preprocess(
     (v) => {
       if (v === '' || v === null || v === undefined) return undefined
       if (typeof v === 'string') {
@@ -52,14 +53,15 @@ import { useEffect, useState, useMemo } from 'react'
       .number({ message: 'Campo obrigatório' })
       .refine((v) => !Number.isNaN(v), { message: 'Campo obrigatório' })
       .int()
+      .min(1, 'Selecione uma marca')
   ),
-  derivation_ids: z.array(z.number()).default([]),
-  warranty_ids: z.array(z.number()).default([]),
-  store_ids: z.array(z.number()).default([]),
-  category_ids: z.array(z.number()).min(1, 'Selecione pelo menos uma categoria').default([]),
+  derivations: z.array(z.number()).default([]),
+  warranties: z.array(z.number()).default([]),
+  stores: z.array(z.number()).min(1, 'Selecione pelo menos uma loja').default([]),
+  categories: z.array(z.number()).min(1, 'Selecione pelo menos uma categoria').default([]),
   }).superRefine((data, ctx) => {
-  if (data.type === 'with_derivations' && (!data.derivation_ids || data.derivation_ids.length === 0)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['derivation_ids'], message: 'Selecione pelo menos uma derivação' })
+  if (data.type === 'with_derivations' && (!data.derivations || data.derivations.length === 0)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['derivations'], message: 'Selecione pelo menos uma derivação' })
   }
 })
 
@@ -73,15 +75,15 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
       name: '',
       description: '',
       type: 'simple',
-      promotional_price_active: false,
       active: true,
-      managed_inventory: true,
-      unit_id: undefined,
-      brand_id: undefined,
-      derivation_ids: [],
-      category_ids: [],
-      warranty_ids: [],
-      store_ids: [],
+      promotionalPriceActive: false,
+      managedInventory: false,
+      unitId: undefined,
+      brandId: undefined,
+      derivations: [],
+      categories: [],
+      warranties: [],
+      stores: [],
     }
   })
 
@@ -89,7 +91,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await privateInstance.post('/api:c3X9fE5j/products', values)
+      const response = await privateInstance.post('/tenant/products', values)
       return response
     },
     onSuccess: (response) => {
@@ -125,7 +127,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const response = await privateInstance.get('/api:tc5G7www/brands?per_page=50')
+      const response = await privateInstance.get('/tenant/brands?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar marcas')
       return response.data as any
     }
@@ -137,7 +139,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const response = await privateInstance.get('/api:-b71x_vk/unit_of_measurement?per_page=50')
+      const response = await privateInstance.get('/tenant/unit_of_measurement?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar unidades')
       return response.data as any
     }
@@ -153,7 +155,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get('/api:ojk_IOB-/categories?page=1&per_page=50')
+      const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },
@@ -237,15 +239,15 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
         name: '',
         description: '',
         type: 'simple',
-        promotional_price_active: false,
+        promotionalPriceActive: false,
         active: true,
-        managed_inventory: true,
-        unit_id: undefined,
-        brand_id: undefined,
-        warranty_ids: [],
-        store_ids: [],
-        derivation_ids: [],
-        category_ids: [],
+        managedInventory: true,
+        unitId: undefined,
+        brandId: undefined,
+        warranties: [],
+        stores: [],
+        derivations: [],
+        categories: [],
       })
     }
   }, [open])
@@ -303,13 +305,13 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                       )} />
                     </div>
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='category_ids' render={({ field }) => (
+                      <FormField control={form.control} name='categories' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Categorias</FormLabel>
                           <FormControl>
                             <CategoryTreeSelect
                               value={field.value || []}
-                              onChange={(next) => form.setValue('category_ids', next, { shouldDirty: true, shouldValidate: true })}
+                              onChange={(next) => form.setValue('categories', next, { shouldDirty: true, shouldValidate: true })}
                               disabled={isPending}
                               items={categoryItems}
                               rootChildren={categoryRootChildren}
@@ -346,18 +348,18 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                         </FormItem>
                       )} />
                       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
-                        <FormField control={form.control} name='derivation_ids' render={({ field }) => (
+                        <FormField control={form.control} name='derivations' render={({ field }) => (
                           <FormItem>
                             <FormLabel>Derivações</FormLabel>
                             <FormControl>
                               <TagsSelect
-                                value={field.value || []}
-                                onChange={(next) => form.setValue('derivation_ids', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                                disabled={isPending}
+                              value={(field.value as any[]) || []}
+                              onChange={(next) => form.setValue('derivations', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                              disabled={isPending}
                                 enabled={open}
                                 queryKey={['derivations']}
                                 fetcher={async () => {
-                                  const response = await privateInstance.get('/api:JOs6IYNo/derivations?per_page=50')
+                                  const response = await privateInstance.get('/tenant/derivations?limit=100')
                                   if (response.status !== 200) throw new Error('Erro ao carregar derivações')
                                   return response.data as any
                                 }}
@@ -376,7 +378,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                     
 
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <FormField control={form.control} name='unit_id' render={({ field }) => (
+                      <FormField control={form.control} name='unitId' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Unidade</FormLabel>
                           <FormControl>
@@ -408,7 +410,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='brand_id' render={({ field }) => (
+                      <FormField control={form.control} name='brandId' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Marca</FormLabel>
                           <FormControl>
@@ -442,18 +444,18 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                     </div>
 
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='warranty_ids' render={({ field }) => (
+                      <FormField control={form.control} name='warranties' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Garantias</FormLabel>
                           <FormControl>
                             <TagsSelect
-                              value={field.value || []}
-                              onChange={(next) => form.setValue('warranty_ids', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                              value={(field.value as any[]) || []}
+                              onChange={(next) => form.setValue('warranties', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                               disabled={isPending}
                               enabled={open}
                               queryKey={['warranties']}
                               fetcher={async () => {
-                                const response = await privateInstance.get('/api:PcyOgAiT/warranties?page=1&per_page=50')
+                                const response = await privateInstance.get('/tenant/warranties?limit=100')
                                 if (response.status !== 200) throw new Error('Erro ao carregar garantias')
                                 return response.data as any
                               }}
@@ -469,18 +471,18 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                     </div>
 
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='store_ids' render={({ field }) => (
+                      <FormField control={form.control} name='stores' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Lojas</FormLabel>
                           <FormControl>
                             <TagsSelect
-                              value={field.value || []}
-                              onChange={(next) => form.setValue('store_ids', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                              value={(field.value as any[]) || []}
+                              onChange={(next) => form.setValue('stores', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                               disabled={isPending}
                               enabled={open}
                               queryKey={['stores']}
                               fetcher={async () => {
-                                const response = await privateInstance.get('/api:c3X9fE5j/stores?per_page=100')
+                                const response = await privateInstance.get('/tenant/stores?limit=100')
                                 if (response.status !== 200) throw new Error('Erro ao carregar lojas')
                                 return response.data as any
                               }}
@@ -512,7 +514,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='promotional_price_active' render={({ field }) => (
+                      <FormField control={form.control} name='promotionalPriceActive' render={({ field }) => (
                         <FormItem>
                           <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>
@@ -529,7 +531,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
 
                       
 
-                      <FormField control={form.control} name='managed_inventory' render={({ field }) => (
+                      <FormField control={form.control} name='managedInventory' render={({ field }) => (
                         <FormItem>
                           <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>

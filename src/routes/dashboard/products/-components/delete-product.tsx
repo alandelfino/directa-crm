@@ -12,7 +12,7 @@ export function DeleteProductDialog({ productId, onDeleted }: { productId: numbe
 
   const { isPending, mutate } = useMutation({
     mutationFn: async () => {
-      const response = await privateInstance.delete(`/api:c3X9fE5j/products/${productId}`)
+      const response = await privateInstance.delete(`/tenant/products/${productId}`)
       return response
     },
     onSuccess: (response) => {

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { LoginForm } from "./-components/login-form"
 import { auth, getSubdomain } from '@/lib/auth'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/sign-in/')({
@@ -12,6 +12,19 @@ export const Route = createFileRoute('/sign-in/')({
 export default function RouteComponent() {
     const navigate = useNavigate()
     const subdomain = getSubdomain()
+    const [isValidating, setIsValidating] = useState(true)
+
+    useEffect(() => {
+        const check = async () => {
+            const isValid = await auth.validateSession()
+            if (isValid) {
+                navigate({ to: '/dashboard' })
+            } else {
+                setIsValidating(false)
+            }
+        }
+        check()
+    }, [navigate])
     
     const { data: tenant, isError, isLoading } = useQuery({
         queryKey: ['tenant', subdomain],
@@ -26,7 +39,7 @@ export default function RouteComponent() {
         }
     }, [isError, navigate])
 
-    if (isLoading || isError) {
+    if (isLoading || isError || isValidating) {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background">
                 <div className="flex flex-col items-center gap-4 text-center">
@@ -35,7 +48,7 @@ export default function RouteComponent() {
                     </div>
                     <div className="space-y-2">
                         <h3 className="text-lg font-semibold tracking-tight">
-                            Verificando empresa
+                            {isValidating ? 'Verificando sessão...' : 'Verificando empresa'}
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                             Por favor, aguarde enquanto validamos seu acesso. Não atualize a página.

@@ -128,8 +128,9 @@ function PipelineRoute() {
   const { setOpen } = useSidebar()
 
   useEffect(() => {
+    // Fecha o sidebar apenas na montagem inicial
     setOpen(false)
-  }, [setOpen])
+  }, []) // Remove setOpen da dependência para rodar apenas uma vez
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -141,8 +142,8 @@ function PipelineRoute() {
 
   return (
     <div className="flex flex-col h-full w-full bg-neutral-50 dark:bg-neutral-950">
-      <Topbar 
-        title="Pipeline de Vendas" 
+      <Topbar
+        title="Pipeline de Vendas"
         breadcrumbs={[
           { label: 'Dashboard', href: '/dashboard', isLast: false },
           { label: 'Comercial', href: '/dashboard/pipeline', isLast: false },
@@ -151,49 +152,51 @@ function PipelineRoute() {
       />
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="h-full flex px-6 pb-6 pt-4 gap-3 min-w-max">
+        <div className="h-full flex p-4 gap-1 min-w-sm max-w-full">
           {MOCK_DATA.map((column) => (
-            <div key={column.id} className="flex flex-col w-[340px] h-full max-h-full">
+            <div key={column.id} className="flex flex-col w-[280px] h-full max-h-full bg-neutral-100 dark:bg-neutral-900/40 rounded-xl">
               {/* Column Header Minimalista */}
-              <div className="flex items-center justify-between mb-3 px-1">
-                <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-between mb-3 p-4 pb-0 group">
+                <div className='flex items-center gap-2'>
                   <div className={`w-2 h-2 rounded-full ${column.accentColor}`} />
                   <h3 className="font-semibold text-[13px] text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
                     {column.title}
                   </h3>
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-neutral-400 tabular-nums">
                     {column.deals.length}
                   </span>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-neutral-400 hover:text-neutral-700">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-neutral-400 hover:text-neutral-700">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <div className="hidden group-hover:flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-neutral-400 hover:text-neutral-700">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-neutral-400 hover:text-neutral-700">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               {/* Column Content Clean */}
-              <div className="flex-1 rounded-xl bg-neutral-100/40 dark:bg-neutral-900/40 flex flex-col overflow-hidden">
+              <div className="flex-1 rounded-xl flex flex-col overflow-hidden">
                 <ScrollArea className="flex-1">
-                  <div className="flex flex-col gap-3 p-3">
+                  <div className="flex flex-col gap-2 p-2">
                     {column.deals.map((deal) => (
-                      <Card 
-                        key={deal.id} 
+                      <Card
+                        key={deal.id}
                         className="group relative shadow-sm hover:shadow-md transition-all duration-200 border bg-white dark:bg-neutral-900 cursor-grab active:cursor-grabbing"
                       >
                         <CardContent className="p-4 flex flex-col gap-3">
                           {/* Header: Cliente e Loja */}
                           <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-0.5">
-                              <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400">
-                                {deal.storeName}
-                              </span>
                               <h4 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100 leading-snug">
-                                {deal.clientName}
+                                {deal.storeName}
                               </h4>
+                              <span className="text-xs tracking-wider text-neutral-400">
+                                <span>- Responsável:</span> <span className='font-semibold'>{deal.clientName}</span>
+                              </span>
                             </div>
                             <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2 text-neutral-300 hover:text-neutral-600 opacity-0 group-hover:opacity-100 transition-opacity">
                               <MoreHorizontal className="h-4 w-4" />

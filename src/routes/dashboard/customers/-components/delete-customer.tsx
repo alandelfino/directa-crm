@@ -13,7 +13,7 @@ export function DeleteCustomerDialog({ customerId, onDeleted }: { customerId: nu
       return res
     },
     onSuccess: (response) => {
-      if (response.status === 200) {
+      if (response.status === 200 || response.status === 204) {
         toast.success('Cliente excluído!')
         queryClient.invalidateQueries({ queryKey: ['customers'] })
         if (onDeleted) onDeleted()

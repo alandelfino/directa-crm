@@ -235,6 +235,21 @@ export const auth = {
             return
         }
         // Validação de sessão ocorre via interceptors nas chamadas de API
+    },
+    validateSession: async () => {
+        const token = getToken()
+        if (!token) return false
+        try {
+            const response = await privateInstance.get('/tenant/check-token')
+            if (response.status === 200) {
+                if (response.data?.user) updateUserStorage(response.data.user)
+                if (response.data?.company) updateCompanyStorage(response.data.company)
+                return true
+            }
+            return false
+        } catch {
+            return false
+        }
     }
 }
 

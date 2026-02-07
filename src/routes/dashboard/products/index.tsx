@@ -25,43 +25,38 @@ export const Route = createFileRoute('/dashboard/products/')({
 
 type Product = {
   id: number
-  created_at?: number
-  updated_at?: number
-  sku?: string
-  name?: string
-  description?: string
-  type?: 'simple' | 'with_derivations'
-  unit_id?: number
-  brand_id?: number
-  company_id?: number
-  active?: boolean
-  managed_inventory?: boolean
-  price?: number
-  promotional_price?: number
-  promotional_price_active?: boolean
-  stock?: number
+  sku: string
+  name: string
+  active: boolean
+  brandId: number
+  description: string
+  type: 'simple' | 'with_derivations'
+  unitId: number
+  managedInventory: boolean
+  mainMediaId: number | null
+  createdAt: string
+  updatedAt: string
+  // Helper properties for UI compatibility
+  derivations?: any[]
+  derivation_ids?: number[]
+  warranties?: any[]
+  warranty_ids?: number[]
+  stores?: any[]
+  store_ids?: number[]
+  categories?: any[]
+  category_ids?: number[]
 }
 
 type ProductsResponse = {
-  itemsReceived?: number
-  curPage?: number
-  nextPage?: number | null
-  prevPage?: number | null
-  offset?: number
-  perPage?: number
-  itemsTotal?: number
-  pageTotal?: number
-  items?: Product[]
-} | Product[]
+  page: number
+  limit: number
+  totalPages: number
+  total: number
+  items: Product[]
+}
 
 function normalizeResponse(data: ProductsResponse) {
-  if (Array.isArray(data)) {
-    return { items: data, itemsTotal: data.length, pageTotal: 1 }
-  }
-  const items = Array.isArray(data.items) ? data.items : []
-  const itemsTotal = typeof data.itemsTotal === 'number' ? data.itemsTotal : items.length
-  const pageTotal = typeof data.pageTotal === 'number' ? data.pageTotal : 1
-  return { items, itemsTotal, pageTotal }
+  return { items: data.items, itemsTotal: data.total, pageTotal: data.totalPages }
 }
 
  
@@ -72,15 +67,55 @@ function RouteComponent() {
   const [selected, setSelected] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
+  const [sortBy] = useState('createdAt')
+  const [orderBy] = useState('desc')
+
+  const [filterName] = useState('')
+  const [filterNameOperator] = useState('cont')
+  const [filterSku] = useState('')
+  const [filterSkuOperator] = useState('cont')
+  const [filterActive] = useState('all')
+  const [filterActiveOperator] = useState('eq')
+  const [filterType] = useState('all')
+  const [filterTypeOperator] = useState('eq')
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    queryKey: ['products', currentPage, perPage],
+    queryKey: ['products', currentPage, perPage, filterName, filterNameOperator, filterSku, filterSkuOperator, filterActive, filterActiveOperator, filterType, filterTypeOperator, sortBy, orderBy],
     queryFn: async () => {
-      // Tenta paginação padrão page/per_page. Se a API não suportar, ainda funcionará com o retorno em array.
-      const url = `/api:c3X9fE5j/products?page=${currentPage}&per_page=${Math.min(50, perPage)}`
-      const response = await privateInstance.get(url)
+      const searchParams = new URLSearchParams()
+      searchParams.append('page', currentPage.toString())
+      searchParams.append('limit', Math.min(100, perPage).toString())
+      searchParams.append('sortBy', sortBy)
+      searchParams.append('orderBy', orderBy)
+
+      if (filterName) {
+        searchParams.append('name', JSON.stringify({
+          operator: filterNameOperator,
+          value: filterName
+        }))
+      }
+      if (filterSku) {
+        searchParams.append('sku', JSON.stringify({
+          operator: filterSkuOperator,
+          value: filterSku
+        }))
+      }
+      if (filterActive !== 'all') {
+        searchParams.append('active', JSON.stringify({
+          operator: filterActiveOperator,
+          value: filterActive === 'true'
+        }))
+      }
+      if (filterType !== 'all') {
+        searchParams.append('type', JSON.stringify({
+          operator: filterTypeOperator,
+          value: filterType
+        }))
+      }
+
+      const response = await privateInstance.get(`/tenant/products?${searchParams.toString()}`)
       if (response.status !== 200) {
         throw new Error('Erro ao carregar produtos')
       }
@@ -124,7 +159,7 @@ function RouteComponent() {
     { id: 'name', header: 'Nome', width: '280px', cell: (p) => (<span className='block truncate' title={p.name ?? '—'}>{p.name ?? '—'}</span>), headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! min-w-0' },
     { id: 'type', header: 'Tipo', width: '180px', cell: (p) => (<span className='block truncate' title={p.type === 'with_derivations' ? 'Com variações' : 'Simples'}>{p.type === 'with_derivations' ? 'Com variações' : 'Simples'}</span>), headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! min-w-0' },
     
-    { id: 'managed_inventory', header: 'Gerenciar estoque', width: '160px', cell: (p) => (<span className='block truncate' title={p.managed_inventory ? 'Sim' : 'Não'}>{p.managed_inventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
+    { id: 'managedInventory', header: 'Gerenciar estoque', width: '160px', cell: (p) => (<span className='block truncate' title={p.managedInventory ? 'Sim' : 'Não'}>{p.managedInventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
     { id: 'active', header: 'Status', width: '120px', cell: (p) => {
       const active = p.active === true
       return (

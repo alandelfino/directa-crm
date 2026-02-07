@@ -26,7 +26,7 @@ function CompanyNotFound() {
         // Lógica para substituir o subdomínio
         if (host.includes('localhost') || /^127(\.\d+){0,3}$/.test(host)) {
              // Ambiente de desenvolvimento
-             const port = window.location.port ? `:${window.location.port}` : ''
+             // const port = window.location.port ? `:${window.location.port}` : ''
              // Assumindo que o alias substitui tudo antes de localhost, ou é adicionado
              // Se estivermos em algo.localhost:3000 -> alias.localhost:3000
              // Se estivermos em localhost:3000 -> alias.localhost:3000

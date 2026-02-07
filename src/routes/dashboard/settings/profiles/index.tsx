@@ -49,7 +49,7 @@ function RouteComponent() {
     refetchOnWindowFocus: false,
     queryKey: ['profiles', currentPage, perPage],
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:BXIMsMQ7/user_profile?page=${currentPage}&per_page=${Math.min(50, perPage)}`)
+      const response = await privateInstance.get(`/tenant/user-profiles?page=${currentPage}&limit=${Math.min(100, perPage)}`)
       if (response.status !== 200) {
         throw new Error('Erro ao carregar perfis')
       }

@@ -6,7 +6,7 @@ import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuL
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { User as UserIcon, Building2, Mail, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { ChevronsUpDown, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 

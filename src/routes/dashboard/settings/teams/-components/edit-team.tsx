@@ -28,7 +28,7 @@ export function EditTeamSheet({ teamId, onSaved }: { teamId: number, onSaved?: (
     async function run() {
       try {
         setLoading(true)
-        const response = await privateInstance.get<Team>(`/api:VPDORr9u/teams/${teamId}`)
+        const response = await privateInstance.get<Team>(`/tenant/teams/${teamId}`)
         if (response.status !== 200 || !response.data) throw new Error('Falha ao carregar equipe')
         form.reset({ name: response.data.name, description: response.data.description ?? '' })
       } catch (err: any) {
@@ -48,7 +48,7 @@ export function EditTeamSheet({ teamId, onSaved }: { teamId: number, onSaved?: (
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const payload = { name: values.name, description: values.description ?? '' }
-      const response = await privateInstance.put(`/api:VPDORr9u/teams/${teamId}`, payload)
+      const response = await privateInstance.put(`/tenant/teams/${teamId}`, payload)
       if (response.status !== 200) throw new Error('Erro ao salvar equipe')
       return response.data as Team
     },

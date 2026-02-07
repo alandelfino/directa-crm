@@ -5,15 +5,16 @@ export function SettingsSidebar() {
   const router = useRouterState()
   const items = [
     { label: 'Conta', href: '/dashboard/settings/account' },
-    { label: 'Lojas', href: '/dashboard/settings/stores' },
-    { label: 'Tabelas de Preço', href: '/dashboard/settings/price-tables' },
-    { label: 'Tamanhos de mídias', href: '/dashboard/settings/media-sizes' },
     { label: 'Cobranças', href: '/dashboard/settings/billings' },
     { separator: true },
-    { label: 'Usuários', href: '/dashboard/settings/users' },
-    { label: 'Convites', href: '/dashboard/settings/invitations' },
-    { label: 'Equipes', href: '/dashboard/settings/teams' },
+    { label: 'Tabelas de Preço', href: '/dashboard/settings/price-tables' },
+    { label: 'Tamanhos de mídias', href: '/dashboard/settings/media-sizes' },
+    { label: 'Lojas', href: '/dashboard/settings/stores' },
+    { separator: true },
     { label: 'Perfis', href: '/dashboard/settings/profiles' },
+    { label: 'Equipes', href: '/dashboard/settings/teams' },
+    { label: 'Usuários', href: '/dashboard/settings/users' },
+
     { separator: true },
     { label: 'Integrações', href: '/dashboard/settings/integrations' },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks' },

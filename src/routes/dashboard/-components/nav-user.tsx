@@ -144,7 +144,7 @@ export function NavUser() {
                         <DropdownMenuSeparator />
 
                         <DropdownMenuGroup>
-                            <DropdownMenuItem onClick={() => navigate({ to: '/user/profile' })}> <User /> Meu Perfil </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate({ to: '/user' })}> <User /> Meu Perfil </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setDarkMode(!darkMode)}>
                                 <Moon /><span className="w-full">Dark mode</span> {darkMode && <Check />}
                             </DropdownMenuItem>

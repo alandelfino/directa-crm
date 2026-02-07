@@ -26,7 +26,7 @@ export function NewTeamSheet({ onCreated }: { onCreated?: () => void }) {
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const payload = { name: values.name, description: values.description ?? '' }
-      const response = await privateInstance.post('/api:VPDORr9u/teams', payload)
+      const response = await privateInstance.post('/tenant/teams', payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao criar equipe')
       return response.data as Team
     },

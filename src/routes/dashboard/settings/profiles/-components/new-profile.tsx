@@ -30,7 +30,7 @@ export function NewProfileSheet({
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       const payload: any = { name: values.name }
-      return privateInstance.post('/api:BXIMsMQ7/user_profile', payload)
+      return privateInstance.post('/tenant/user-profiles', payload)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {

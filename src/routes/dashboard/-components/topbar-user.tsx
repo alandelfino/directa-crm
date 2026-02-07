@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, LogOut, Moon, User, Users, Settings } from "lucide-react"
+import { Check, ChevronsUpDown, LogOut, Moon, Settings } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getAvatarAbbrev } from '@/lib/utils'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -126,8 +126,6 @@ export function TopbarUser() {
       >
 
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => navigate({ to: '/user/profile' })}> <User className="size-4" /> Meu Perfil </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate({ to: '/user/companies' })}> <Users className="size-4" /> Minhas Contas </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setDarkMode(!darkMode)}>
             <Moon className="size-4" /><span className="w-full">Dark mode</span> {darkMode && <Check className="size-4" />}
           </DropdownMenuItem>

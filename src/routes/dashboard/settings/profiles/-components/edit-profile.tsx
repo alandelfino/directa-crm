@@ -39,7 +39,7 @@ export function EditProfileSheet({
   async function fetchProfile() {
     try {
       setProfileLoading(true)
-      const response = await privateInstance.get(`/api:BXIMsMQ7/user_profile/${profileId}`)
+      const response = await privateInstance.get(`/tenant/user-profiles/${profileId}`)
       const profile = response?.data
       if (!profile) {
         throw new Error('Resposta inválida ao buscar perfil')
@@ -64,7 +64,7 @@ export function EditProfileSheet({
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       const payload: any = { name: values.name }
-      return privateInstance.put(`/api:BXIMsMQ7/user_profile/${profileId}`, payload)
+      return privateInstance.put(`/tenant/user-profiles/${profileId}`, payload)
     },
     onSuccess: (response) => {
       if (response.status === 200) {

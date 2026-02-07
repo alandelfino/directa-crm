@@ -123,7 +123,14 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
                       </FormControl>
                       <SelectContent>
                         {priceTables?.map((pt: any) => (
-                          <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
+                          <SelectItem 
+                            key={pt.id} 
+                            value={String(pt.id)} 
+                            disabled={!pt.active}
+                            className={!pt.active ? 'opacity-50' : ''}
+                          >
+                            {pt.name} {!pt.active && '(Inativo)'}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

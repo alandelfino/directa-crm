@@ -11,8 +11,8 @@ export function DeleteTeam({ teamId, onDeleted }: { teamId: number, onDeleted?: 
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async () => {
-      const response = await privateInstance.delete(`/api:VPDORr9u/teams/${teamId}`)
-      if (response.status !== 200) throw new Error('Erro ao excluir equipe')
+      const response = await privateInstance.delete(`/tenant/teams/${teamId}`)
+      if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao excluir equipe')
       return response.data as boolean
     },
     onSuccess: () => {

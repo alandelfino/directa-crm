@@ -1,7 +1,8 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
-import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookOpen, BookUser, Copyright, FileBadge, FileClock, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, TextCursorInput, Factory } from "lucide-react";
+import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookOpen, BookUser, Copyright, FileBadge, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, TextCursorInput, Factory } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
+import { IconLayoutDashboard } from "@tabler/icons-react";
 
 export function Navigation() {
 
@@ -9,10 +10,20 @@ export function Navigation() {
 
     const navigations = [
         {
+            groupName: 'Geral',
+            items: [
+                {
+                    label: 'Dashboard',
+                    icon: <IconLayoutDashboard />,
+                    href: '/dashboard',
+                }
+            ]
+        },
+        {
             groupName: 'Comercial',
             items: [
                 {
-                    label: 'Vendas',
+                    label: 'Pedidos',
                     icon: <BadgeDollarSign />,
                     href: '/dashboard/sales',
                 },
@@ -20,11 +31,6 @@ export function Navigation() {
                     label: 'Pipeline',
                     icon: <Kanban />,
                     href: '/dashboard/pipeline',
-                },
-                {
-                    label: 'Propostas',
-                    icon: <FileClock />,
-                    href: '/dashboard/proposals',
                 },
                 {
                     label: 'Tarefas',

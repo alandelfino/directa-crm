@@ -117,9 +117,9 @@ export function Navigation() {
             groupName: 'Inventário',
             items: [
                 {
-                    label: 'Centros de distribuição',
+                    label: 'Depósitos',
                     icon: <Factory />,
-                    href: '/dashboard/distribution-centers',
+                    href: '/dashboard/warehouses',
                 },
                 {
                     label: 'Movimento de estoque',

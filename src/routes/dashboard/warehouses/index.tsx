@@ -17,27 +17,27 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { NewDistributionCenterSheet } from './-components/new-distribution-center'
-import { EditDistributionCenterSheet } from './-components/edit-distribution-center'
-import { DeleteDistributionCenter } from './-components/delete-distribution-center'
+import { NewWarehouseSheet } from './-components/new-warehouse'
+import { EditWarehouseSheet } from './-components/edit-warehouse'
+import { DeleteWarehouse } from './-components/delete-warehouse'
 
-export const Route = createFileRoute('/dashboard/distribution-centers/')({
+export const Route = createFileRoute('/dashboard/warehouses/')({
   component: RouteComponent,
 })
 
-type DistributionCenter = {
+type Warehouse = {
   id: number
   name: string
   createdAt: string
   updatedAt: string
 }
 
-type DistributionCentersResponse = {
+type WarehousesResponse = {
   page: number
   limit: number
   totalPages: number
   total: number
-  items: DistributionCenter[]
+  items: Warehouse[]
 }
 
 function RouteComponent() {
@@ -78,13 +78,13 @@ function RouteComponent() {
         }))
       }
 
-      const response = await privateInstance.get(`/tenant/distribution-centers?${searchParams.toString()}`)
-      if (response.status !== 200) throw new Error('Erro ao carregar centros de distribuição')
-      return response.data as DistributionCentersResponse
+      const response = await privateInstance.get(`/tenant/warehouses?${searchParams.toString()}`)
+      if (response.status !== 200) throw new Error('Erro ao carregar depósitos')
+      return response.data as WarehousesResponse
     }
   })
 
-  const [items, setItems] = useState<DistributionCenter[]>([])
+  const [items, setItems] = useState<Warehouse[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -98,8 +98,8 @@ function RouteComponent() {
   useEffect(() => {
     if (isError) {
       const errorData = (error as any)?.response?.data
-      toast.error(errorData?.title || 'Erro ao carregar centros de distribuição', {
-        description: errorData?.detail || 'Não foi possível carregar a lista de centros de distribuição.'
+      toast.error(errorData?.title || 'Erro ao carregar depósitos', {
+        description: errorData?.detail || 'Não foi possível carregar a lista de depósitos.'
       })
     }
   }, [isError, error])
@@ -111,7 +111,7 @@ function RouteComponent() {
   const toggleSelectAll = () => { if (selected.length === items.length) setSelected([]); else setSelected(items.map(i => i.id)) }
   const toggleSelect = (id: number) => { if (selected.includes(id)) setSelected(selected.filter(s => s !== id)); else setSelected([...selected, id]) }
 
-  const columns: ColumnDef<DistributionCenter>[] = [
+  const columns: ColumnDef<Warehouse>[] = [
     {
       id: 'select',
       width: '60px',
@@ -151,7 +151,7 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <Topbar title='Centros de distribuição' breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Centros de distribuição', href: '/dashboard/distribution-centers', isLast: true }]} />
+      <Topbar title='Depósitos' breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Depósitos', href: '/dashboard/warehouses', isLast: true }]} />
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
         <div className='border-b flex w-full items-center p-2 gap-4'>
           <div className='flex items-center gap-2 flex-1'>
@@ -277,16 +277,16 @@ function RouteComponent() {
               {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
             </Button>
             {selected.length === 1 ? (
-              <DeleteDistributionCenter distributionCenterId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
+              <DeleteWarehouse warehouseId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
             ) : (
               <Button variant={'outline'} size="sm" disabled><Trash className="size-[0.85rem]" /> Excluir</Button>
             )}
             {selected.length === 1 ? (
-              <EditDistributionCenterSheet distributionCenterId={selected[0]} onSaved={() => { refetch() }} />
+              <EditWarehouseSheet warehouseId={selected[0]} onSaved={() => { refetch() }} />
             ) : (
               <Button variant={'outline'} size="sm" disabled><Edit className="size-[0.85rem]" /> Editar</Button>
             )}
-            <NewDistributionCenterSheet onCreated={() => { refetch() }} />
+            <NewWarehouseSheet onCreated={() => { refetch() }} />
           </div>
         </div>
 
@@ -297,19 +297,19 @@ function RouteComponent() {
           page={currentPage}
           perPage={perPage}
           totalItems={totalItems}
-          emptyMessage='Nenhum centro de distribuição encontrado'
+          emptyMessage='Nenhum depósito encontrado'
           emptySlot={(
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <Factory className='h-6 w-6' />
                 </EmptyMedia>
-                <EmptyTitle>Nenhum centro de distribuição ainda</EmptyTitle>
-                <EmptyDescription>Crie centros de distribuição para organizar sua operação.</EmptyDescription>
+                <EmptyTitle>Nenhum depósito ainda</EmptyTitle>
+                <EmptyDescription>Crie depósitos para organizar sua operação.</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <div className='flex gap-2'>
-                  <NewDistributionCenterSheet onCreated={() => { refetch() }} />
+                  <NewWarehouseSheet onCreated={() => { refetch() }} />
                   <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
                     {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>

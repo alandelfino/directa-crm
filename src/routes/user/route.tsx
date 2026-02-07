@@ -82,11 +82,7 @@ function UserLayout() {
     }
   }
 
-  const navigationLinks = [
-    { href: '/user/profile', label: 'Meu Perfil', icon: <UserIcon className='size-4' /> },
-    { href: '/user/companies', label: 'Minhas contas', icon: <Building2 className='size-4' /> },
-    { href: '/user/invites', label: 'Convites', icon: <Mail className='size-4' /> },
-  ]
+  const navigationLinks: { href: string, label: string, icon: React.ReactNode }[] = []
   const navItems = navigationLinks
 
   return (

@@ -13,7 +13,7 @@ import { useEffect, useState } from "react"
 
 const formSchema = z.object({ name: z.string().min(1, { message: "Nome é obrigatório" }) })
 
-export function EditDistributionCenterSheet({ className, distributionCenterId, onSaved, ...props }: React.ComponentProps<"form"> & { distributionCenterId: number, onSaved?: () => void }) {
+export function EditWarehouseSheet({ className, warehouseId, onSaved, ...props }: React.ComponentProps<"form"> & { warehouseId: number, onSaved?: () => void }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const queryClient = useQueryClient()
@@ -25,39 +25,39 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
   async function fetchItem() {
     try {
       setLoading(true)
-      const response = await privateInstance.get(`/tenant/distribution-centers/${distributionCenterId}`)
+      const response = await privateInstance.get(`/tenant/warehouses/${warehouseId}`)
       const item = response?.data as any
       if (!item) throw new Error('Resposta inválida')
       form.reset({ name: item.name ?? "" })
     } catch (error: any) {
       const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao carregar centro de distribuição', {
-        description: errorData?.detail || 'Não foi possível carregar os dados do centro de distribuição.'
+      toast.error(errorData?.title || 'Erro ao carregar depósito', {
+        description: errorData?.detail || 'Não foi possível carregar os dados do depósito.'
       })
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { if (open && distributionCenterId) fetchItem() }, [open, distributionCenterId])
+  useEffect(() => { if (open && warehouseId) fetchItem() }, [open, warehouseId])
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/distribution-centers/${distributionCenterId}`, values),
+    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/warehouses/${warehouseId}`, values),
     onSuccess: (response) => {
       if (response.status === 200) {
-        toast.success("Centro de distribuição atualizado com sucesso!")
+        toast.success("Depósito atualizado com sucesso!")
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['distribution-centers'] })
         onSaved?.()
       } else {
         const errorData = (response.data as any)
-        toast.error(errorData?.title || 'Erro ao salvar centro de distribuição', {
-          description: errorData?.detail || 'Não foi possível atualizar o centro de distribuição.'
+        toast.error(errorData?.title || 'Erro ao salvar depósito', {
+          description: errorData?.detail || 'Não foi possível atualizar o depósito.'
         })
       }
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao salvar centro de distribuição', {
-        description: errorData?.detail || 'Não foi possível atualizar o centro de distribuição.'
+      toast.error(errorData?.title || 'Erro ao salvar depósito', {
+        description: errorData?.detail || 'Não foi possível atualizar o depósito.'
       })
     },
   })
@@ -73,7 +73,7 @@ export function EditDistributionCenterSheet({ className, distributionCenterId, o
         <Form {...form}>
           <form {...props} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <SheetHeader>
-              <SheetTitle>Editar centro de distribuição</SheetTitle>
+              <SheetTitle>Editar depósito</SheetTitle>
               <SheetDescription>
                 {loading ? (<span className="flex items-center gap-2"><Loader className="animate-spin size-[0.85rem]" /> Carregando dados...</span>) : (<>Atualize os campos abaixo e salve as alterações.</>)}
               </SheetDescription>

@@ -23,7 +23,7 @@ export const signUpSchema = z.object({
     path: ["confirmPassword"],
 })
 
-const getSubdomain = () => {
+export const getSubdomain = () => {
     const host = window.location.hostname
     const parts = host.split('.')
     // Em ambiente de desenvolvimento, padronizar para 'localhost' (mesmo para 127.x.x.x)
@@ -136,9 +136,12 @@ export const auth = {
         // Dados do usuário são atualizados apenas no login ou edição.
         return null
     },
-    login: async (values: z.infer<typeof formSchema>) => {
+    login: async (values: z.infer<typeof formSchema>, companyAlias: string) => {
         // Endpoint absoluto para o grupo de auth
-        const response = await loginInstance.post(`/tenant/sign-in`, values)
+        const response = await loginInstance.post(`/tenant/sign-in`, {
+            ...values,
+            companyAlias
+        })
         // Garante que os dados do usuário estejam atualizados se não vierem no login
         if (response.status === 200 && !response.data?.user) {
             await auth.fetchUser()
@@ -198,6 +201,10 @@ export const auth = {
     resendVerification: async () => {
         const response = await privateInstance.post(`/api:eA5lqIuH/auth/send-confirmation-email`)
         return response
+    },
+    getTenant: async (alias: string) => {
+        const response = await publicInstance.get(`/tenant/company/${alias}`)
+        return response.data
     },
     getCompany: async () => {
         // Usar o servidor n7 para companies

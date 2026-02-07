@@ -13,10 +13,19 @@ import { useNavigate, useLocation } from "@tanstack/react-router"
 import { auth, formSchema } from "@/lib/auth"
 import { useEffect, useState, useRef } from "react"
 
+import { Badge } from "@/components/ui/badge"
+
+interface LoginFormProps extends React.ComponentProps<"form"> {
+  tenantName?: string
+  companyAlias: string
+}
+
 export function LoginForm({
   className,
+  tenantName,
+  companyAlias,
   ...props
-}: React.ComponentProps<"form">) {
+}: LoginFormProps) {
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -25,12 +34,12 @@ export function LoginForm({
   const processingCode = useRef<string | null>(null)
 
   const { isPending, mutate } = useMutation({
-    mutationFn: auth.login,
+    mutationFn: (values: z.infer<typeof formSchema>) => auth.login(values, companyAlias),
     onSuccess: (response) => {
       if (response.status === 200) {
         toast.success("Login realizado com sucesso!")
-        // Após login, direciona para o novo dashboard do usuário (Minhas contas)
-        navigate({ to: "/user/companies" })
+        // Após login, direciona para o dashboard
+        navigate({ to: "/dashboard" })
       } else {
         const errorData = response?.data
         toast.error(errorData?.title || 'Erro no login', {
@@ -69,7 +78,7 @@ export function LoginForm({
 
       if (response.status === 200) {
         toast.success("Login com Google realizado com sucesso!")
-        await navigate({ to: "/user/companies" })
+        await navigate({ to: "/dashboard" })
       } else {
         const errorData = response?.data
         toast.error(errorData?.title || "Falha no login com Google", {
@@ -142,6 +151,11 @@ export function LoginForm({
       <form className={cn("flex flex-col gap-6", className)} {...props} onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-1 text-center">
+            {tenantName && (
+              <Badge variant="outline" className="mb-2 font-medium">
+                {tenantName}
+              </Badge>
+            )}
             <h1 className="text-2xl font-bold">Entrar na sua conta</h1>
             <p className="text-muted-foreground text-sm text-balance">
               Insira seu email abaixo para entrar na sua conta

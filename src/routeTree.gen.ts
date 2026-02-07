@@ -14,19 +14,17 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SignUpIndexRouteImport } from './routes/sign-up/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
+import { Route as CompanyNotFoundIndexRouteImport } from './routes/company-not-found/index'
 import { Route as EmailConfirmationTokenRouteImport } from './routes/email-confirmation/$token'
 import { Route as DashboardSettingsRouteRouteImport } from './routes/dashboard/settings/route'
-import { Route as UserProfileIndexRouteImport } from './routes/user/profile/index'
-import { Route as UserInvitesIndexRouteImport } from './routes/user/invites/index'
-import { Route as UserCompaniesIndexRouteImport } from './routes/user/companies/index'
 import { Route as DashboardWarrantiesIndexRouteImport } from './routes/dashboard/warranties/index'
+import { Route as DashboardWarehousesIndexRouteImport } from './routes/dashboard/warehouses/index'
 import { Route as DashboardUnitsIndexRouteImport } from './routes/dashboard/units/index'
 import { Route as DashboardStockIndexRouteImport } from './routes/dashboard/stock/index'
 import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/settings/index'
 import { Route as DashboardProfileIndexRouteImport } from './routes/dashboard/profile/index'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
 import { Route as DashboardMediaIndexRouteImport } from './routes/dashboard/media/index'
-import { Route as DashboardDistributionCentersIndexRouteImport } from './routes/dashboard/distribution-centers/index'
 import { Route as DashboardDerivationsIndexRouteImport } from './routes/dashboard/derivations/index'
 import { Route as DashboardCustomersIndexRouteImport } from './routes/dashboard/customers/index'
 import { Route as DashboardCategoriesIndexRouteImport } from './routes/dashboard/categories/index'
@@ -68,6 +66,11 @@ const SignInIndexRoute = SignInIndexRouteImport.update({
   path: '/sign-in/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompanyNotFoundIndexRoute = CompanyNotFoundIndexRouteImport.update({
+  id: '/company-not-found/',
+  path: '/company-not-found/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailConfirmationTokenRoute = EmailConfirmationTokenRouteImport.update({
   id: '/email-confirmation/$token',
   path: '/email-confirmation/$token',
@@ -78,25 +81,16 @@ const DashboardSettingsRouteRoute = DashboardSettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const UserProfileIndexRoute = UserProfileIndexRouteImport.update({
-  id: '/profile/',
-  path: '/profile/',
-  getParentRoute: () => UserRouteRoute,
-} as any)
-const UserInvitesIndexRoute = UserInvitesIndexRouteImport.update({
-  id: '/invites/',
-  path: '/invites/',
-  getParentRoute: () => UserRouteRoute,
-} as any)
-const UserCompaniesIndexRoute = UserCompaniesIndexRouteImport.update({
-  id: '/companies/',
-  path: '/companies/',
-  getParentRoute: () => UserRouteRoute,
-} as any)
 const DashboardWarrantiesIndexRoute =
   DashboardWarrantiesIndexRouteImport.update({
     id: '/warranties/',
     path: '/warranties/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardWarehousesIndexRoute =
+  DashboardWarehousesIndexRouteImport.update({
+    id: '/warehouses/',
+    path: '/warehouses/',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
 const DashboardUnitsIndexRoute = DashboardUnitsIndexRouteImport.update({
@@ -129,12 +123,6 @@ const DashboardMediaIndexRoute = DashboardMediaIndexRouteImport.update({
   path: '/media/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardDistributionCentersIndexRoute =
-  DashboardDistributionCentersIndexRouteImport.update({
-    id: '/distribution-centers/',
-    path: '/distribution-centers/',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any)
 const DashboardDerivationsIndexRoute =
   DashboardDerivationsIndexRouteImport.update({
     id: '/derivations/',
@@ -227,26 +215,24 @@ const DashboardSettingsAccountIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/user': typeof UserRouteRouteWithChildren
+  '/user': typeof UserRouteRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
+  '/company-not-found': typeof CompanyNotFoundIndexRoute
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
   '/dashboard/categories': typeof DashboardCategoriesIndexRoute
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
-  '/dashboard/distribution-centers': typeof DashboardDistributionCentersIndexRoute
   '/dashboard/media': typeof DashboardMediaIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/profile': typeof DashboardProfileIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
   '/dashboard/stock': typeof DashboardStockIndexRoute
   '/dashboard/units': typeof DashboardUnitsIndexRoute
+  '/dashboard/warehouses': typeof DashboardWarehousesIndexRoute
   '/dashboard/warranties': typeof DashboardWarrantiesIndexRoute
-  '/user/companies': typeof UserCompaniesIndexRoute
-  '/user/invites': typeof UserInvitesIndexRoute
-  '/user/profile': typeof UserProfileIndexRoute
   '/dashboard/settings/account': typeof DashboardSettingsAccountIndexRoute
   '/dashboard/settings/billings': typeof DashboardSettingsBillingsIndexRoute
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
@@ -262,25 +248,23 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/user': typeof UserRouteRouteWithChildren
+  '/user': typeof UserRouteRoute
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
+  '/company-not-found': typeof CompanyNotFoundIndexRoute
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
   '/dashboard/categories': typeof DashboardCategoriesIndexRoute
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
-  '/dashboard/distribution-centers': typeof DashboardDistributionCentersIndexRoute
   '/dashboard/media': typeof DashboardMediaIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/profile': typeof DashboardProfileIndexRoute
   '/dashboard/settings': typeof DashboardSettingsIndexRoute
   '/dashboard/stock': typeof DashboardStockIndexRoute
   '/dashboard/units': typeof DashboardUnitsIndexRoute
+  '/dashboard/warehouses': typeof DashboardWarehousesIndexRoute
   '/dashboard/warranties': typeof DashboardWarrantiesIndexRoute
-  '/user/companies': typeof UserCompaniesIndexRoute
-  '/user/invites': typeof UserInvitesIndexRoute
-  '/user/profile': typeof UserProfileIndexRoute
   '/dashboard/settings/account': typeof DashboardSettingsAccountIndexRoute
   '/dashboard/settings/billings': typeof DashboardSettingsBillingsIndexRoute
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
@@ -297,26 +281,24 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/user': typeof UserRouteRouteWithChildren
+  '/user': typeof UserRouteRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
+  '/company-not-found/': typeof CompanyNotFoundIndexRoute
   '/sign-in/': typeof SignInIndexRoute
   '/sign-up/': typeof SignUpIndexRoute
   '/dashboard/brands/': typeof DashboardBrandsIndexRoute
   '/dashboard/categories/': typeof DashboardCategoriesIndexRoute
   '/dashboard/customers/': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations/': typeof DashboardDerivationsIndexRoute
-  '/dashboard/distribution-centers/': typeof DashboardDistributionCentersIndexRoute
   '/dashboard/media/': typeof DashboardMediaIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/dashboard/profile/': typeof DashboardProfileIndexRoute
   '/dashboard/settings/': typeof DashboardSettingsIndexRoute
   '/dashboard/stock/': typeof DashboardStockIndexRoute
   '/dashboard/units/': typeof DashboardUnitsIndexRoute
+  '/dashboard/warehouses/': typeof DashboardWarehousesIndexRoute
   '/dashboard/warranties/': typeof DashboardWarrantiesIndexRoute
-  '/user/companies/': typeof UserCompaniesIndexRoute
-  '/user/invites/': typeof UserInvitesIndexRoute
-  '/user/profile/': typeof UserProfileIndexRoute
   '/dashboard/settings/account/': typeof DashboardSettingsAccountIndexRoute
   '/dashboard/settings/billings/': typeof DashboardSettingsBillingsIndexRoute
   '/dashboard/settings/integrations/': typeof DashboardSettingsIntegrationsIndexRoute
@@ -337,23 +319,21 @@ export interface FileRouteTypes {
     | '/user'
     | '/dashboard/settings'
     | '/email-confirmation/$token'
+    | '/company-not-found'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
     | '/dashboard/categories'
     | '/dashboard/customers'
     | '/dashboard/derivations'
-    | '/dashboard/distribution-centers'
     | '/dashboard/media'
     | '/dashboard/products'
     | '/dashboard/profile'
     | '/dashboard/settings/'
     | '/dashboard/stock'
     | '/dashboard/units'
+    | '/dashboard/warehouses'
     | '/dashboard/warranties'
-    | '/user/companies'
-    | '/user/invites'
-    | '/user/profile'
     | '/dashboard/settings/account'
     | '/dashboard/settings/billings'
     | '/dashboard/settings/integrations'
@@ -371,23 +351,21 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/user'
     | '/email-confirmation/$token'
+    | '/company-not-found'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
     | '/dashboard/categories'
     | '/dashboard/customers'
     | '/dashboard/derivations'
-    | '/dashboard/distribution-centers'
     | '/dashboard/media'
     | '/dashboard/products'
     | '/dashboard/profile'
     | '/dashboard/settings'
     | '/dashboard/stock'
     | '/dashboard/units'
+    | '/dashboard/warehouses'
     | '/dashboard/warranties'
-    | '/user/companies'
-    | '/user/invites'
-    | '/user/profile'
     | '/dashboard/settings/account'
     | '/dashboard/settings/billings'
     | '/dashboard/settings/integrations'
@@ -406,23 +384,21 @@ export interface FileRouteTypes {
     | '/user'
     | '/dashboard/settings'
     | '/email-confirmation/$token'
+    | '/company-not-found/'
     | '/sign-in/'
     | '/sign-up/'
     | '/dashboard/brands/'
     | '/dashboard/categories/'
     | '/dashboard/customers/'
     | '/dashboard/derivations/'
-    | '/dashboard/distribution-centers/'
     | '/dashboard/media/'
     | '/dashboard/products/'
     | '/dashboard/profile/'
     | '/dashboard/settings/'
     | '/dashboard/stock/'
     | '/dashboard/units/'
+    | '/dashboard/warehouses/'
     | '/dashboard/warranties/'
-    | '/user/companies/'
-    | '/user/invites/'
-    | '/user/profile/'
     | '/dashboard/settings/account/'
     | '/dashboard/settings/billings/'
     | '/dashboard/settings/integrations/'
@@ -439,8 +415,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  UserRouteRoute: typeof UserRouteRouteWithChildren
+  UserRouteRoute: typeof UserRouteRoute
   EmailConfirmationTokenRoute: typeof EmailConfirmationTokenRoute
+  CompanyNotFoundIndexRoute: typeof CompanyNotFoundIndexRoute
   SignInIndexRoute: typeof SignInIndexRoute
   SignUpIndexRoute: typeof SignUpIndexRoute
 }
@@ -482,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/company-not-found/': {
+      id: '/company-not-found/'
+      path: '/company-not-found'
+      fullPath: '/company-not-found'
+      preLoaderRoute: typeof CompanyNotFoundIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email-confirmation/$token': {
       id: '/email-confirmation/$token'
       path: '/email-confirmation/$token'
@@ -496,32 +480,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/user/profile/': {
-      id: '/user/profile/'
-      path: '/profile'
-      fullPath: '/user/profile'
-      preLoaderRoute: typeof UserProfileIndexRouteImport
-      parentRoute: typeof UserRouteRoute
-    }
-    '/user/invites/': {
-      id: '/user/invites/'
-      path: '/invites'
-      fullPath: '/user/invites'
-      preLoaderRoute: typeof UserInvitesIndexRouteImport
-      parentRoute: typeof UserRouteRoute
-    }
-    '/user/companies/': {
-      id: '/user/companies/'
-      path: '/companies'
-      fullPath: '/user/companies'
-      preLoaderRoute: typeof UserCompaniesIndexRouteImport
-      parentRoute: typeof UserRouteRoute
-    }
     '/dashboard/warranties/': {
       id: '/dashboard/warranties/'
       path: '/warranties'
       fullPath: '/dashboard/warranties'
       preLoaderRoute: typeof DashboardWarrantiesIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/warehouses/': {
+      id: '/dashboard/warehouses/'
+      path: '/warehouses'
+      fullPath: '/dashboard/warehouses'
+      preLoaderRoute: typeof DashboardWarehousesIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/units/': {
@@ -564,13 +534,6 @@ declare module '@tanstack/react-router' {
       path: '/media'
       fullPath: '/dashboard/media'
       preLoaderRoute: typeof DashboardMediaIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/distribution-centers/': {
-      id: '/dashboard/distribution-centers/'
-      path: '/distribution-centers'
-      fullPath: '/dashboard/distribution-centers'
-      preLoaderRoute: typeof DashboardDistributionCentersIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/derivations/': {
@@ -727,12 +690,12 @@ interface DashboardRouteRouteChildren {
   DashboardCategoriesIndexRoute: typeof DashboardCategoriesIndexRoute
   DashboardCustomersIndexRoute: typeof DashboardCustomersIndexRoute
   DashboardDerivationsIndexRoute: typeof DashboardDerivationsIndexRoute
-  DashboardDistributionCentersIndexRoute: typeof DashboardDistributionCentersIndexRoute
   DashboardMediaIndexRoute: typeof DashboardMediaIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
   DashboardProfileIndexRoute: typeof DashboardProfileIndexRoute
   DashboardStockIndexRoute: typeof DashboardStockIndexRoute
   DashboardUnitsIndexRoute: typeof DashboardUnitsIndexRoute
+  DashboardWarehousesIndexRoute: typeof DashboardWarehousesIndexRoute
   DashboardWarrantiesIndexRoute: typeof DashboardWarrantiesIndexRoute
 }
 
@@ -742,13 +705,12 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardCategoriesIndexRoute: DashboardCategoriesIndexRoute,
   DashboardCustomersIndexRoute: DashboardCustomersIndexRoute,
   DashboardDerivationsIndexRoute: DashboardDerivationsIndexRoute,
-  DashboardDistributionCentersIndexRoute:
-    DashboardDistributionCentersIndexRoute,
   DashboardMediaIndexRoute: DashboardMediaIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,
   DashboardProfileIndexRoute: DashboardProfileIndexRoute,
   DashboardStockIndexRoute: DashboardStockIndexRoute,
   DashboardUnitsIndexRoute: DashboardUnitsIndexRoute,
+  DashboardWarehousesIndexRoute: DashboardWarehousesIndexRoute,
   DashboardWarrantiesIndexRoute: DashboardWarrantiesIndexRoute,
 }
 
@@ -756,27 +718,12 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
   DashboardRouteRouteChildren,
 )
 
-interface UserRouteRouteChildren {
-  UserCompaniesIndexRoute: typeof UserCompaniesIndexRoute
-  UserInvitesIndexRoute: typeof UserInvitesIndexRoute
-  UserProfileIndexRoute: typeof UserProfileIndexRoute
-}
-
-const UserRouteRouteChildren: UserRouteRouteChildren = {
-  UserCompaniesIndexRoute: UserCompaniesIndexRoute,
-  UserInvitesIndexRoute: UserInvitesIndexRoute,
-  UserProfileIndexRoute: UserProfileIndexRoute,
-}
-
-const UserRouteRouteWithChildren = UserRouteRoute._addFileChildren(
-  UserRouteRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  UserRouteRoute: UserRouteRouteWithChildren,
+  UserRouteRoute: UserRouteRoute,
   EmailConfirmationTokenRoute: EmailConfirmationTokenRoute,
+  CompanyNotFoundIndexRoute: CompanyNotFoundIndexRoute,
   SignInIndexRoute: SignInIndexRoute,
   SignUpIndexRoute: SignUpIndexRoute,
 }

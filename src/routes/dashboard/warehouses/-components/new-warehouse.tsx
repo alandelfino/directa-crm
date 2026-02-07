@@ -15,7 +15,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
 })
 
-export function NewDistributionCenterSheet({ className, ...props }: React.ComponentProps<"form"> & { onCreated?: () => void }) {
+export function NewWarehouseSheet({ className, ...props }: React.ComponentProps<"form"> & { onCreated?: () => void }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
@@ -23,24 +23,24 @@ export function NewDistributionCenterSheet({ className, ...props }: React.Compon
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      return privateInstance.post('/tenant/distribution-centers', values)
+      return privateInstance.post('/tenant/warehouses', values)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
-        toast.success("Centro de distribuição cadastrado com sucesso!")
+        toast.success("Depósito cadastrado com sucesso!")
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['distribution-centers'] })
       } else {
         const errorData = (response.data as any)
-        toast.error(errorData?.title || 'Erro ao cadastrar centro de distribuição', {
-          description: errorData?.detail || 'Não foi possível cadastrar o centro de distribuição.'
+        toast.error(errorData?.title || 'Erro ao cadastrar depósito', {
+          description: errorData?.detail || 'Não foi possível cadastrar o depósito.'
         })
       }
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao cadastrar centro de distribuição', {
-        description: errorData?.detail || 'Não foi possível cadastrar o centro de distribuição.'
+      toast.error(errorData?.title || 'Erro ao cadastrar depósito', {
+        description: errorData?.detail || 'Não foi possível cadastrar o depósito.'
       })
     },
   })
@@ -58,7 +58,7 @@ export function NewDistributionCenterSheet({ className, ...props }: React.Compon
         <Form {...form}>
           <form {...props} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <SheetHeader>
-              <SheetTitle>Cadastro de centro de distribuição</SheetTitle>
+              <SheetTitle>Cadastro de depósito</SheetTitle>
               <SheetDescription>Preencha os campos abaixo para cadastrar.</SheetDescription>
             </SheetHeader>
             <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4">
@@ -66,7 +66,7 @@ export function NewDistributionCenterSheet({ className, ...props }: React.Compon
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Digite o nome do centro de distribuição..." {...field} />
+                    <Input placeholder="Digite o nome do depósito..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

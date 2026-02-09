@@ -124,6 +124,7 @@ function RouteComponent() {
   })
 
   const [items, setItems] = useState<Product[]>([])
+  const [createdProductId, setCreatedProductId] = useState<number | null>(null)
 
   
 
@@ -258,7 +259,7 @@ function RouteComponent() {
                 <GitFork className="size-[0.85rem]" /> Derivações
               </Button>
             )}
-            <NewProductSheet onCreated={() => { refetch() }} />
+            <NewProductSheet onCreated={(p) => { refetch(); if(p?.id) setCreatedProductId(p.id) }} />
           </div>
         </div>
 
@@ -284,7 +285,7 @@ function RouteComponent() {
               </EmptyHeader>
               <EmptyContent>
                 <div className='flex gap-2'>
-                  <NewProductSheet onCreated={() => { refetch() }} />
+                  <NewProductSheet onCreated={(p) => { refetch(); if(p?.id) setCreatedProductId(p.id) }} />
                   <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
                     {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
@@ -295,6 +296,15 @@ function RouteComponent() {
           onChange={({ page, perPage }) => { if (typeof page === 'number') setCurrentPage(page); if (typeof perPage === 'number') setPerPage(perPage); refetch() }}
         />
       </div>
+      {createdProductId && (
+        <EditProductSheet
+          productId={createdProductId}
+          open={true}
+          onOpenChange={(open) => { if (!open) setCreatedProductId(null) }}
+          trigger={null}
+          onSaved={() => { refetch() }}
+        />
+      )}
     </div>
   )
 }

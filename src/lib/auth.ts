@@ -54,15 +54,17 @@ const getToken = () => {
     return null
 }
 
+const baseURL = import.meta.env.VITE_API_URL || ""
+
 const publicInstance = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL,
     headers: {
         "Content-Type": "application/json",
     },
 })
 
 const loginInstance = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL,
     headers: {
         "Content-Type": "application/json",
     },
@@ -91,7 +93,7 @@ loginInstance.interceptors.response.use((response) => {
 })
 
 const privateInstance = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL,
 })
 
 privateInstance.interceptors.request.use((config) => {

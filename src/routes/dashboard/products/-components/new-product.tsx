@@ -20,10 +20,9 @@ import { useEffect, useState, useMemo } from 'react'
   const formSchema = z.object({
     sku: z.string().min(1, { message: 'Campo obrigatório' }).regex(/^[a-z0-9-]+$/, 'Use apenas minúsculas, números e hífen (-)'),
     name: z.string().min(1, { message: 'Campo obrigatório' }),
-    description: z.string().min(1, { message: 'Campo obrigatório' }),
+    description: z.string().optional(),
     type: z.enum(['simple', 'with_derivations'] as const, { message: 'Campo obrigatório' }),
     active: z.boolean().default(true),
-    promotionalPriceActive: z.boolean().default(false),
     managedInventory: z.boolean().default(false),
   unitId: z.preprocess(
     (v) => {
@@ -65,7 +64,7 @@ import { useEffect, useState, useMemo } from 'react'
   }
 })
 
-export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
+export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => void }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const form = useForm<z.infer<typeof formSchema>>({
@@ -76,7 +75,6 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
       description: '',
       type: 'simple',
       active: true,
-      promotionalPriceActive: false,
       managedInventory: false,
       unitId: undefined,
       brandId: undefined,
@@ -91,7 +89,11 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await privateInstance.post('/tenant/products', values)
+      const payload = {
+        ...values,
+        description: values.description || undefined
+      }
+      const response = await privateInstance.post('/tenant/products', payload)
       return response
     },
     onSuccess: (response) => {
@@ -99,7 +101,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
         toast.success('Produto criado com sucesso!')
         setOpen(false)
         form.reset()
-        onCreated?.()
+        onCreated?.(response.data)
         queryClient.invalidateQueries({ queryKey: ['products'] })
       } else {
         const errorData = (response.data as any)
@@ -118,6 +120,14 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutate(values)
+  }
+
+  function onInvalid(errors: any) {
+    console.log('Form errors:', errors)
+    const errorMessages = Object.values(errors).map((e: any) => e.message).join(', ')
+    toast.error('Erro de validação', {
+      description: `Verifique os campos obrigatórios: ${errorMessages}`
+    })
   }
 
   // Carregar marcas e unidades do backend (Xano Products API)
@@ -139,7 +149,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const response = await privateInstance.get('/tenant/unit_of_measurement?limit=100')
+      const response = await privateInstance.get('/tenant/unit-of-measurement?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar unidades')
       return response.data as any
     }
@@ -239,7 +249,6 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
         name: '',
         description: '',
         type: 'simple',
-        promotionalPriceActive: false,
         active: true,
         managedInventory: true,
         unitId: undefined,
@@ -259,9 +268,9 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
           <PackagePlus className="size-[0.85rem]" /> Novo produto
         </Button>
       </SheetTrigger>
-      <SheetContent className='sm:max-w-[800px] md:max-w-[700px] lg:max-w-[600px]'>
+      <SheetContent className='sm:max-w-3xl'>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col h-full'>
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className='flex flex-col h-full'>
             <SheetHeader>
               <SheetTitle>Novo produto</SheetTitle>
               <SheetDescription>Cadastre um novo produto no catálogo.</SheetDescription>
@@ -271,8 +280,8 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
               
               <Tabs defaultValue='geral' className='flex-1'>
                 <TabsList>
-                  <TabsTrigger value='geral' className='px-4'>Geral</TabsTrigger>
-                  <TabsTrigger value='descricao' className='px-4'>Descrição</TabsTrigger>
+                  <TabsTrigger value='geral'>Geral</TabsTrigger>
+                  <TabsTrigger value='descricao'>Descrição</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value='geral' className='mt-4'>
@@ -501,7 +510,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                     <div className='grid grid-cols-1 gap-4'>
                       <FormField control={form.control} name='active' render={({ field }) => (
                         <FormItem>
-                          <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
+                          <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>
                               <FormLabel>Ativo</FormLabel>
                               <FormDescription className='leading-snug text-xs'>Quando habilitado, o produto aparece ativo no catálogo.</FormDescription>
@@ -514,26 +523,9 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='promotionalPriceActive' render={({ field }) => (
-                        <FormItem>
-                          <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
-                            <div className='flex flex-col gap-0.5'>
-                              <FormLabel>Promoção ativa</FormLabel>
-                              <FormDescription className='leading-snug text-xs'>Aplica o preço promocional quando disponível.</FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} disabled={isPending} />
-                            </FormControl>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-
-                      
-
                       <FormField control={form.control} name='managedInventory' render={({ field }) => (
                         <FormItem>
-                          <div className='flex border items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
+                          <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>
                               <FormLabel>Gerenciar estoque</FormLabel>
                               <FormDescription className='leading-snug text-xs'>Controla o estoque automaticamente para vendas e entradas.</FormDescription>
@@ -574,7 +566,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: () => void }) {
                   <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
                 </SheetClose>
                 <Button type='submit' size="sm" disabled={isPending} className='w-full'>
-                  {isPending ? <Loader className='animate-spin' /> : 'Salvar produto'}
+                  {isPending ? <><Loader className='animate-spin' /> Salvar o produto</> : 'Salvar produto'}
                 </Button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
 import { LoginForm } from "./-components/login-form"
 import { auth, getSubdomain } from '@/lib/auth'
 import { useQuery } from '@tanstack/react-query'
@@ -16,6 +16,7 @@ export default function RouteComponent() {
 
     useEffect(() => {
         const check = async () => {
+            if (subdomain === 'localhost') return // Skip validation if localhost
             const isValid = await auth.validateSession()
             if (isValid) {
                 navigate({ to: '/dashboard' })
@@ -24,20 +25,24 @@ export default function RouteComponent() {
             }
         }
         check()
-    }, [navigate])
+    }, [navigate, subdomain])
     
     const { data: tenant, isError, isLoading } = useQuery({
         queryKey: ['tenant', subdomain],
         queryFn: () => auth.getTenant(subdomain),
-        enabled: !!subdomain,
+        enabled: !!subdomain && subdomain !== 'localhost',
         retry: false
     })
 
     useEffect(() => {
         if (isError) {
-            navigate({ to: '/company-not-found' })
+            navigate({ to: '/company-not-found', replace: true })
         }
     }, [isError, navigate])
+
+    if (subdomain === 'localhost') {
+        return <Navigate to="/company-not-found" replace />
+    }
 
     if (isLoading || isError || isValidating) {
         return (

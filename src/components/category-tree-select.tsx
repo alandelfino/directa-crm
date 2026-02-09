@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Tags, TagsTrigger, TagsValue, TagsContent } from '@/components/ui/shadcn-io/tags'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type CategoryTreeSelectProps = {
+  className?: string
   value: number[]
   onChange: (next: number[]) => void
   disabled?: boolean
@@ -12,7 +14,7 @@ type CategoryTreeSelectProps = {
   placeholder?: string
 }
 
-export function CategoryTreeSelect({ value, onChange, disabled, items, rootChildren, placeholder = 'Selecione as categorias...' }: CategoryTreeSelectProps) {
+export function CategoryTreeSelect({ value, onChange, disabled, items, rootChildren, placeholder = 'Selecione as categorias...', className }: CategoryTreeSelectProps) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
@@ -132,11 +134,11 @@ export function CategoryTreeSelect({ value, onChange, disabled, items, rootChild
 
   return (
     <Tags open={open} onOpenChange={setOpen}>
-      <TagsTrigger disabled={disabled} className='rounded-lg' placeholder={placeholder}>
+      <TagsTrigger disabled={disabled} className={cn('rounded-sm h-9 shadow-xs', className)} placeholder={placeholder}>
         {(value || []).map((n) => {
           const id = String(n)
           return (
-            <TagsValue key={id} onRemove={() => removeId(n)} className='rounded-sm bg-neutral-100 text-neutral-800'>
+            <TagsValue key={id} onRemove={() => removeId(n)} className='rounded-none h-6 bg-neutral-100 text-neutral-800'>
               {labelOf(id)}
             </TagsValue>
           )

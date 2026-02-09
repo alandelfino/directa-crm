@@ -14,7 +14,10 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { EditablePriceCell } from './editable-price-cell'
 import { useEffect, useState, useMemo } from 'react'
+import React from 'react'
  
 
 const formSchema = z.object({
@@ -23,7 +26,6 @@ const formSchema = z.object({
   description: z.string().optional(),
   type: z.enum(['simple', 'with_derivations'] as const).optional(),
   active: z.boolean().optional(),
-  promotionalPriceActive: z.boolean().optional(),
   managedInventory: z.boolean().optional(),
   unitId: z.preprocess(
     (v) => {
@@ -63,10 +65,57 @@ const formSchema = z.object({
   categories: z.array(z.number()).min(1).optional(),
 })
 
-export function EditProductSheet({ productId, onSaved }: { productId: number, onSaved?: () => void }) {
-  const [open, setOpen] = useState(false)
+export function EditProductSheet({
+  productId,
+  onSaved,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
+  trigger
+}: {
+  productId: number
+  onSaved?: () => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  trigger?: React.ReactNode
+}) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = externalOpen !== undefined ? externalOpen : internalOpen
+  const setOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen
   const [loading, setLoading] = useState(false)
+  const [derivedProducts, setDerivedProducts] = useState<any[]>([])
   const queryClient = useQueryClient()
+
+  function extractIds(data: any): number[] {
+    if (!Array.isArray(data)) return []
+    return data.map((item: any) => {
+      if (typeof item === 'number') return item
+      if (typeof item === 'string') return Number(item)
+      if (typeof item === 'object' && item !== null && 'id' in item) return Number(item.id)
+      return NaN
+    }).filter(n => Number.isFinite(n))
+  }
+
+  function extractPrices(pricesData: any[]): any[] {
+    if (!Array.isArray(pricesData)) return []
+    const allPrices: any[] = []
+    
+    pricesData.forEach(item => {
+      // If it's already a flat price object
+      if (item.id && (item.price !== undefined || item.salePrice !== undefined)) {
+        allPrices.push(item)
+        return
+      }
+      
+      // If it's nested structure { "TableName": [ ... ] }
+      Object.values(item).forEach((val: any) => {
+        if (Array.isArray(val)) {
+          allPrices.push(...val)
+        }
+      })
+    })
+    
+    return allPrices
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
@@ -76,7 +125,6 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
       description: '',
       type: 'simple',
       active: true,
-      promotionalPriceActive: false,
       managedInventory: false,
       unitId: undefined,
       brandId: undefined,
@@ -98,17 +146,20 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
         sku: p.sku,
         name: p.name,
         description: p.description,
-        type: p.type,
+        type: String(p.type || 'simple').toLowerCase() as any,
         active: p.active,
-        promotionalPriceActive: p.promotional_price_active ?? p.promotionalPriceActive ?? false,
         managedInventory: p.managed_inventory ?? p.managedInventory ?? false,
-        unitId: p.unit_id ?? p.unitId,
-        brandId: p.brand_id ?? p.brandId,
-        warranties: p.warranty_ids ?? p.warranties?.map((w: any) => w.id) ?? [],
-        stores: p.store_ids ?? p.stores?.map((s: any) => s.id) ?? [],
-        derivations: p.derivation_ids ?? p.derivations?.map((d: any) => d.id) ?? [],
-        categories: p.category_ids ?? p.categories?.map((c: any) => c.id) ?? [],
+        unitId: p.unit_id ?? p.unitId ?? p.unit?.id,
+        brandId: p.brand_id ?? p.brandId ?? p.brand?.id,
+        warranties: extractIds(p.warranty_ids ?? p.warranties),
+        stores: extractIds(p.store_ids ?? p.stores),
+        derivations: extractIds(p.derivation_ids ?? p.derivations),
+        categories: extractIds(p.category_ids ?? p.categories),
       })
+      
+      if (p.derivated_products || p.derivatedProducts) {
+        setDerivedProducts(p.derivated_products ?? p.derivatedProducts ?? [])
+      }
     } catch (error) {
       console.error(error)
       toast.error('Erro ao carregar produto')
@@ -128,7 +179,6 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
         description: '',
         type: 'simple',
         active: true,
-        promotionalPriceActive: false,
         managedInventory: false,
         unitId: undefined,
         brandId: undefined,
@@ -168,6 +218,14 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
 
   function onSubmit(values: z.infer<typeof formSchema>) { mutate(values) }
 
+  function onInvalid(errors: any) {
+    console.log('Form errors:', errors)
+    const errorMessages = Object.values(errors).map((e: any) => e.message).join(', ')
+    toast.error('Erro de validação', {
+      description: `Verifique os campos obrigatórios: ${errorMessages}`
+    })
+  }
+
   // Carregar marcas e unidades do backend (Xano Products API)
   const { data: brandsData, isLoading: isBrandsLoading } = useQuery({
     queryKey: ['brands'],
@@ -189,7 +247,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const response = await privateInstance.get('/tenant/unit_of_measurement?limit=100')
+      const response = await privateInstance.get('/tenant/unit-of-measurement?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar unidades')
       return response.data as any
     }
@@ -281,14 +339,18 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant={'outline'} size={'sm'}>
-          <Edit className='size-[0.85rem]' /> Editar
-        </Button>
-      </SheetTrigger>
+      {trigger !== null && (
+        <SheetTrigger asChild>
+          {trigger ?? (
+            <Button variant={'outline'} size={'sm'}>
+              <Edit className='size-[0.85rem]' /> Editar
+            </Button>
+          )}
+        </SheetTrigger>
+      )}
       <SheetContent className='sm:max-w-[620px]'>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col h-full'>
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className='flex flex-col h-full'>
             <SheetHeader>
               <SheetTitle>Editar produto</SheetTitle>
               <SheetDescription>
@@ -305,6 +367,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                 <TabsList>
                   <TabsTrigger value='geral'>Geral</TabsTrigger>
                   <TabsTrigger value='descricao'>Descrição</TabsTrigger>
+                  {isWithDerivations && <TabsTrigger value='derivacoes'>Derivações</TabsTrigger>}
                 </TabsList>
 
               <TabsContent value='geral' className='mt-4'>
@@ -343,7 +406,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                           <FormLabel>Categorias</FormLabel>
                           <FormControl>
                             <CategoryTreeSelect
-                              value={field.value || []}
+                              value={(field.value || []).map(String)}
                               onChange={(next) => form.setValue('categories', next.map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                               disabled={isPending || loading}
                               items={categoryItems}
@@ -548,20 +611,7 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='promotionalPriceActive' render={({ field }) => (
-                        <FormItem>
-                          <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
-                            <div className='flex flex-col gap-0.5'>
-                              <FormLabel>Promoção ativa</FormLabel>
-                              <FormDescription className='leading-snug'>Aplica o preço promocional quando disponível.</FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} disabled={loading || isPending} />
-                            </FormControl>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+
 
                       
 
@@ -596,6 +646,44 @@ export function EditProductSheet({ productId, onSaved }: { productId: number, on
                         <FormMessage />
                       </FormItem>
                     )} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value='derivacoes' className='mt-4'>
+                  <div className='flex flex-col gap-4'>
+                    {derivedProducts.length === 0 && (
+                      <div className='text-center text-muted-foreground py-8 border rounded-md'>
+                        Nenhuma derivação encontrada.
+                      </div>
+                    )}
+                    {derivedProducts.map((p) => {
+                      const flatPrices = extractPrices(p.prices);
+                      return (
+                        <div key={p.id} className='rounded-md border p-4 flex flex-col gap-3'>
+                          <div className='font-medium text-sm border-b pb-2'>{p.name}</div>
+                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                            {flatPrices.length > 0 ? (
+                              flatPrices.map((price: any) => (
+                                <div key={price.id} className='flex items-center justify-between gap-2 bg-muted/30 p-2 rounded-sm border'>
+                                  <span className='text-xs text-muted-foreground truncate max-w-[120px]' title={price.tableName || price.price_table?.name}>
+                                    {price.tableName || price.price_table?.name || `Tabela #${price.priceTableId ?? price.price_table_id ?? '?'}`}
+                                  </span>
+                                  <EditablePriceCell 
+                                    row={price} 
+                                    field='price' 
+                                    onSaved={() => {
+                                      queryClient.invalidateQueries({ queryKey: ['products'] })
+                                    }} 
+                                  />
+                                </div>
+                              ))
+                            ) : (
+                              <span className='text-xs text-muted-foreground col-span-full'>Sem preços definidos</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </TabsContent>
 

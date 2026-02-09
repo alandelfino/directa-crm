@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Tags, TagsTrigger, TagsValue, TagsContent, TagsInput, TagsList, TagsEmpty, TagsGroup, TagsItem } from '@/components/ui/shadcn-io/tags'
 import { Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type TagsSelectProps<T = any> = {
+  className?: string
   value: (number | string)[]
   onChange: (next: (number | string)[]) => void
   disabled?: boolean
@@ -29,6 +31,7 @@ export function TagsSelect<T = any>({
   getLabel = (item: any) => item?.name ?? item?.title ?? `#${getId(item)}`,
   placeholder = 'Selecione...',
   searchPlaceholder = 'Digite para pesquisar',
+  className,
 }: TagsSelectProps<T>) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -73,12 +76,12 @@ export function TagsSelect<T = any>({
 
   return (
     <Tags open={open} onOpenChange={setOpen}>
-      <TagsTrigger disabled={disabled} className='rounded-lg' placeholder={placeholder}>
+      <TagsTrigger disabled={disabled} className={cn('rounded-sm h-9 shadow-xs', className)} placeholder={placeholder}>
         {(value || []).map((id) => {
           const d = list.find((x: any) => String(getId(x)) === String(id))
           const name = d ? getLabel(d) : `#${id}`
           return (
-            <TagsValue key={String(id)} onRemove={() => removeId(id)} className="rounded-sm bg-neutral-100 text-neutral-800">
+            <TagsValue key={String(id)} onRemove={() => removeId(id)} className="rounded-none h-6 bg-neutral-100 text-neutral-800">
               {name}
             </TagsValue>
           )
@@ -99,7 +102,7 @@ export function TagsSelect<T = any>({
                   const name = getLabel(it)
                   const checked = (value || []).map(String).includes(String(id))
                   return (
-                    <TagsItem key={String(id)} onSelect={() => { if (!disabled) { toggleId(id); setQuery(''); setOpen(true) } }}>
+                    <TagsItem  key={String(id)} onSelect={() => { if (!disabled) { toggleId(id); setQuery(''); setOpen(true) } }}>
                       <span>{name}</span>
                       {checked ? <Check /> : null}
                     </TagsItem>

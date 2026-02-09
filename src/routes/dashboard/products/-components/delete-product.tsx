@@ -53,7 +53,7 @@ export function DeleteProductDialog({ productId, onDeleted }: { productId: numbe
         <DialogFooter>
           <Button variant={'outline'} size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button variant={'destructive'} size="sm" onClick={() => mutate()} disabled={isPending}>
-            {isPending ? <Loader className='animate-spin size-[0.85rem]' /> : 'Excluir'}
+            {isPending ? <><Loader className='animate-spin size-[0.85rem]' /> Excluindo...</> : 'Excluir'}
           </Button>
         </DialogFooter>
       </DialogContent>

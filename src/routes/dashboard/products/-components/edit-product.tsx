@@ -14,11 +14,93 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { EditablePriceCell } from './editable-price-cell'
+import { Skeleton } from '@/components/ui/skeleton'
+import { buildCategoryTree } from '@/utils/category-tree'
+
+function ProductFormSkeleton() {
+  return (
+    <div className='flex flex-col h-full'>
+      <SheetHeader>
+        <SheetTitle>Editar produto</SheetTitle>
+        <SheetDescription>
+          <Skeleton className="h-4 w-64" />
+        </SheetDescription>
+      </SheetHeader>
+
+      <div className='flex-1 overflow-y-auto px-4 py-4 space-y-6'>
+        {/* Tabs List Skeleton */}
+        <Skeleton className="h-10 w-48 rounded-md bg-muted" />
+
+        <div className="space-y-6">
+          {/* SKU + Name */}
+          <div className='grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4'>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Type */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-10" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Unit + Brand */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+
+          {/* Warranties */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Stores */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Switches */}
+          <div className="space-y-4">
+            <Skeleton className="h-16 w-full rounded-md" />
+            <Skeleton className="h-16 w-full rounded-md" />
+          </div>
+        </div>
+      </div>
+
+      <div className='mt-auto border-t p-4'>
+        <div className='flex justify-end gap-4'>
+          <Skeleton className="h-9 w-20" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 import { useEffect, useState, useMemo } from 'react'
 import React from 'react'
- 
+
 
 const formSchema = z.object({
   sku: z.string().optional(),
@@ -59,7 +141,6 @@ const formSchema = z.object({
       .min(1)
       .optional()
   ),
-  derivations: z.array(z.number()).optional(),
   warranties: z.array(z.number()).optional(),
   stores: z.array(z.number()).min(1).optional(),
   categories: z.array(z.number()).min(1).optional(),
@@ -82,7 +163,7 @@ export function EditProductSheet({
   const open = externalOpen !== undefined ? externalOpen : internalOpen
   const setOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen
   const [loading, setLoading] = useState(false)
-  const [derivedProducts, setDerivedProducts] = useState<any[]>([])
+
   const queryClient = useQueryClient()
 
   function extractIds(data: any): number[] {
@@ -95,27 +176,7 @@ export function EditProductSheet({
     }).filter(n => Number.isFinite(n))
   }
 
-  function extractPrices(pricesData: any[]): any[] {
-    if (!Array.isArray(pricesData)) return []
-    const allPrices: any[] = []
-    
-    pricesData.forEach(item => {
-      // If it's already a flat price object
-      if (item.id && (item.price !== undefined || item.salePrice !== undefined)) {
-        allPrices.push(item)
-        return
-      }
-      
-      // If it's nested structure { "TableName": [ ... ] }
-      Object.values(item).forEach((val: any) => {
-        if (Array.isArray(val)) {
-          allPrices.push(...val)
-        }
-      })
-    })
-    
-    return allPrices
-  }
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
@@ -130,7 +191,6 @@ export function EditProductSheet({
       brandId: undefined,
       warranties: [],
       stores: [],
-      derivations: [],
       categories: [],
     }
   })
@@ -151,15 +211,10 @@ export function EditProductSheet({
         managedInventory: p.managed_inventory ?? p.managedInventory ?? false,
         unitId: p.unit_id ?? p.unitId ?? p.unit?.id,
         brandId: p.brand_id ?? p.brandId ?? p.brand?.id,
-        warranties: extractIds(p.warranty_ids ?? p.warranties),
-        stores: extractIds(p.store_ids ?? p.stores),
-        derivations: extractIds(p.derivation_ids ?? p.derivations),
-        categories: extractIds(p.category_ids ?? p.categories),
+        warranties: extractIds(p.warranties),
+        stores: extractIds(p.stores),
+        categories: extractIds(p.categories),
       })
-      
-      if (p.derivated_products || p.derivatedProducts) {
-        setDerivedProducts(p.derivated_products ?? p.derivatedProducts ?? [])
-      }
     } catch (error) {
       console.error(error)
       toast.error('Erro ao carregar produto')
@@ -184,7 +239,6 @@ export function EditProductSheet({
         brandId: undefined,
         warranties: [],
         stores: [],
-        derivations: [],
         categories: [],
       })
     }
@@ -192,7 +246,7 @@ export function EditProductSheet({
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const { type, derivations, ...payload } = values
+      const { type, ...payload } = values
       return privateInstance.put(`/tenant/products/${productId}`, payload)
     },
     onSuccess: (response) => {
@@ -254,75 +308,26 @@ export function EditProductSheet({
   })
 
   // Carregar categorias
-  type ApiCategory = { id: number | string; name: string; parent_id?: number | string | null; children?: ApiCategory[] }
   const { data: categoriesResponse } = useQuery({
     queryKey: ['categories'],
     enabled: open,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
+      // Aumentado o limite para garantir que todas as categorias (pais e filhos) sejam carregadas
+      const res = await privateInstance.get('/tenant/categories?page=1&limit=1000')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },
   })
-  const categories: ApiCategory[] = useMemo(() => {
-    const d: any = categoriesResponse
-    if (!d) return []
-    if (Array.isArray(d)) return d as ApiCategory[]
-    if (Array.isArray(d.items)) return d.items as ApiCategory[]
-    if (Array.isArray(d.categories)) return d.categories as ApiCategory[]
-    if (Array.isArray(d.data)) return d.data as ApiCategory[]
-    return []
-  }, [categoriesResponse])
+  
+  // Usar utilitário centralizado para construção da árvore
   const { items: categoryItems, rootChildren: categoryRootChildren } = useMemo(() => {
-    const items: Record<string, { name: string; children?: string[] }> = {}
-    const rootChildren: string[] = []
-    if (!categories || categories.length === 0) return { items, rootChildren }
-    const hasNested = categories.some((c) => Array.isArray(c.children) && c.children!.length > 0)
-    if (hasNested) {
-      const visit = (cat: ApiCategory, isRootChild: boolean) => {
-        const id = String(cat.id)
-        items[id] = { name: cat.name, children: [] }
-        if (isRootChild) rootChildren.push(id)
-        if (Array.isArray(cat.children)) {
-          for (const child of cat.children) {
-            const childId = String(child.id)
-            items[id].children!.push(childId)
-            visit(child, false)
-          }
-        }
-      }
-      for (const cat of categories) visit(cat, true)
-    } else {
-      const childrenMap = new Map<string, string[]>()
-      const byId = new Map<string, ApiCategory>()
-      const getId = (c: ApiCategory) => String(c.id)
-      const getParent = (c: ApiCategory) => {
-        const raw = c.parent_id as unknown as string | number | null | undefined
-        const pid = raw == null || raw === 0 || raw === '0' ? null : String(raw)
-        return pid
-      }
-      for (const c of categories) {
-        const id = getId(c)
-        byId.set(id, c)
-        childrenMap.set(id, [])
-      }
-      for (const c of categories) {
-        const id = getId(c)
-        const parentId = getParent(c)
-        if (parentId && childrenMap.has(parentId)) childrenMap.get(parentId)!.push(id)
-        else rootChildren.push(id)
-      }
-      for (const [id, cat] of byId.entries()) {
-        items[id] = { name: cat.name, children: childrenMap.get(id) }
-      }
-    }
-    return { items, rootChildren }
-  }, [categories])
+    return buildCategoryTree(categoriesResponse)
+  }, [categoriesResponse])
   
 
-  const isWithDerivations = form.watch('type') === 'with_derivations'
+
 
   function toSkuSlug(val: string) {
     const base = String(val || '')
@@ -348,8 +353,11 @@ export function EditProductSheet({
           )}
         </SheetTrigger>
       )}
-      <SheetContent className='sm:max-w-[620px]'>
-        <Form {...form}>
+      <SheetContent className='sm:max-w-3xl'>
+        {loading ? (
+          <ProductFormSkeleton />
+        ) : (
+          <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className='flex flex-col h-full'>
             <SheetHeader>
               <SheetTitle>Editar produto</SheetTitle>
@@ -367,7 +375,6 @@ export function EditProductSheet({
                 <TabsList>
                   <TabsTrigger value='geral'>Geral</TabsTrigger>
                   <TabsTrigger value='descricao'>Descrição</TabsTrigger>
-                  {isWithDerivations && <TabsTrigger value='derivacoes'>Derivações</TabsTrigger>}
                 </TabsList>
 
               <TabsContent value='geral' className='mt-4'>
@@ -406,7 +413,7 @@ export function EditProductSheet({
                           <FormLabel>Categorias</FormLabel>
                           <FormControl>
                             <CategoryTreeSelect
-                              value={(field.value || []).map(String)}
+                              value={(field.value || [])}
                               onChange={(next) => form.setValue('categories', next.map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
                               disabled={isPending || loading}
                               items={categoryItems}
@@ -444,32 +451,7 @@ export function EditProductSheet({
                           <FormMessage />
                         </FormItem>
                       )} />
-                      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
-                        <FormField control={form.control} name='derivations' render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Derivações</FormLabel>
-                            <FormControl>
-                              <TagsSelect
-                                value={field.value || []}
-                                onChange={(next) => form.setValue('derivations', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                                disabled={loading || isPending}
-                                enabled={open}
-                                queryKey={['derivations']}
-                                fetcher={async () => {
-                                  const response = await privateInstance.get('/tenant/derivations?limit=100')
-                                  if (response.status !== 200) throw new Error('Erro ao carregar derivações')
-                                  return response.data as any
-                                }}
-                                getId={(item: any) => item?.id}
-                                getLabel={(item: any) => item?.name ?? item?.title ?? `#${item?.id}`}
-                                placeholder='Selecione as derivações...'
-                                searchPlaceholder='Digite para pesquisar'
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
+
                     </div>
 
                     
@@ -649,59 +631,24 @@ export function EditProductSheet({
                   </div>
                 </TabsContent>
 
-                <TabsContent value='derivacoes' className='mt-4'>
-                  <div className='flex flex-col gap-4'>
-                    {derivedProducts.length === 0 && (
-                      <div className='text-center text-muted-foreground py-8 border rounded-md'>
-                        Nenhuma derivação encontrada.
-                      </div>
-                    )}
-                    {derivedProducts.map((p) => {
-                      const flatPrices = extractPrices(p.prices);
-                      return (
-                        <div key={p.id} className='rounded-md border p-4 flex flex-col gap-3'>
-                          <div className='font-medium text-sm border-b pb-2'>{p.name}</div>
-                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                            {flatPrices.length > 0 ? (
-                              flatPrices.map((price: any) => (
-                                <div key={price.id} className='flex items-center justify-between gap-2 bg-muted/30 p-2 rounded-sm border'>
-                                  <span className='text-xs text-muted-foreground truncate max-w-[120px]' title={price.tableName || price.price_table?.name}>
-                                    {price.tableName || price.price_table?.name || `Tabela #${price.priceTableId ?? price.price_table_id ?? '?'}`}
-                                  </span>
-                                  <EditablePriceCell 
-                                    row={price} 
-                                    field='price' 
-                                    onSaved={() => {
-                                      queryClient.invalidateQueries({ queryKey: ['products'] })
-                                    }} 
-                                  />
-                                </div>
-                              ))
-                            ) : (
-                              <span className='text-xs text-muted-foreground col-span-full'>Sem preços definidos</span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </TabsContent>
+
 
               </Tabs>
             </div>
 
             <div className='mt-auto border-t p-4'>
-              <div className='grid grid-cols-2 gap-4'>
+              <div className='flex justify-end gap-4'>
                 <SheetClose asChild>
-                  <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
+                  <Button variant='outline' size="sm" className='w-fit'>Cancelar</Button>
                 </SheetClose>
-                <Button type='submit' size="sm" disabled={isPending} className='w-full'>
+                <Button type='submit' size="sm" disabled={isPending} className='w-fit'>
                   {isPending ? <Loader className='animate-spin' /> : 'Salvar alterações'}
                 </Button>
               </div>
             </div>
           </form>
         </Form>
+      )}
       </SheetContent>
     </Sheet>
   )

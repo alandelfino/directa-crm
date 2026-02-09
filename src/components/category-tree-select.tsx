@@ -102,22 +102,43 @@ export function CategoryTreeSelect({ value, onChange, disabled, items, rootChild
       const hasChildren = Array.isArray(children) && children.length > 0
       const openNode = !!expanded[id]
       return (
-        <div key={id} className=''>
-          <div className='grid grid-cols-[28px_1fr] items-center gap-2 py-1'>
-            <Checkbox checked={isChecked(id)} onCheckedChange={() => toggleCheck(id)} disabled={disabled} />
-            <div className='flex items-center gap-2' style={{ paddingLeft: level * 16 }}>
-              {hasChildren ? (
-                <button type='button' className='rounded p-1 hover:bg-muted' onClick={() => toggleExpand(id)} disabled={disabled}>
-                  {openNode ? <ChevronDown className='h-4 w-4 text-muted-foreground' /> : <ChevronRight className='h-4 w-4 text-muted-foreground' />}
-                </button>
-              ) : (
-                <span className='w-5' />
+        <div key={id}>
+          <div 
+            className='flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded-sm pr-2'
+            style={{ paddingLeft: level * 20 + 8 }}
+          >
+            {hasChildren ? (
+              <button 
+                type='button' 
+                className='flex items-center justify-center size-5 rounded hover:bg-muted text-muted-foreground' 
+                onClick={(e) => { e.stopPropagation(); toggleExpand(id); }} 
+                disabled={disabled}
+              >
+                {openNode ? <ChevronDown className='size-3.5' /> : <ChevronRight className='size-3.5' />}
+              </button>
+            ) : (
+              <span className='size-5' />
+            )}
+            
+            <Checkbox 
+              id={`cat-${id}`}
+              checked={isChecked(id)} 
+              onCheckedChange={() => toggleCheck(id)} 
+              disabled={disabled} 
+            />
+            
+            <label 
+              htmlFor={`cat-${id}`}
+              className={cn(
+                'text-sm leading-none cursor-pointer select-none flex-1',
+                hasChildren ? 'font-medium' : 'font-normal'
               )}
-              <span className={hasChildren ? 'text-sm leading-6 font-semibold' : 'text-sm leading-6'}>{labelOf(id)}</span>
-            </div>
+            >
+              {labelOf(id)}
+            </label>
           </div>
           {hasChildren && openNode ? (
-            <div className='mt-0.5'>{renderNodes(children, level + 1)}</div>
+            <div className=''>{renderNodes(children, level + 1)}</div>
           ) : null}
         </div>
       )

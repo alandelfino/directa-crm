@@ -14,6 +14,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
+import { buildCategoryTree } from '@/utils/category-tree'
 import { useEffect, useState, useMemo } from 'react'
  
 
@@ -158,72 +159,23 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
   // Carregar derivações
   
   // Carregar categorias
-  type ApiCategory = { id: number | string; name: string; parent_id?: number | string | null; children?: ApiCategory[] }
   const { data: categoriesResponse } = useQuery({
     queryKey: ['categories'],
     enabled: open,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
+      // Aumentado o limite para garantir que todas as categorias (pais e filhos) sejam carregadas
+      const res = await privateInstance.get('/tenant/categories?page=1&limit=1000')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },
   })
-  const categories: ApiCategory[] = useMemo(() => {
-    const d: any = categoriesResponse
-    if (!d) return []
-    if (Array.isArray(d)) return d as ApiCategory[]
-    if (Array.isArray(d.items)) return d.items as ApiCategory[]
-    if (Array.isArray(d.categories)) return d.categories as ApiCategory[]
-    if (Array.isArray(d.data)) return d.data as ApiCategory[]
-    return []
-  }, [categoriesResponse])
+  
+  // Usar utilitário centralizado para construção da árvore
   const { items: categoryItems, rootChildren: categoryRootChildren } = useMemo(() => {
-    const items: Record<string, { name: string; children?: string[] }> = {}
-    const rootChildren: string[] = []
-    if (!categories || categories.length === 0) return { items, rootChildren }
-    const hasNested = categories.some((c) => Array.isArray(c.children) && c.children!.length > 0)
-    if (hasNested) {
-      const visit = (cat: ApiCategory, isRootChild: boolean) => {
-        const id = String(cat.id)
-        items[id] = { name: cat.name, children: [] }
-        if (isRootChild) rootChildren.push(id)
-        if (Array.isArray(cat.children)) {
-          for (const child of cat.children) {
-            const childId = String(child.id)
-            items[id].children!.push(childId)
-            visit(child, false)
-          }
-        }
-      }
-      for (const cat of categories) visit(cat, true)
-    } else {
-      const childrenMap = new Map<string, string[]>()
-      const byId = new Map<string, ApiCategory>()
-      const getId = (c: ApiCategory) => String(c.id)
-      const getParent = (c: ApiCategory) => {
-        const raw = c.parent_id as unknown as string | number | null | undefined
-        const pid = raw == null || raw === 0 || raw === '0' ? null : String(raw)
-        return pid
-      }
-      for (const c of categories) {
-        const id = getId(c)
-        byId.set(id, c)
-        childrenMap.set(id, [])
-      }
-      for (const c of categories) {
-        const id = getId(c)
-        const parentId = getParent(c)
-        if (parentId && childrenMap.has(parentId)) childrenMap.get(parentId)!.push(id)
-        else rootChildren.push(id)
-      }
-      for (const [id, cat] of byId.entries()) {
-        items[id] = { name: cat.name, children: childrenMap.get(id) }
-      }
-    }
-    return { items, rootChildren }
-  }, [categories])
+    return buildCategoryTree(categoriesResponse)
+  }, [categoriesResponse])
 
   // Helpers de máscara
   function toSkuSlug(val: string) {

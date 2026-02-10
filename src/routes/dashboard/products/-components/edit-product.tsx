@@ -16,6 +16,8 @@ import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { buildCategoryTree } from '@/utils/category-tree'
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
 
 function ProductFormSkeleton() {
   return (
@@ -315,7 +317,7 @@ export function EditProductSheet({
     refetchOnMount: false,
     queryFn: async () => {
       // Aumentado o limite para garantir que todas as categorias (pais e filhos) sejam carregadas
-      const res = await privateInstance.get('/tenant/categories?page=1&limit=1000')
+      const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },
@@ -621,9 +623,15 @@ export function EditProductSheet({
                       <FormItem>
                         <FormLabel>Descrição</FormLabel>
                         <FormControl>
-                          <textarea placeholder='Opcional' {...field} disabled={loading || isPending}
-                            className='file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm h-28 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive'
-                          />
+                          <div className="h-72 mb-12">
+                            <ReactQuill 
+                              theme="snow" 
+                              value={field.value || ''} 
+                              onChange={field.onChange}
+                              readOnly={loading || isPending}
+                              className="h-full bg-background text-foreground"
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

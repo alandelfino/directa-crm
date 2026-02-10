@@ -13,17 +13,23 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 
 import { toast } from 'sonner'
 
-type ChildProduct = {
+type DerivatedProduct = {
   id: number
-  product_id: number
+  productId: number
   sku?: string
   name?: string
   active?: boolean
 }
 
-type ChildsResponse = {
-  items?: ChildProduct[]
-} | ChildProduct[]
+type DerivatedProductsResponse = {
+  items: DerivatedProduct[]
+}
+
+function normalizeDerivatedProducts(data: any): { items: DerivatedProduct[] } {
+  if (Array.isArray(data)) return { items: data }
+  if (data && Array.isArray(data.items)) return { items: data.items }
+  return { items: [] }
+}
 
 type ImageItem = {
   id: number
@@ -36,11 +42,6 @@ type ImageItem = {
 type ImagesResponse = {
   items?: ImageItem[]
 } | ImageItem[]
-
-function normalizeChilds(data: ChildsResponse) {
-  if (Array.isArray(data)) return { items: data }
-  return { items: Array.isArray(data.items) ? data.items : [] }
-}
 
 function normalizeImages(data: ImagesResponse) {
   if (Array.isArray(data)) return { items: data }
@@ -132,7 +133,7 @@ function ImageThumbnail({ img, onDelete }: { img: ImageItem, onDelete: (id: numb
   )
 }
 
-function DerivationImages({ derivation }: { derivation: ChildProduct }) {
+function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['derivation-images', derivation.id],
@@ -312,17 +313,22 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
   const [open, setOpen] = useState(false)
 
   const { data: derivationsData, isLoading: isLoadingDerivations } = useQuery({
-    queryKey: ['product-derivations', productId],
+    queryKey: ['derivated-products', productId],
     enabled: open,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:d9ly3uzj/derivated_products?product_id=${productId}`)
+      const response = await privateInstance.get(`/tenant/derivated-product`, {
+        params: {
+          productId,
+          limit: 100
+        }
+      })
       if (response.status !== 200) throw new Error('Erro ao carregar derivações')
-      return response.data as ChildsResponse
+      return response.data as DerivatedProductsResponse
     }
   })
 
-  const derivations = derivationsData ? normalizeChilds(derivationsData).items : []
+  const derivations = derivationsData ? normalizeDerivatedProducts(derivationsData).items : []
   const queryClient = useQueryClient()
 
   type QueueItem = {

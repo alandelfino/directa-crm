@@ -166,7 +166,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
     refetchOnMount: false,
     queryFn: async () => {
       // Aumentado o limite para garantir que todas as categorias (pais e filhos) sejam carregadas
-      const res = await privateInstance.get('/tenant/categories?page=1&limit=1000')
+      const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },

@@ -33,7 +33,7 @@ type Product = {
   unit?: Unit
 }
 
-type ChildProduct = {
+type DerivatedProduct = {
   id: number
   sku?: string
   name?: string
@@ -91,13 +91,18 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   })
 
   const { data: derivations, isLoading: isLoadingDerivations } = useQuery({
-    queryKey: ['product-derivations', productId],
+    queryKey: ['derivated-products', productId],
     queryFn: async () => {
       if (!productId) return []
-      const response = await privateInstance.get(`/api:d9ly3uzj/derivated_products?product_id=${productId}`)
+      const response = await privateInstance.get(`/tenant/derivated-product`, {
+        params: {
+          productId,
+          limit: 100
+        }
+      })
       const data = response.data
-      if (Array.isArray(data)) return data as ChildProduct[]
-      if (typeof data === 'object' && Array.isArray((data as any).items)) return (data as any).items as ChildProduct[]
+      if (Array.isArray(data)) return data as DerivatedProduct[]
+      if (data && Array.isArray(data.items)) return data.items as DerivatedProduct[]
       return []
     },
     enabled: !!productId && product?.type === 'with_derivations' && open

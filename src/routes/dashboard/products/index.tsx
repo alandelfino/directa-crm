@@ -13,7 +13,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyCont
 import { NewProductSheet } from './-components/new-product'
 import { EditProductSheet } from './-components/edit-product'
 import { DeleteProductDialog } from './-components/delete-product'
-import { ChildProductsSheet } from './-components/child-products'
+import { DerivatedProductsSheet } from './-components/derivated-products'
 import { DerivatedProductPricesSheet } from './-components/derivated-product-prices/derivated-product-prices-sheet'
 import { SimpleProductPricesSheet } from './-components/simple-product-prices/simple-product-prices-sheet'
 import { ProductImagesSheet as DerivatedProductImagesSheet } from './-components/derivated-product-images-sheet'
@@ -253,7 +253,7 @@ function RouteComponent() {
               </Button>
             )}
             {selected.length === 1 && canManageChilds ? (
-              <ChildProductsSheet productId={selected[0]} />
+              <DerivatedProductsSheet productId={selected[0]} />
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <GitFork className="size-[0.85rem]" /> Derivações

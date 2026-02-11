@@ -51,9 +51,9 @@ export function DerivatedProductPriceEditSheet({ item, onUpdated }: { item: any,
   useEffect(() => {
     if (open && item) {
       form.reset({
-        price_table_id: String(item.price_table_id),
+        price_table_id: String(item.priceTableId),
         price: formatMoneyFromCents(item.price),
-        sale_price: item.sale_price ? formatMoneyFromCents(item.sale_price) : 'R$ 0,00'
+        sale_price: item.salePrice ? formatMoneyFromCents(item.salePrice) : 'R$ 0,00'
       })
     }
   }, [open, item, form])

@@ -15,11 +15,12 @@ import { maskMoneyInput } from '@/lib/utils'
 type SimpleProductPriceItem = {
   id: number
   price: number
-  sale_price?: number
-  product_id: number
-  price_table_id: number
-  price_table_name?: string
-  company_id?: number
+  salePrice: number
+  productId: number
+  priceTableId: number
+  productName: string
+  sku: string
+  updatedAt: string
 }
 
 const formSchema = z.object({
@@ -90,8 +91,8 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
       for (let i = 0; i < total; i++) {
         const item = itemsToUpdate[i]
         const payload = {
-          product_id: item.product_id,
-          price_table_id: item.price_table_id,
+          product_id: item.productId,
+          price_table_id: item.priceTableId,
           price: priceCents,
           sale_price: salePriceCents
         }

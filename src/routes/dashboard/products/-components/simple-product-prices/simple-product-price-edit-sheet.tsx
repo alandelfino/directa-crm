@@ -70,9 +70,9 @@ export function SimpleProductPriceEditSheet({ item, onUpdated }: { item: any, on
   useEffect(() => {
     if (open && item) {
       form.reset({
-        price_table_id: String(item.price_table_id),
+        price_table_id: String(item.priceTableId),
         price: formatMoneyFromCents(item.price),
-        sale_price: item.sale_price ? formatMoneyFromCents(item.sale_price) : 'R$ 0,00'
+        sale_price: item.salePrice ? formatMoneyFromCents(item.salePrice) : 'R$ 0,00'
       })
     }
   }, [open, item, form])
@@ -82,10 +82,10 @@ export function SimpleProductPriceEditSheet({ item, onUpdated }: { item: any, on
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
       const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
       const payload = {
-        product_id: item.product_id,
+        product_id: item.productId,
         price: priceCents,
         sale_price: salePriceCents,
-        price_table_id: item.price_table_id
+        price_table_id: item.priceTableId
       }
       
       const response = await privateInstance.put(`/api:c3X9fE5j/product_prices`, payload)

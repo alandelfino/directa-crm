@@ -205,9 +205,9 @@ export function EditProductSheet({
       if (!p) throw new Error('Resposta inválida ao buscar produto')
 
       form.reset({
-        sku: p.sku,
+        sku: p.sku || '',
         name: p.name,
-        description: p.description,
+        description: p.description || '',
         type: String(p.type || 'simple').toLowerCase() as any,
         active: p.active,
         managedInventory: p.managed_inventory ?? p.managedInventory ?? false,

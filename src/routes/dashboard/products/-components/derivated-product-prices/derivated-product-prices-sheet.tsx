@@ -16,11 +16,16 @@ import { toast } from 'sonner'
 
 type ProductPriceItem = {
   id: number
+  productId: number
+  derivatedProductId: number
+  productName: string
+  derivationName: string
+  sku: string
   price: number
-  sale_price?: number
-  price_table_id: number
-  price_table_name?: string
-  derivation_sku?: string
+  salePrice: number
+  updatedAt: string
+  // Helper fields
+  priceTableId: number
 }
 
 function EditablePriceCell({ 
@@ -30,7 +35,7 @@ function EditablePriceCell({
   className
 }: { 
   row: ProductPriceItem, 
-  field: 'price' | 'sale_price',
+  field: 'price' | 'salePrice',
   onSaved: (value: number) => void,
   className?: string
 }) {
@@ -51,7 +56,7 @@ function EditablePriceCell({
       
       const payload = {
         price: field === 'price' ? priceCents : row.price,
-        sale_price: field === 'sale_price' ? priceCents : (row.sale_price ?? null)
+        sale_price: field === 'salePrice' ? priceCents : (row.salePrice ?? null)
       }
 
       await privateInstance.put(`/api:c3X9fE5j/derivated_product_price/${row.id}`, payload)
@@ -89,14 +94,14 @@ function EditablePriceCell({
   }
 
   const discountPercentage = useMemo(() => {
-    if (field === 'sale_price' && row.price && row.sale_price && row.price > 0) {
-      const discount = ((row.price - row.sale_price) / row.price) * 100
+    if (field === 'salePrice' && row.price && row.salePrice && row.price > 0) {
+      const discount = ((row.price - row.salePrice) / row.price) * 100
       if (discount > 0) {
         return Math.round(discount)
       }
     }
     return null
-  }, [field, row.price, row.sale_price])
+  }, [field, row.price, row.salePrice])
 
   if (isEditing) {
     return (
@@ -152,9 +157,9 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
-  const [selectedPriceTableId, setSelectedPriceTableId] = useState<string>('all')
+  const [selectedPriceTableId, setSelectedPriceTableId] = useState<string>('')
 
-  const updatePriceInCache = (id: number, field: 'price' | 'sale_price', value: number) => {
+  const updatePriceInCache = (id: number, field: 'price' | 'salePrice', value: number) => {
     queryClient.setQueryData(['product-prices', productId, selectedPriceTableId], (oldData: any) => {
       if (!oldData) return oldData
       
@@ -187,19 +192,29 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
            (priceTablesData as any)?.items ? (priceTablesData as any).items : []
   }, [priceTablesData])
 
+  // Set default price table
+  useEffect(() => {
+    if (open && priceTables.length > 0 && !selectedPriceTableId) {
+      setSelectedPriceTableId(String(priceTables[0].id))
+    }
+  }, [open, priceTables, selectedPriceTableId])
+
   // Fetch prices
   const { data: pricesData, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['product-prices', productId, selectedPriceTableId],
     queryFn: async () => {
-      let url = `/api:c3X9fE5j/derivated_product_price?product_id=${productId}`
-      if (selectedPriceTableId && selectedPriceTableId !== 'all') {
-        url += `&price_table_id=${selectedPriceTableId}`
-      }
-      const response = await privateInstance.get(url)
+      if (!selectedPriceTableId) return { items: [], total: 0 }
+      
+      const response = await privateInstance.get('/tenant/product-prices/derivated', {
+        params: {
+          productId,
+          priceTableId: selectedPriceTableId
+        }
+      })
       if (response.status !== 200) throw new Error('Erro ao carregar preços')
       return response.data
     },
-    enabled: open,
+    enabled: open && !!selectedPriceTableId,
     refetchOnWindowFocus: false
   })
 
@@ -207,21 +222,19 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
     if (!pricesData) return []
     const raw = Array.isArray((pricesData as any).items) ? (pricesData as any).items : Array.isArray(pricesData) ? pricesData : []
     
-    return raw.map((i: any) => {
-      // Prioritize price_table object from response
-      const ptName = i.price_table?.name
-      const ptId = i.price_table?.id ?? i.price_table_id
-      
-      return {
-        id: Number(i.id),
-        price: Number(i.price),
-        sale_price: i.sale_price ? Number(i.sale_price) : undefined,
-        price_table_id: Number(ptId),
-        price_table_name: ptName ?? 'Tabela sem nome',
-        derivation_sku: i.derivated_product?.sku ?? '—'
-      }
-    })
-  }, [pricesData])
+    return raw.map((i: any) => ({
+      id: Number(i.id),
+      productId: Number(i.productId),
+      derivatedProductId: Number(i.derivatedProductId),
+      productName: i.productName,
+      derivationName: i.derivationName,
+      sku: i.sku,
+      price: Number(i.price),
+      salePrice: i.salePrice ? Number(i.salePrice) : 0,
+      updatedAt: i.updatedAt,
+      priceTableId: Number(selectedPriceTableId)
+    }))
+  }, [pricesData, selectedPriceTableId])
 
   // Selection Logic
   const allSelected = useMemo(() => {
@@ -272,10 +285,13 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
       className: 'font-medium border-r',
     },
     {
-      id: 'derivation_sku',
-      header: 'Derivação',
+      id: 'sku',
+      header: 'SKU / Derivação',
       cell: (i) => (
-        <span className='block truncate min-w-0' title={i.derivation_sku}>{i.derivation_sku}</span>
+        <div className="flex flex-col">
+          <span className='block truncate min-w-0 font-medium' title={i.sku}>{i.sku}</span>
+          <span className='block truncate min-w-0 text-xs text-muted-foreground' title={i.derivationName}>{i.derivationName}</span>
+        </div>
       ),
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
@@ -284,9 +300,10 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
     {
       id: 'price_table_name',
       header: 'Tabela de Preço',
-      cell: (i) => (
-        <span className='block truncate min-w-0' title={i.price_table_name}>{i.price_table_name}</span>
-      ),
+      cell: (i) => {
+        const pt = priceTables.find((t: any) => t.id === i.priceTableId)
+        return <span className='block truncate min-w-0' title={pt?.name}>{pt?.name}</span>
+      },
       width: '240px',
       headerClassName: 'w-[240px] min-w-[240px] border-r',
       className: 'w-[240px] min-w-[240px] !px-4',
@@ -306,14 +323,14 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
       className: 'w-[150px] min-w-[150px] !px-4',
     },
     {
-      id: 'sale_price',
+      id: 'salePrice',
       header: 'Preço Promocional',
       cell: (i) => (
         <EditablePriceCell 
           row={i}
-          field="sale_price"
+          field="salePrice"
           className="text-muted-foreground"
-          onSaved={(val) => updatePriceInCache(i.id, 'sale_price', val)} 
+          onSaved={(val) => updatePriceInCache(i.id, 'salePrice', val)} 
         />
       ),
       width: '150px',
@@ -341,10 +358,9 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
               <span className='text-sm text-muted-foreground'>Filtros: </span>
               <Select value={selectedPriceTableId} onValueChange={setSelectedPriceTableId}>
                 <SelectTrigger className="w-[200px] h-8">
-                  <SelectValue placeholder="Filtrar por tabela" />
+                  <SelectValue placeholder="Selecione uma tabela" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas as tabelas</SelectItem>
                   {priceTables.map((pt: any) => (
                     <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
                   ))}

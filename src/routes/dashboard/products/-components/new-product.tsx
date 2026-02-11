@@ -23,6 +23,22 @@ import { useEffect, useState, useMemo } from 'react'
     name: z.string().min(1, { message: 'Campo obrigatório' }),
     description: z.string().optional(),
     type: z.enum(['simple', 'with_derivations'] as const, { message: 'Campo obrigatório' }),
+    width: z.preprocess(
+      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+      z.number().optional()
+    ),
+    height: z.preprocess(
+      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+      z.number().optional()
+    ),
+    length: z.preprocess(
+      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+      z.number().optional()
+    ),
+    weight: z.preprocess(
+      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+      z.number().optional()
+    ),
     active: z.boolean().default(true),
     managedInventory: z.boolean().default(false),
   unitId: z.preprocess(
@@ -63,6 +79,12 @@ import { useEffect, useState, useMemo } from 'react'
   if (data.type === 'with_derivations' && (!data.derivations || data.derivations.length === 0)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['derivations'], message: 'Selecione pelo menos uma derivação' })
   }
+  if (data.type === 'simple') {
+    if (data.width === undefined || data.width === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['width'], message: 'Campo obrigatório' })
+    if (data.height === undefined || data.height === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['height'], message: 'Campo obrigatório' })
+    if (data.length === undefined || data.length === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['length'], message: 'Campo obrigatório' })
+    if (data.weight === undefined || data.weight === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Campo obrigatório' })
+  }
 })
 
 export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => void }) {
@@ -75,6 +97,10 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
       name: '',
       description: '',
       type: 'simple',
+      width: undefined,
+      height: undefined,
+      length: undefined,
+      weight: undefined,
       active: true,
       managedInventory: false,
       unitId: undefined,
@@ -92,7 +118,13 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const payload = {
         ...values,
-        description: values.description || undefined
+        description: values.description || undefined,
+        // Convert units if type is simple
+        // Frontend: cm/kg -> Backend: mm/g (integers)
+        width: values.type === 'simple' && values.width ? Math.round(values.width * 10) : undefined,
+        height: values.type === 'simple' && values.height ? Math.round(values.height * 10) : undefined,
+        length: values.type === 'simple' && values.length ? Math.round(values.length * 10) : undefined,
+        weight: values.type === 'simple' && values.weight ? Math.round(values.weight * 1000) : undefined,
       }
       const response = await privateInstance.post('/tenant/products', payload)
       return response
@@ -201,6 +233,10 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
         name: '',
         description: '',
         type: 'simple',
+        width: undefined,
+        height: undefined,
+        length: undefined,
+        weight: undefined,
         active: true,
         managedInventory: true,
         unitId: undefined,
@@ -308,6 +344,46 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                           <FormMessage />
                         </FormItem>
                       )} />
+                      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${!isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                          <FormField control={form.control} name='width' render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Largura (cm)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.1" min="0" placeholder="0.0" {...field} value={field.value ?? ''} disabled={isPending} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name='height' render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Altura (cm)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.1" min="0" placeholder="0.0" {...field} value={field.value ?? ''} disabled={isPending} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name='length' render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Comprimento (cm)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.1" min="0" placeholder="0.0" {...field} value={field.value ?? ''} disabled={isPending} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name='weight' render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Peso (kg)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.001" min="0" placeholder="0.000" {...field} value={field.value ?? ''} disabled={isPending} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        </div>
+                      </div>
                       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
                         <FormField control={form.control} name='derivations' render={({ field }) => (
                           <FormItem>

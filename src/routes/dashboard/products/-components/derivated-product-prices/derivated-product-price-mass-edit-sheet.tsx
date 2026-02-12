@@ -48,7 +48,7 @@ export function DerivatedProductPriceMassEditSheet({ selectedIds, onUpdated, tri
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
+      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       
       const idsToUpdate = [...selectedIds]
       const total = idsToUpdate.length
@@ -62,11 +62,11 @@ export function DerivatedProductPriceMassEditSheet({ selectedIds, onUpdated, tri
         const id = idsToUpdate[i]
         const payload = {
           price: priceCents,
-          sale_price: salePriceCents
+          salePrice: salePriceCents
         }
         
         try {
-          await privateInstance.put(`/api:c3X9fE5j/derivated_product_price/${id}`, payload)
+          await privateInstance.put(`/tenant/product-prices/derivated/${id}`, payload)
           currentResults.success++
         } catch (error: any) {
           const errorData = error?.response?.data

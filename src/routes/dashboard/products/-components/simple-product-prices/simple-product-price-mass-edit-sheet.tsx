@@ -78,7 +78,7 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
+      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       
       const itemsToUpdate = [...items]
       const total = itemsToUpdate.length
@@ -91,14 +91,12 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
       for (let i = 0; i < total; i++) {
         const item = itemsToUpdate[i]
         const payload = {
-          product_id: item.productId,
-          price_table_id: item.priceTableId,
           price: priceCents,
-          sale_price: salePriceCents
+          salePrice: salePriceCents
         }
         
         try {
-          await privateInstance.put(`/api:c3X9fE5j/product_prices`, payload)
+          await privateInstance.put(`/tenant/product-prices/simple/${item.id}`, payload)
           currentResults.success++
         } catch (error: any) {
           const errorData = error?.response?.data

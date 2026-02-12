@@ -24,6 +24,7 @@ type SimpleProductPriceItem = {
   updatedAt: string
   // Helper fields for UI/Mutation
   priceTableId: number 
+  priceTable?: { id: number, name: string } | null
 }
 
 function EditablePriceCell({ 
@@ -53,13 +54,11 @@ function EditablePriceCell({
       const priceCents = parseInt(newValue.replace(/\D/g, ''))
       
       const payload = {
-        product_id: row.productId,
         price: field === 'price' ? priceCents : row.price,
-        sale_price: field === 'salePrice' ? priceCents : (row.salePrice ?? null),
-        price_table_id: row.priceTableId
+        salePrice: field === 'salePrice' ? priceCents : (row.salePrice ?? 0)
       }
 
-      await privateInstance.put(`/api:c3X9fE5j/product_prices`, payload)
+      await privateInstance.put(`/tenant/product-prices/simple/${row.id}`, payload)
       return priceCents
     },
     onSuccess: (newPrice) => {
@@ -182,7 +181,7 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
   const { data: priceTablesData } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:m3u66HYX/price_tables?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
     enabled: open
@@ -195,10 +194,10 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
 
   // Set default price table
   useEffect(() => {
-    if (open && priceTables.length > 0 && !selectedPriceTableId) {
-      setSelectedPriceTableId(String(priceTables[0].id))
+    if (open && !selectedPriceTableId) {
+      setSelectedPriceTableId('all')
     }
-  }, [open, priceTables, selectedPriceTableId])
+  }, [open, selectedPriceTableId])
 
   // Fetch prices
   const { data: pricesData, isLoading, isRefetching, refetch } = useQuery({
@@ -206,12 +205,16 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
     queryFn: async () => {
       if (!selectedPriceTableId) return { items: [], total: 0 }
       
-      const response = await privateInstance.get('/tenant/product-prices/simple', {
-        params: {
-          productId,
-          priceTableId: selectedPriceTableId
-        }
-      })
+      const params: any = {
+        productId,
+        limit: 100
+      }
+
+      if (selectedPriceTableId !== 'all') {
+        params.priceTableId = selectedPriceTableId
+      }
+      
+      const response = await privateInstance.get('/tenant/product-prices/simple', { params })
       return response.data
     },
     enabled: open && !!selectedPriceTableId,
@@ -230,7 +233,8 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
       price: Number(i.price),
       salePrice: i.salePrice ? Number(i.salePrice) : 0,
       updatedAt: i.updatedAt,
-      priceTableId: Number(selectedPriceTableId)
+      priceTable: i.priceTable || null,
+      priceTableId: (i.priceTableId || i.price_table_id) ? Number(i.priceTableId || i.price_table_id) : (selectedPriceTableId !== 'all' ? Number(selectedPriceTableId) : 0)
     }))
   }, [pricesData, selectedPriceTableId])
 
@@ -282,8 +286,8 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
       id: 'price_table_name',
       header: 'Tabela de Preço',
       cell: (i) => {
-        const pt = priceTables.find((t: any) => t.id === i.priceTableId)
-        return <span className='block truncate min-w-0' title={pt?.name}>{pt?.name}</span>
+        const name = i.priceTable?.name || priceTables.find((t: any) => t.id === i.priceTableId)?.name || 'N/A'
+        return <span className='block truncate min-w-0' title={name}>{name}</span>
       },
       width: '240px',
       headerClassName: 'w-[240px] min-w-[240px] border-r',
@@ -342,6 +346,7 @@ export function SimpleProductPricesSheet({ productId }: { productId: number }) {
                   <SelectValue placeholder="Selecione uma tabela" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
                   {priceTables.map((pt: any) => (
                     <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
                   ))}

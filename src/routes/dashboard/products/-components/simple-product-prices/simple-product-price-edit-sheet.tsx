@@ -58,7 +58,7 @@ export function SimpleProductPriceEditSheet({ item, onUpdated }: { item: any, on
   const { data: priceTablesData } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:m3u66HYX/price_tables?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
     enabled: open
@@ -80,15 +80,13 @@ export function SimpleProductPriceEditSheet({ item, onUpdated }: { item: any, on
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
+      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       const payload = {
-        product_id: item.productId,
         price: priceCents,
-        sale_price: salePriceCents,
-        price_table_id: item.priceTableId
+        salePrice: salePriceCents
       }
       
-      const response = await privateInstance.put(`/api:c3X9fE5j/product_prices`, payload)
+      const response = await privateInstance.put(`/tenant/product-prices/simple/${item.id}`, payload)
       if (response.status !== 200) throw new Error('Erro ao atualizar preço')
       return response.data
     },

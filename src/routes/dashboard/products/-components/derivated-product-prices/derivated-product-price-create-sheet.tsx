@@ -27,7 +27,7 @@ export function DerivatedProductPriceCreateSheet({ productId, onCreated }: { pro
   const { data: priceTablesData } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:m3u66HYX/price_tables?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
     enabled: open
@@ -39,10 +39,10 @@ export function DerivatedProductPriceCreateSheet({ productId, onCreated }: { pro
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const payload = {
-        product_id: productId,
-        price_table_id: Number(values.price_table_id)
+        productId: productId,
+        priceTableId: Number(values.price_table_id)
       }
-      const response = await privateInstance.post('/api:c3X9fE5j/derivated_product_price', payload)
+      const response = await privateInstance.post('/tenant/product-prices/derivated', payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao adicionar preço')
       return response.data
     },

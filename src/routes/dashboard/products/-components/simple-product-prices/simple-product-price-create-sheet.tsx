@@ -62,7 +62,7 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
   const { data: priceTablesData } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:m3u66HYX/price_tables?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
     enabled: open
@@ -77,12 +77,12 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
       const salePriceCents = parseInt(values.sale_price.replace(/\D/g, ''))
 
       const payload = {
-        product_id: productId,
+        productId: productId,
         price: priceCents,
-        sale_price: salePriceCents,
-        price_table_id: Number(values.price_table_id)
+        salePrice: salePriceCents,
+        priceTableId: Number(values.price_table_id)
       }
-      const response = await privateInstance.post('/api:c3X9fE5j/product_prices', payload)
+      const response = await privateInstance.post('/tenant/product-prices/simple', payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao adicionar preço')
       return response.data
     },

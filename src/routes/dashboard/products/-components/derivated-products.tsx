@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet'
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
-import { GitFork, Edit2, Box } from 'lucide-react'
+import { GitFork, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
-import { DerivatedProductEditSheet } from './derivated-product-edit-sheet'
+import { DerivatedProductMassEditSheet } from './derivated-product-mass-edit-sheet'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { DataTable, type ColumnDef } from '@/components/data-table'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 
 type DerivatedProduct = {
   id: number
@@ -41,6 +42,7 @@ function normalizeDerivatedProducts(data: any): { items: DerivatedProduct[], tot
 export function DerivatedProductsSheet({ productId }: { productId: number }) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<DerivatedProduct[]>([])
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [editingDerivation, setEditingDerivation] = useState<DerivatedProduct | null>(null)
   const queryClient = useQueryClient()
 
@@ -78,107 +80,183 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
     setItems(normalized.items)
   }, [data])
 
+  // Selection Logic
+  const allSelected = useMemo(() => {
+    return items.length > 0 && selectedIds.length === items.length
+  }, [items.length, selectedIds.length])
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(items.map(i => i.id))
+    }
+  }
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  const selectedItems = useMemo(() => {
+    return items.filter(i => selectedIds.includes(i.id))
+  }, [items, selectedIds])
+
+  const columns: ColumnDef<DerivatedProduct>[] = [
+    {
+      id: 'select',
+      width: '40px',
+      header: (
+        <div className='flex items-center justify-center'>
+          <Checkbox
+            checked={allSelected}
+            onCheckedChange={toggleSelectAll}
+            aria-label="Select all"
+          />
+        </div>
+      ),
+      cell: (i) => (
+        <div className='flex items-center justify-center' onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={selectedIds.includes(i.id)}
+            onCheckedChange={() => toggleSelect(i.id)}
+            aria-label={`Select row ${i.id}`}
+          />
+        </div>
+      ),
+      headerClassName: 'w-[40px] border-r',
+      className: 'font-medium border-r',
+    },
+    {
+      id: 'active',
+      header: 'Status',
+      cell: (i) => (
+        <div className="flex justify-center">
+          {i.active ? (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-green-200 text-green-700 bg-green-50">Ativo</Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-neutral-200 text-neutral-500 bg-neutral-100">Inativo</Badge>
+          )}
+        </div>
+      ),
+      width: '80px',
+      headerClassName: 'w-[80px] min-w-[80px] border-r text-center',
+      className: 'w-[80px] min-w-[80px] !px-2 border-r',
+    },
+    {
+      id: 'name',
+      header: 'Nome',
+      cell: (i) => (
+        <span className='block truncate min-w-0 font-medium' title={i.name}>{i.name || 'Sem nome'}</span>
+      ),
+      width: '200px',
+      headerClassName: 'w-[200px] min-w-[200px] border-r',
+      className: 'w-[200px] min-w-[200px] !px-4 border-r',
+    },
+    {
+      id: 'dimensions',
+      header: 'Dimensões (LxAxC)',
+      cell: (i) => {
+        const w = i.width ? i.width / 10 : '-'
+        const h = i.height ? i.height / 10 : '-'
+        const l = i.length ? i.length / 10 : '-'
+        return <span className='text-muted-foreground'>{w} x {h} x {l} cm</span>
+      },
+      width: '140px',
+      headerClassName: 'w-[140px] min-w-[140px] border-r',
+      className: 'w-[140px] min-w-[140px] !px-4 border-r',
+    },
+    {
+      id: 'weight',
+      header: 'Peso',
+      cell: (i) => (
+        <span className='text-muted-foreground'>{i.weight ? i.weight / 1000 : '-'} kg</span>
+      ),
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r',
+      className: 'w-[100px] min-w-[100px] !px-4 border-r',
+    }
+  ]
   
   return (
-    <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) { queryClient.invalidateQueries({ queryKey: ['derivated-products', productId] }); refetch() } }}>
+    <Sheet open={open} onOpenChange={(o) => { 
+      setOpen(o)
+      if (o) { 
+        queryClient.invalidateQueries({ queryKey: ['derivated-products', productId] })
+        refetch() 
+      }
+      if (!o) {
+        setSelectedIds([])
+      }
+    }}>
       <SheetTrigger asChild>
         <Button variant={'outline'} size={'sm'}>
           <GitFork className="size-[0.85rem]" /> Derivações
         </Button>
       </SheetTrigger>
-      <SheetContent className='sm:max-w-[600px] h-full gap-0 p-0 flex flex-col bg-white'>
-        <div className='p-4 border-b bg-background'>
-          <SheetHeader className='flex gap-0 p-0'>
-            <SheetTitle>Derivações do produto</SheetTitle>
-            <SheetDescription>Gerencie as derivações do produto selecionado.</SheetDescription>
-          </SheetHeader>
-        </div>
+      <SheetContent className='w-4xl sm:max-w-[1000px] p-0'>
+        <SheetHeader className='px-4 py-4'>
+          <SheetTitle>Derivações do produto</SheetTitle>
+          <SheetDescription>Gerencie as derivações do produto selecionado.</SheetDescription>
+        </SheetHeader>
 
-        <div className='flex-1 min-h-0 overflow-y-auto p-4'>
-          {isLoading || isRefetching ? (
-             <div className="space-y-3">
-               {[1, 2, 3].map(i => (
-                 <div key={i} className="flex items-center justify-between p-4 bg-background border shadow-xs rounded-lg">
-                    <div className="space-y-2">
-                       <Skeleton className="h-4 w-32" />
-                       <Skeleton className="h-3 w-20" />
-                    </div>
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                 </div>
-               ))}
-             </div>
-          ) : items.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <GitFork className='h-6 w-6' />
-                  </EmptyMedia>
-                  <EmptyTitle>Nenhuma derivação</EmptyTitle>
-                  <EmptyDescription>Sem registros para o produto selecionado.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
+        <div className='flex flex-col flex-1 overflow-hidden'>
+          <div className='flex items-center justify-between px-4 gap-2 mb-2'>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm text-muted-foreground'>
+                {items.length} {items.length === 1 ? 'derivação encontrada' : 'derivações encontradas'}
+              </span>
             </div>
-          ) : (
-            <div className="space-y-3">
-               {items.map(item => (
-                 <div key={item.id} className="group flex items-center justify-between p-4 bg-background border rounded-lg shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-start gap-3">
-                       <div className="mt-1 p-2 bg-neutral-100 rounded-md text-neutral-500">
-                          <Box className="size-4" />
-                       </div>
-                       <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                             <span className="font-medium text-sm">{item.name || 'Sem nome'}</span>
-                             {item.active ? (
-                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-green-200 text-green-700 bg-green-50">Ativo</Badge>
-                             ) : (
-                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-neutral-200 text-neutral-500 bg-neutral-100">Inativo</Badge>
-                             )}
-                          </div>
-                          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
-                             <span>L: {item.width ? item.width / 10 : '-'} cm</span>
-                             <span>A: {item.height ? item.height / 10 : '-'} cm</span>
-                             <span>C: {item.length ? item.length / 10 : '-'} cm</span>
-                             <span>Peso: {item.weight ? item.weight / 1000 : '-'} kg</span>
-                          </div>
-                       </div>
-                    </div>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => setEditingDerivation(item)}
-                    >
-                       <Edit2 className="size-4 text-muted-foreground" />
-                    </Button>
-                 </div>
-               ))}
+
+            <div className='flex items-center gap-2'>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => refetch()} 
+                disabled={isLoading || isRefetching}
+              >
+                <RefreshCw className={cn("size-[0.85rem]", isRefetching && "animate-spin")} />
+              </Button>
+
+              {selectedIds.length > 0 && (
+                <DerivatedProductMassEditSheet
+                  items={selectedItems}
+                  onUpdated={() => {
+                    refetch()
+                    setSelectedIds([])
+                  }}
+                />
+              )}
             </div>
-          )}
+          </div>
+
+          <div className='flex-1 flex flex-col overflow-hidden border-t'>
+            <DataTable<DerivatedProduct>
+              columns={columns}
+              data={items}
+              loading={isLoading || isRefetching}
+              hideFooter={true}
+              onRowClick={(item) => toggleSelect(item.id)}
+              rowIsSelected={(item) => selectedIds.includes(item.id)}
+              rowClassName="h-8"
+            />
+          </div>
         </div>
         
-        <SheetFooter className='bg-background border-t p-4 flex justify-center'>
-          <div className='flex items-center gap-3'>
-            <span className='text-xs text-muted-foreground'>Total de {items.length} variações</span>
+        <SheetFooter className='border-t p-4'>
+          <div className='flex w-full items-center justify-between'>
+            <span className='text-sm text-muted-foreground'>
+              {selectedIds.length > 0 && `${selectedIds.length} selecionado(s)`}
+            </span>
+            <SheetClose asChild>
+              <Button variant='outline' size="sm" className='w-fit'>Fechar</Button>
+            </SheetClose>
           </div>
         </SheetFooter>
       </SheetContent>
-
-      {editingDerivation && (
-        <DerivatedProductEditSheet
-          derivation={editingDerivation}
-          open={!!editingDerivation}
-          onOpenChange={(open) => !open && setEditingDerivation(null)}
-          onSaved={() => {
-             refetch()
-          }}
-        />
-      )}
     </Sheet>
   )
 }
- 
 
 export default DerivatedProductsSheet

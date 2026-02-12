@@ -18,6 +18,7 @@ type ProductPriceItem = {
   id: number
   productId: number
   derivatedProductId: number
+  derivatedProduct?: { id: number, name: string } | null
   productName: string
   derivationName: string
   sku: string
@@ -26,6 +27,7 @@ type ProductPriceItem = {
   updatedAt: string
   // Helper fields
   priceTableId: number
+  priceTable?: { id: number, name: string } | null
 }
 
 function EditablePriceCell({ 
@@ -56,10 +58,10 @@ function EditablePriceCell({
       
       const payload = {
         price: field === 'price' ? priceCents : row.price,
-        sale_price: field === 'salePrice' ? priceCents : (row.salePrice ?? null)
+        salePrice: field === 'salePrice' ? priceCents : (row.salePrice ?? 0)
       }
 
-      await privateInstance.put(`/api:c3X9fE5j/derivated_product_price/${row.id}`, payload)
+      await privateInstance.put(`/tenant/product-prices/derivated/${row.id}`, payload)
       return priceCents
     },
     onSuccess: (newPrice) => {
@@ -181,7 +183,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
   const { data: priceTablesData } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:m3u66HYX/price_tables?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
     enabled: open
@@ -194,10 +196,10 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
 
   // Set default price table
   useEffect(() => {
-    if (open && priceTables.length > 0 && !selectedPriceTableId) {
-      setSelectedPriceTableId(String(priceTables[0].id))
+    if (open && !selectedPriceTableId) {
+      setSelectedPriceTableId('all')
     }
-  }, [open, priceTables, selectedPriceTableId])
+  }, [open, selectedPriceTableId])
 
   // Fetch prices
   const { data: pricesData, isLoading, isRefetching, refetch } = useQuery({
@@ -205,12 +207,16 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
     queryFn: async () => {
       if (!selectedPriceTableId) return { items: [], total: 0 }
       
-      const response = await privateInstance.get('/tenant/product-prices/derivated', {
-        params: {
-          productId,
-          priceTableId: selectedPriceTableId
-        }
-      })
+      const params: any = {
+        productId,
+        limit: 100
+      }
+
+      if (selectedPriceTableId !== 'all') {
+        params.priceTableId = selectedPriceTableId
+      }
+      
+      const response = await privateInstance.get('/tenant/product-prices/derivated', { params })
       if (response.status !== 200) throw new Error('Erro ao carregar preços')
       return response.data
     },
@@ -225,14 +231,16 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
     return raw.map((i: any) => ({
       id: Number(i.id),
       productId: Number(i.productId),
-      derivatedProductId: Number(i.derivatedProductId),
+      derivatedProductId: (i.derivatedProduct?.id) ? Number(i.derivatedProduct.id) : (i.derivatedProductId ? Number(i.derivatedProductId) : 0),
+      derivatedProduct: i.derivatedProduct || null,
       productName: i.productName,
       derivationName: i.derivationName,
       sku: i.sku,
       price: Number(i.price),
       salePrice: i.salePrice ? Number(i.salePrice) : 0,
       updatedAt: i.updatedAt,
-      priceTableId: Number(selectedPriceTableId)
+      priceTable: i.priceTable || null,
+      priceTableId: (i.priceTableId || i.price_table_id) ? Number(i.priceTableId || i.price_table_id) : (selectedPriceTableId !== 'all' ? Number(selectedPriceTableId) : 0)
     }))
   }, [pricesData, selectedPriceTableId])
 
@@ -285,13 +293,12 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
       className: 'font-medium border-r',
     },
     {
-      id: 'sku',
-      header: 'SKU / Derivação',
+      id: 'derivationName',
+      header: 'Derivação',
       cell: (i) => (
-        <div className="flex flex-col">
-          <span className='block truncate min-w-0 font-medium' title={i.sku}>{i.sku}</span>
-          <span className='block truncate min-w-0 text-xs text-muted-foreground' title={i.derivationName}>{i.derivationName}</span>
-        </div>
+        <span className='block truncate min-w-0 font-medium' title={i.derivatedProduct?.name || i.derivationName}>
+          {i.derivatedProduct?.name || i.derivationName}
+        </span>
       ),
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
@@ -301,8 +308,8 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
       id: 'price_table_name',
       header: 'Tabela de Preço',
       cell: (i) => {
-        const pt = priceTables.find((t: any) => t.id === i.priceTableId)
-        return <span className='block truncate min-w-0' title={pt?.name}>{pt?.name}</span>
+        const name = i.priceTable?.name || priceTables.find((t: any) => t.id === i.priceTableId)?.name || 'N/A'
+        return <span className='block truncate min-w-0' title={name}>{name}</span>
       },
       width: '240px',
       headerClassName: 'w-[240px] min-w-[240px] border-r',
@@ -361,6 +368,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
                   <SelectValue placeholder="Selecione uma tabela" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
                   {priceTables.map((pt: any) => (
                     <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
                   ))}

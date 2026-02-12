@@ -39,7 +39,7 @@ export function DerivatedProductPriceEditSheet({ item, onUpdated }: { item: any,
   const { data: priceTablesData } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:m3u66HYX/price_tables?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
     enabled: open
@@ -61,15 +61,15 @@ export function DerivatedProductPriceEditSheet({ item, onUpdated }: { item: any,
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : undefined
+      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       const payload = {
         price: priceCents,
-        sale_price: salePriceCents
+        salePrice: salePriceCents
       }
       // Note: Endpoint to update only allows updating price usually. 
       // If we want to change price_table_id, we might need to recreate or check if API supports it.
       // Based on provided spec: PUT /derivated_product_price/{id} takes body with price.
-      const response = await privateInstance.put(`/api:c3X9fE5j/derivated_product_price/${item.id}`, payload)
+      const response = await privateInstance.put(`/tenant/product-prices/derivated/${item.id}`, payload)
       if (response.status !== 200) throw new Error('Erro ao atualizar preço')
       return response.data
     },

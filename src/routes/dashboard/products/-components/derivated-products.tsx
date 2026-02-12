@@ -43,7 +43,7 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<DerivatedProduct[]>([])
   const [selectedIds, setSelectedIds] = useState<number[]>([])
-  const [editingDerivation, setEditingDerivation] = useState<DerivatedProduct | null>(null)
+  // const [editingDerivation, setEditingDerivation] = useState<DerivatedProduct | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({

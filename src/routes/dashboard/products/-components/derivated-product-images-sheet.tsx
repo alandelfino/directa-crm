@@ -39,13 +39,48 @@ type ImageItem = {
   original_url: string
 }
 
-type ImagesResponse = {
-  items?: ImageItem[]
-} | ImageItem[]
+type APIImageItem = {
+  id: number
+  productId: number
+  derivatedProductId: number
+  mediaId: number
+  url?: string
+  media?: {
+    url: string
+    name?: string
+  }
+}
 
-function normalizeImages(data: ImagesResponse) {
-  if (Array.isArray(data)) return { items: data }
-  return { items: Array.isArray(data.items) ? data.items : [] }
+type ImagesResponse = {
+  data: APIImageItem[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
+  items?: APIImageItem[]
+}
+
+function normalizeImages(data: ImagesResponse | APIImageItem[] | any): { items: ImageItem[] } {
+  let items: APIImageItem[] = []
+  
+  if (data && Array.isArray(data.data)) {
+    items = data.data
+  } else if (data && Array.isArray(data.items)) {
+    items = data.items
+  } else if (Array.isArray(data)) {
+    items = data
+  }
+
+  return {
+    items: items.map(item => ({
+      id: item.id,
+      media_id: item.mediaId,
+      name: item.media?.name || 'Imagem',
+      url: item.url || item.media?.url || '',
+      original_url: item.url || item.media?.url || ''
+    })).filter((item: ImageItem) => !!item.url)
+  }
 }
 
 function ImageThumbnail({ img, onDelete }: { img: ImageItem, onDelete: (id: number) => void }) {
@@ -139,7 +174,13 @@ function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
     queryKey: ['derivation-images', derivation.id],
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:DqAmjbHy/derivated_product_images/${derivation.id}`)
+      const response = await privateInstance.get(`/tenant/product-medias/with-derivations`, {
+        params: {
+          productId: derivation.productId,
+          derivatedProductId: derivation.id,
+          limit: 100
+        }
+      })
       if (response.status !== 200) throw new Error('Erro ao carregar imagens')
       return response.data as ImagesResponse
     }
@@ -157,6 +198,8 @@ function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
 
   const processQueue = async (initialQueue: QueueItem[]) => {
     setIsProcessing(true)
+    let successCount = 0
+
     for (let i = 0; i < initialQueue.length; i++) {
       setUploadQueue(prev => {
         const next = [...prev]
@@ -165,15 +208,18 @@ function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
       })
 
       try {
-        await privateInstance.post('/api:DqAmjbHy/derivated_product_images', {
-          derivated_product_id: derivation.id,
-          media_id: initialQueue[i].media.id
+        await privateInstance.post('/tenant/product-medias/with-derivations', {
+          productId: derivation.productId,
+          derivatedProductId: derivation.id,
+          mediaId: initialQueue[i].media.id,
+          toAll: false
         })
         setUploadQueue(prev => {
           const next = [...prev]
           if (next[i]) next[i] = { ...next[i], status: 'success' }
           return next
         })
+        successCount++
       } catch (e: any) {
         const title = e?.response?.data?.message || 'Erro ao vincular'
         setUploadQueue(prev => {
@@ -184,6 +230,9 @@ function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
       }
     }
     setIsProcessing(false)
+    if (successCount > 0) {
+      toast.success(successCount > 1 ? `${successCount} imagens vinculadas com sucesso` : 'Imagem vinculada com sucesso')
+    }
     queryClient.invalidateQueries({ queryKey: ['derivation-images', derivation.id] })
   }
 
@@ -197,8 +246,8 @@ function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
 
   const handleDeleteImage = async (id: number) => {
     try {
-      const response = await privateInstance.delete(`/api:DqAmjbHy/derivated_product_images/${id}`)
-      if (response.data.status === 'success') {
+      const response = await privateInstance.delete(`/tenant/product-medias/with-derivations/${id}`)
+      if (response.status === 200 || response.status === 204) {
         toast.success('Imagem removida com sucesso')
         queryClient.invalidateQueries({ queryKey: ['derivation-images', derivation.id] })
       } else {
@@ -211,7 +260,18 @@ function DerivationImages({ derivation }: { derivation: DerivatedProduct }) {
     }
   }
 
-  const images = data ? normalizeImages(data).items : []
+  const rawItems: APIImageItem[] = data 
+    ? (Array.isArray(data) 
+        ? data 
+        : Array.isArray(data.data) 
+            ? data.data 
+            : Array.isArray(data.items) 
+                ? data.items 
+                : [])
+    : []
+  
+  const filteredItems = rawItems.filter(item => item.derivatedProductId === derivation.id)
+  const images = normalizeImages(filteredItems).items
 
   return (
     <Card className="overflow-hidden shadow-sm transition-all hover:shadow-md">
@@ -343,6 +403,8 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
 
   const processQueue = async (initialQueue: QueueItem[]) => {
     setIsProcessing(true)
+    let successCount = 0
+
     for (let i = 0; i < initialQueue.length; i++) {
       setUploadQueue(prev => {
         const next = [...prev]
@@ -351,16 +413,15 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
       })
 
       try {
-        const response = await privateInstance.post('/api:DqAmjbHy/derivated_product_images', {
-          derivated_product_id: derivations[0]?.id,
-          media_id: initialQueue[i].media.id,
-          to_all: true
+        const response = await privateInstance.post('/tenant/product-medias/with-derivations', {
+          productId: productId,
+          derivatedProductId: derivations[0]?.id,
+          mediaId: initialQueue[i].media.id,
+          toAll: true
         })
         
-        if (response.data.status !== 'success' && !response.data.to_all) { 
-           // Fallback verification if backend doesn't return standard success structure but we expect it
-           // Adjusting based on user prompt "esperar um retorno {status: success}"
-           if (response.status !== 200) throw new Error('Erro na requisição')
+        if (response.status !== 200 && response.status !== 201) { 
+           throw new Error('Erro na requisição')
         }
 
         setUploadQueue(prev => {
@@ -368,6 +429,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
           if (next[i]) next[i] = { ...next[i], status: 'success' }
           return next
         })
+        successCount++
       } catch (e: any) {
         const title = e?.response?.data?.message || 'Erro ao vincular'
         setUploadQueue(prev => {
@@ -378,6 +440,9 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
       }
     }
     setIsProcessing(false)
+    if (successCount > 0) {
+      toast.success(successCount > 1 ? `${successCount} imagens vinculadas a todas as variações com sucesso` : 'Imagem vinculada a todas as variações com sucesso')
+    }
     // Invalidate all derivation images queries
     derivations.forEach(d => {
         queryClient.invalidateQueries({ queryKey: ['derivation-images', d.id] })

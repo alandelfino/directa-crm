@@ -18,13 +18,46 @@ type ImageItem = {
   original_url: string
 }
 
-type ImagesResponse = {
-  items?: ImageItem[]
-} | ImageItem[]
+type APIImageItem = {
+  id: number
+  productId: number
+  mediaId: number
+  url?: string
+  media?: {
+    url: string
+    name?: string
+  }
+}
 
-function normalizeImages(data: ImagesResponse) {
-  if (Array.isArray(data)) return { items: data }
-  return { items: Array.isArray(data.items) ? data.items : [] }
+type ImagesResponse = {
+  data: APIImageItem[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
+}
+
+function normalizeImages(data: ImagesResponse | any): { items: ImageItem[] } {
+  let items: APIImageItem[] = []
+  
+  if (data && Array.isArray(data.data)) {
+    items = data.data
+  } else if (data && Array.isArray(data.items)) {
+    items = data.items
+  } else if (Array.isArray(data)) {
+    items = data
+  }
+
+  return {
+    items: items.map((item: APIImageItem) => ({
+      id: item.id,
+      media_id: item.mediaId,
+      name: item.media?.name || 'Imagem',
+      url: item.url || item.media?.url || '',
+      original_url: item.url || item.media?.url || ''
+    })).filter((item: ImageItem) => !!item.url)
+  }
 }
 
 function ImageThumbnail({ img, onDelete }: { img: ImageItem, onDelete: (id: number) => void }) {
@@ -121,7 +154,12 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
     enabled: open,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:DD9xtsGy/product-images/${productId}`)
+      const response = await privateInstance.get(`/tenant/product-medias/simple`, {
+        params: { 
+          productId,
+          limit: 100
+        }
+      })
       if (response.status !== 200) throw new Error('Erro ao carregar imagens')
       return response.data as ImagesResponse
     }
@@ -139,6 +177,8 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
 
   const processQueue = async (initialQueue: QueueItem[]) => {
     setIsProcessing(true)
+    let successCount = 0
+
     for (let i = 0; i < initialQueue.length; i++) {
       setUploadQueue(prev => {
         const next = [...prev]
@@ -147,15 +187,12 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
       })
 
       try {
-        const response = await privateInstance.post('/api:DD9xtsGy/product-images', {
-          product_id: productId,
-          media_id: initialQueue[i].media.id
+        const response = await privateInstance.post('/tenant/product-medias/simple', {
+          productId: productId,
+          mediaId: initialQueue[i].media.id
         })
 
-        if (response.data.status !== 'success') {
-           // Fallback if status is not explicitly success in body but http is 200, though user said expect {status: success}
-           // We will trust the user requirement. If body doesn't have status: success, we might consider it an error or check http status.
-           // Let's assume strict check as requested.
+        if (response.status !== 201) {
            if (response.status !== 200) throw new Error('Erro na requisição')
         }
 
@@ -164,6 +201,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
           if (next[i]) next[i] = { ...next[i], status: 'success' }
           return next
         })
+        successCount++
       } catch (e: any) {
         const title = e?.response?.data?.message || 'Erro ao vincular'
         const payloadTitle = e?.response?.data?.payload?.title 
@@ -180,18 +218,17 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
       }
     }
     setIsProcessing(false)
+    if (successCount > 0) {
+      toast.success(successCount > 1 ? `${successCount} imagens vinculadas com sucesso` : 'Imagem vinculada com sucesso')
+    }
     queryClient.invalidateQueries({ queryKey: ['product-images', productId] })
   }
 
   const handleDeleteImage = async (id: number) => {
     try {
-      const response = await privateInstance.delete(`/api:DD9xtsGy/product-images/${id}`)
-      if (response.data.status === 'success') {
-        toast.success('Imagem removida com sucesso')
-        queryClient.invalidateQueries({ queryKey: ['product-images', productId] })
-      } else {
-        throw new Error('Falha ao remover imagem')
-      }
+      await privateInstance.delete(`/tenant/product-medias/simple/${id}`)
+      toast.success('Imagem removida com sucesso')
+      queryClient.invalidateQueries({ queryKey: ['product-images', productId] })
     } catch (error: any) {
       const title = error?.response?.data?.message || 'Erro ao remover imagem'
       const description = error?.response?.data?.payload?.title || 'Não foi possível excluir a imagem.'

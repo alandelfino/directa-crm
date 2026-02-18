@@ -19,27 +19,20 @@ export const Route = createFileRoute('/dashboard/stock/')({
 
 type StockMovement = {
   id: number
-  created_at: number
-  updated_at: number
+  createdAt: string
+  updatedAt: string
   amount: number
-  product_id: number
-  distribution_center_id: number
-  company_id: number
-  type: 'inflow' | 'outflow' | string
-  product_sku: string
-  product_name: string
-  distribution_center_name?: string
+  product: { id: number, sku: string | null, name: string }
+  warehouse: { id: number, name: string }
+  type: string
+  stockType: string
 }
 
 type StockMovementsResponse = {
-  itemsReceived: number
-  curPage: number
-  nextPage: number | null
-  prevPage: number | null
-  offset: number
-  perPage: number
-  itemsTotal: number
-  pageTotal: number
+  page: number
+  limit: number
+  totalPages: number
+  total: number
   items: StockMovement[]
 }
 
@@ -55,27 +48,25 @@ function RouteComponent() {
     refetchOnMount: false,
     queryKey: ['stock-movements', currentPage, perPage],
     queryFn: async () => {
-      const response = await privateInstance.get(`/api:u5l6DcFV/stock-moviments?page=${currentPage}&per_page=${Math.min(50, perPage)}`)
+      const response = await privateInstance.get('/tenant/stock-moviments', {
+        params: {
+          page: currentPage,
+          limit: Math.min(100, perPage),
+          sortBy: 'createdAt',
+          orderBy: 'desc',
+        },
+      })
       if (response.status !== 200) {
         throw new Error('Erro ao carregar movimentos de estoque')
       }
-      return await response.data as StockMovementsResponse
+      return response.data as StockMovementsResponse
     }
   })
 
   const [movements, setMovements] = useState<StockMovement[]>([])
 
-  const normalizeEpoch = (v?: number): number | undefined => {
-    if (typeof v !== 'number' || !Number.isFinite(v)) return undefined
-    const abs = Math.abs(v)
-    if (abs < 1e11) return Math.round(v * 1000)
-    if (abs > 1e14) return Math.round(v / 1000)
-    return v
-  }
-
-  const fmtDateTime = (v?: number) => {
-    const ms = normalizeEpoch(v)
-    if (!ms) return '-'
+  const fmtDateTime = (v?: string) => {
+    if (!v) return '-'
     try {
       return new Intl.DateTimeFormat('pt-BR', {
         day: '2-digit',
@@ -83,9 +74,9 @@ function RouteComponent() {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      }).format(new Date(ms))
+      }).format(new Date(v))
     } catch {
-      return new Date(ms).toLocaleDateString('pt-BR')
+      return new Date(v).toLocaleDateString('pt-BR')
     }
   }
 
@@ -109,8 +100,8 @@ function RouteComponent() {
       id: 'type',
       header: 'Tipo',
       cell: (item) => {
-        const isInflow = item.type === 'inflow'
-        const isInflowOrOutflow = item.type === 'inflow' || item.type === 'outflow'
+        const isInflow = item.type === 'in'
+        const isInflowOrOutflow = item.type === 'in' || item.type === 'out'
         
         if (!isInflowOrOutflow) {
           return <span className='capitalize'>{item.type}</span>
@@ -134,9 +125,28 @@ function RouteComponent() {
       className: 'w-[100px] min-w-[100px] p-2!'
     },
     {
+      id: 'stockType',
+      header: 'Tipo de Estoque',
+      cell: (item) => {
+        const label = item.stockType === 'reserved' ? 'Reservado' : 'Físico'
+        return (
+          <span className='inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-xs font-medium'>
+            {label}
+          </span>
+        )
+      },
+      width: '140px',
+      headerClassName: 'w-[140px] min-w-[140px] border-r',
+      className: 'w-[140px] min-w-[140px] p-2!'
+    },
+    {
       id: 'product_sku',
       header: 'SKU',
-      cell: (item) => <span className='block truncate min-w-0' title={item.product_sku}>{item.product_sku}</span>,
+      cell: (item) => {
+        const sku = item.product?.sku
+        const t = sku ?? undefined
+        return <span className='block truncate min-w-0' title={t}>{sku ?? '—'}</span>
+      },
       width: '120px',
       headerClassName: 'w-[120px] min-w-[120px] border-r',
       className: 'w-[120px] min-w-[120px] p-2!'
@@ -144,7 +154,10 @@ function RouteComponent() {
     {
       id: 'product_name',
       header: 'Produto',
-      cell: (item) => <span className='block truncate min-w-0' title={item.product_name}>{item.product_name}</span>,
+      cell: (item) => {
+        const name = item.product?.name
+        return <span className='block truncate min-w-0' title={name}>{name ?? '—'}</span>
+      },
       width: '280px',
       headerClassName: 'w-[280px] min-w-[280px] border-r',
       className: 'w-[280px] min-w-[280px] p-2!'
@@ -152,7 +165,10 @@ function RouteComponent() {
     {
       id: 'distribution_center_name',
       header: 'Centro de Distribuição',
-      cell: (item) => <span className='block truncate min-w-0' title={item.distribution_center_name}>{item.distribution_center_name ?? '—'}</span>,
+      cell: (item) => {
+        const name = item.warehouse?.name
+        return <span className='block truncate min-w-0' title={name}>{name ?? '—'}</span>
+      },
       width: '200px',
       headerClassName: 'w-[200px] min-w-[200px] border-r',
       className: 'w-[200px] min-w-[200px] p-2!'
@@ -161,7 +177,7 @@ function RouteComponent() {
       id: 'created_at',
       header: 'Data de lançamento',
       cell: (item) => (
-        <span className='text-sm'>{fmtDateTime(item.created_at)}</span>
+        <span className='text-sm'>{fmtDateTime(item.createdAt)}</span>
       ),
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
@@ -182,13 +198,31 @@ function RouteComponent() {
   useEffect(() => {
     if (!data) return
 
-    const items = Array.isArray(data.items) ? data.items : []
+    const rawItems = Array.isArray(data.items) ? data.items : []
+    const items: StockMovement[] = rawItems.map((item: any) => ({
+      id: item.id,
+      createdAt: item.createdAt ?? item.created_at,
+      updatedAt: item.updatedAt ?? item.updated_at,
+      amount: item.amount,
+      type: item.type,
+      stockType: item.stockType ?? item.stock_type ?? '',
+      product: {
+        id: item.product?.id ?? item.productId ?? item.product_id,
+        sku: item.product?.sku ?? item.productSku ?? item.product_sku ?? null,
+        name: item.product?.name ?? item.productName ?? item.product_name ?? ''
+      },
+      warehouse: {
+        id: item.warehouse?.id ?? item.warehouseId ?? item.warehouse_id ?? item.distribution_center_id,
+        name: item.warehouse?.name ?? item.warehouseName ?? item.warehouse_name ?? item.distribution_center_name ?? ''
+      }
+    }))
+
     setMovements(items)
 
-    const itemsTotal = typeof data.itemsTotal === 'number' ? data.itemsTotal : items.length
+    const itemsTotal = typeof data.total === 'number' ? data.total : items.length
     setTotalItems(itemsTotal)
 
-    const pageTotal = typeof data.pageTotal === 'number' ? data.pageTotal : Math.max(1, Math.ceil(itemsTotal / perPage))
+    const pageTotal = typeof data.totalPages === 'number' ? data.totalPages : Math.max(1, Math.ceil(itemsTotal / perPage))
     setTotalPages(pageTotal)
   }, [data, perPage])
 

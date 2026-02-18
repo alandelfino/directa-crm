@@ -163,7 +163,7 @@ function RouteComponent() {
   const columns: ColumnDef<Product>[] = useMemo(() => [
     {
       id: 'select',
-      width: '60px',
+      width: '40px',
       header: () => (
         <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
@@ -178,19 +178,19 @@ function RouteComponent() {
       headerClassName: 'w-[60px] min-w-[60px] border-r',
       className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
     },
-    { id: 'sku', header: 'SKU', width: '160px', cell: (p) => (<span className='block truncate' title={p.sku ?? '—'}>{p.sku ?? '—'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
-    { id: 'name', header: 'Nome', width: '280px', cell: (p) => (<span className='block truncate' title={p.name ?? '—'}>{p.name ?? '—'}</span>), headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! min-w-0' },
-    { id: 'type', header: 'Tipo', width: '180px', cell: (p) => (<span className='block truncate' title={p.type === 'with_derivations' ? 'Com variações' : 'Simples'}>{p.type === 'with_derivations' ? 'Com variações' : 'Simples'}</span>), headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! min-w-0' },
+    { id: 'sku', header: 'SKU', width: '60px', maxWidth: '60px', cell: (p) => (<span className='block truncate px-2' title={p.sku ?? '—'}>{p.sku ?? '—'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
+    { id: 'name', header: 'Nome', width: '280px', cell: (p) => (<span className='block truncate px-2' title={p.name ?? '—'}>{p.name ?? '—'}</span>), headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! min-w-0' },
+    { id: 'type', header: 'Tipo', width: '80px', maxWidth: '80px', cell: (p) => (<span className='block truncate px-2' title={p.type === 'with_derivations' ? 'Com variações' : 'Simples'}>{p.type === 'with_derivations' ? 'Com variações' : 'Simples'}</span>), headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! min-w-0' },
     
-    { id: 'managedInventory', header: 'Gerenciar estoque', width: '160px', cell: (p) => (<span className='block truncate' title={p.managedInventory ? 'Sim' : 'Não'}>{p.managedInventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
-    { id: 'active', header: 'Status', width: '120px', cell: (p) => {
+    { id: 'managedInventory', header: 'Ger. estoque', width: '100px', maxWidth: '100px', cell: (p) => (<span className='block truncate px-2' title={p.managedInventory ? 'Sim' : 'Não'}>{p.managedInventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
+    { id: 'active', header: 'Status', width: '80px', maxWidth: '80px', cell: (p) => {
       const active = p.active === true
       return (
         <span
           className={
             active
-              ? 'inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 text-green-600'
-              : 'inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-700'
+              ? 'inline-flex items-center gap-1 px-2 py-0 rounded-lg bg-green-50 text-green-600'
+              : 'inline-flex items-center gap-1 px-2 py-0 rounded-lg bg-gray-100 text-gray-700'
           }
         >
           <span className={active ? 'h-1.5 w-1.5 rounded-full bg-green-600' : 'h-1.5 w-1.5 rounded-full bg-gray-500'} />
@@ -256,7 +256,7 @@ function RouteComponent() {
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                      <div className="flex h-6 w-8 items-center justify-center rounded-full bg-primary/10">
                         <ArrowUpDown className="h-4 w-4 text-primary" />
                       </div>
                       <h4 className="font-semibold leading-none">Ordenação</h4>

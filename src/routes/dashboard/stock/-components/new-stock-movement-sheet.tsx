@@ -44,16 +44,17 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   const queryClient = useQueryClient()
   
   // Form State
-  const [type, setType] = useState<'inflow' | 'outflow'>('inflow')
+  const [type, setType] = useState<'in' | 'out'>('in')
   const [productId, setProductId] = useState<number | null>(null)
   const [distributionCenterId, setDistributionCenterId] = useState<string>('')
   const [amount, setAmount] = useState<string>('')
   const [derivationsAmounts, setDerivationsAmounts] = useState<Record<number, string>>({})
+  const [stockType, setStockType] = useState<'physical' | 'reserved'>('physical')
 
   // Reset form when sheet opens/closes or product changes
   useEffect(() => {
     if (!open) {
-      setType('inflow')
+      setType('in')
       setProductId(null)
       setDistributionCenterId('')
       setAmount('')
@@ -70,7 +71,12 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   const { data: distributionCenters } = useQuery({
     queryKey: ['distribution-centers', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/api:k-mANdpH/distribution_centers?page=1&per_page=100')
+      const response = await privateInstance.get('/tenant/warehouses', {
+        params: {
+          page: 1,
+          limit: 100
+        }
+      })
       const data = response.data
       if (Array.isArray(data)) return data as DistributionCenter[]
       if (typeof data === 'object' && Array.isArray((data as any).items)) return (data as any).items as DistributionCenter[]
@@ -84,7 +90,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
     queryKey: ['product', productId],
     queryFn: async () => {
       if (!productId) return null
-      const response = await privateInstance.get(`/api:c3X9fE5j/products/${productId}`)
+      const response = await privateInstance.get(`/tenant/products/${productId}`)
       return response.data as Product
     },
     enabled: !!productId && open
@@ -115,9 +121,10 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       if (!distributionCenterId) throw new Error('Selecione um centro de distribuição')
       
       const payload: any = {
-        product_id: productId,
-        distribution_center_id: Number(distributionCenterId),
-        type: type
+        productId,
+        warehouseId: Number(distributionCenterId),
+        type,
+        stockType,
       }
 
       if (product?.type === 'simple') {
@@ -125,14 +132,14 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
         payload.amount = Number(amount)
       } else if (product?.type === 'with_derivations') {
         const items = Object.entries(derivationsAmounts)
-          .map(([id, amt]) => ({ id: Number(id), amount: Number(amt) }))
+          .map(([id, amt]) => ({ derivatedProductId: Number(id), amount: Number(amt) }))
           .filter(item => item.amount > 0)
         
         if (items.length === 0) throw new Error('Informe a quantidade para pelo menos uma derivação')
-        payload.derivated_products = items
+        payload.derivatedProducts = items
       }
 
-      const response = await privateInstance.post('https://server.directacrm.com.br/api:u5l6DcFV/stock-moviments', payload)
+      const response = await privateInstance.post('/tenant/stock-moviments', payload)
       return response.data
     },
     onSuccess: () => {
@@ -205,18 +212,18 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                 <Label className="flex items-center gap-2 text-muted-foreground">
                   Tipo
                 </Label>
-                <Select value={type} onValueChange={(v: 'inflow' | 'outflow') => setType(v)}>
-                  <SelectTrigger className={`!w-full ${type === 'inflow' ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
+                <Select value={type} onValueChange={(v: 'in' | 'out') => setType(v)}>
+                  <SelectTrigger className={`!w-full ${type === 'in' ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="inflow" className="text-green-700 focus:text-green-800 focus:bg-green-50">
+                    <SelectItem value="in" className="text-green-700 focus:text-green-800 focus:bg-green-50">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-green-500" />
                         Entrada
                       </div>
                     </SelectItem>
-                    <SelectItem value="outflow" className="text-red-700 focus:text-red-800 focus:bg-red-50">
+                    <SelectItem value="out" className="text-red-700 focus:text-red-800 focus:bg-red-50">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-red-500" />
                         Saída
@@ -241,6 +248,23 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                         {dc.name}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2 text-muted-foreground">
+                  Tipo de Estoque
+                </Label>
+                <Select value={stockType} onValueChange={(v: 'physical' | 'reserved') => setStockType(v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="physical">Físico</SelectItem>
+                    <SelectItem value="reserved">Reservado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -386,13 +410,13 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending} className="w-full">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || !isFormValid} className={`w-full ${type === 'inflow' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+          <Button onClick={handleSubmit} disabled={isPending || !isFormValid} className={`w-full ${type === 'in' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
             {isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              type === 'inflow' ? <Plus className="mr-2 h-4 w-4" /> : <ArrowRightLeft className="mr-2 h-4 w-4" />
+              type === 'in' ? <Plus className="mr-2 h-4 w-4" /> : <ArrowRightLeft className="mr-2 h-4 w-4" />
             )}
-            {type === 'inflow' ? 'Confirmar Entrada' : 'Confirmar Saída'}
+            {type === 'in' ? 'Confirmar Entrada' : 'Confirmar Saída'}
           </Button>
         </SheetFooter>
       </SheetContent>

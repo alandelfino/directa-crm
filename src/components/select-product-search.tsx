@@ -68,14 +68,22 @@ export function SelectProductSearch({
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', 'select-search', searchType, debouncedQuery],
     queryFn: async () => {
-      let url = '/api:c3X9fE5j/products?page=1&per_page=50'
-      if (searchType === 'name') {
-        url += `&name=${encodeURIComponent(debouncedQuery)}`
-      } else {
-        url += `&sku=${encodeURIComponent(debouncedQuery)}`
+      const params = new URLSearchParams()
+      params.append('page', '1')
+      params.append('limit', '50')
+      params.append('sortBy', 'name')
+      params.append('orderBy', 'asc')
+
+      if (debouncedQuery) {
+        const filter = JSON.stringify({ operator: 'cont', value: debouncedQuery })
+        if (searchType === 'name') {
+          params.append('name', filter)
+        } else {
+          params.append('sku', filter)
+        }
       }
 
-      const response = await privateInstance.get(url)
+      const response = await privateInstance.get(`/tenant/products?${params.toString()}`)
       const data = response.data
       
       let items: Product[] = []
@@ -104,7 +112,7 @@ export function SelectProductSearch({
     queryKey: ['product', value],
     queryFn: async () => {
       if (!value) return null
-      const response = await privateInstance.get(`/api:c3X9fE5j/products/${value}`)
+      const response = await privateInstance.get(`/tenant/products/${value}`)
       return response.data as Product
     },
     enabled: !!value && open === false

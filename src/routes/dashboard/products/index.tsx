@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon } from 'lucide-react'
+import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -18,6 +18,12 @@ import { DerivatedProductPricesSheet } from './-components/derivated-product-pri
 import { SimpleProductPricesSheet } from './-components/simple-product-prices/simple-product-prices-sheet'
 import { ProductImagesSheet as DerivatedProductImagesSheet } from './-components/derivated-product-images-sheet'
 import { ProductImagesSheet as SimpleProductImagesSheet } from './-components/product-images-sheet'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: RouteComponent,
@@ -67,17 +73,33 @@ function RouteComponent() {
   const [selected, setSelected] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [sortBy] = useState('createdAt')
-  const [orderBy] = useState('desc')
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [orderBy, setOrderBy] = useState('desc')
 
-  const [filterName] = useState('')
-  const [filterNameOperator] = useState('cont')
-  const [filterSku] = useState('')
-  const [filterSkuOperator] = useState('cont')
-  const [filterActive] = useState('all')
-  const [filterActiveOperator] = useState('eq')
-  const [filterType] = useState('all')
-  const [filterTypeOperator] = useState('eq')
+  const [filterName, setFilterName] = useState('')
+  const [filterNameOperator, setFilterNameOperator] = useState('cont')
+  const [filterSku, setFilterSku] = useState('')
+  const [filterSkuOperator, setFilterSkuOperator] = useState('cont')
+  const [filterActive, setFilterActive] = useState('all')
+  const [filterActiveOperator, setFilterActiveOperator] = useState('eq')
+  const [filterType, setFilterType] = useState('all')
+  const [filterTypeOperator, setFilterTypeOperator] = useState('eq')
+
+  // Local Filter State (Popover)
+  const [localSortBy, setLocalSortBy] = useState('createdAt')
+  const [localOrderBy, setLocalOrderBy] = useState('desc')
+  const [localFilterName, setLocalFilterName] = useState('')
+  const [localFilterNameOperator, setLocalFilterNameOperator] = useState('cont')
+  const [localFilterSku, setLocalFilterSku] = useState('')
+  const [localFilterSkuOperator, setLocalFilterSkuOperator] = useState('cont')
+  const [localFilterActive, setLocalFilterActive] = useState('all')
+  const [localFilterActiveOperator, setLocalFilterActiveOperator] = useState('eq')
+  const [localFilterType, setLocalFilterType] = useState('all')
+  const [localFilterTypeOperator, setLocalFilterTypeOperator] = useState('eq')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+
+  // Calculate active filters count
+  const activeFilterCount = (filterName ? 1 : 0) + (filterSku ? 1 : 0) + (filterActive !== 'all' ? 1 : 0) + (filterType !== 'all' ? 1 : 0)
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
@@ -207,7 +229,220 @@ function RouteComponent() {
     <div className='flex flex-col w-full h-full overflow-x-hidden'>
       <Topbar title="Produtos" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Produtos', href: '/dashboard/products', isLast: true }]} />
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden min-w-0'>
-        <div className='border-b flex w-full items-center p-2 gap-4 max-w-full overflow-hidden justify-end'>
+        <div className='border-b flex w-full items-center p-2 gap-4 max-w-full overflow-hidden'>
+          <div className='flex items-center gap-2 flex-1'>
+            <Popover open={isFilterOpen} onOpenChange={(open) => {
+              if (open) {
+                setLocalSortBy(sortBy)
+                setLocalOrderBy(orderBy)
+                setLocalFilterName(filterName)
+                setLocalFilterNameOperator(filterNameOperator)
+                setLocalFilterSku(filterSku)
+                setLocalFilterSkuOperator(filterSkuOperator)
+                setLocalFilterActive(filterActive)
+                setLocalFilterActiveOperator(filterActiveOperator)
+                setLocalFilterType(filterType)
+                setLocalFilterTypeOperator(filterTypeOperator)
+              }
+              setIsFilterOpen(open)
+            }}>
+              <PopoverTrigger asChild>
+                <Button variant={'outline'} size="sm">
+                  <Funnel className="size-[0.85rem]" /> Filtros
+                  {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-5" align="start">
+                <div className="flex flex-col gap-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <ArrowUpDown className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Ordenação</h4>
+                    </div>
+                    <div className="flex gap-2 w-full">
+                      <div className="flex-1">
+                        <Select value={localSortBy} onValueChange={setLocalSortBy}>
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder="Campo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="createdAt">Criado em</SelectItem>
+                            <SelectItem value="id">ID</SelectItem>
+                            <SelectItem value="name">Nome</SelectItem>
+                            <SelectItem value="sku">SKU</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
+                        title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                      >
+                        {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Funnel className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Filtros</h4>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="name"
+                            value={localFilterName}
+                            onChange={(e) => setLocalFilterName(e.target.value)}
+                            className="h-9 flex-1"
+                            placeholder="Filtrar por nome..."
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="sku" className="text-xs font-medium text-muted-foreground">SKU</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterSkuOperator} onValueChange={setLocalFilterSkuOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="sku"
+                            value={localFilterSku}
+                            onChange={(e) => setLocalFilterSku(e.target.value)}
+                            className="h-9 flex-1"
+                            placeholder="Filtrar por SKU..."
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="active" className="text-xs font-medium text-muted-foreground">Status</Label>
+                        <div className="flex gap-2">
+                           <Select value={localFilterActiveOperator} onValueChange={setLocalFilterActiveOperator} disabled>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="eq">Igual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={localFilterActive} onValueChange={setLocalFilterActive}>
+                            <SelectTrigger id="active" className="h-9 w-full flex-1">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="true">Ativo</SelectItem>
+                              <SelectItem value="false">Inativo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="type" className="text-xs font-medium text-muted-foreground">Tipo</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterTypeOperator} onValueChange={setLocalFilterTypeOperator} disabled>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="eq">Igual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={localFilterType} onValueChange={setLocalFilterType}>
+                            <SelectTrigger id="type" className="h-9 w-full flex-1">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="simple">Simples</SelectItem>
+                              <SelectItem value="with_derivations">Com Variações</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                      setLocalSortBy('createdAt')
+                      setLocalOrderBy('desc')
+                      setLocalFilterName('')
+                      setLocalFilterNameOperator('cont')
+                      setLocalFilterSku('')
+                      setLocalFilterSkuOperator('cont')
+                      setLocalFilterActive('all')
+                      setLocalFilterActiveOperator('eq')
+                      setLocalFilterType('all')
+                      setLocalFilterTypeOperator('eq')
+                      
+                      setSortBy('createdAt')
+                      setOrderBy('desc')
+                      setFilterName('')
+                      setFilterNameOperator('cont')
+                      setFilterSku('')
+                      setFilterSkuOperator('cont')
+                      setFilterActive('all')
+                      setFilterActiveOperator('eq')
+                      setFilterType('all')
+                      setFilterTypeOperator('eq')
+                      setCurrentPage(1)
+                      setIsFilterOpen(false)
+                    }}>
+                      Limpar tudo
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => {
+                      setSortBy(localSortBy)
+                      setOrderBy(localOrderBy)
+                      setFilterName(localFilterName)
+                      setFilterNameOperator(localFilterNameOperator)
+                      setFilterSku(localFilterSku)
+                      setFilterSkuOperator(localFilterSkuOperator)
+                      setFilterActive(localFilterActive)
+                      setFilterActiveOperator(localFilterActiveOperator)
+                      setFilterType(localFilterType)
+                      setFilterTypeOperator(localFilterTypeOperator)
+                      setCurrentPage(1)
+                      setIsFilterOpen(false)
+                    }}>
+                      Aplicar
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className='flex items-center gap-2'>
             <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }} size={'sm'}>
               {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}

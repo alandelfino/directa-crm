@@ -13,6 +13,7 @@ import { Edit, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type StoreItem = {
   id: number
@@ -148,7 +149,11 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder='Nome da loja' {...field} disabled={loading || isPending} />
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Input placeholder='Nome da loja' {...field} disabled={loading || isPending} />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,18 +162,22 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 <FormField control={form.control as any} name='priceTableId' render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tabela de Preço</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                      <FormControl>
-                        <SelectTrigger disabled={loading || isPending} className="w-full">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {priceTables?.map((pt: any) => (
-                          <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                          <SelectTrigger disabled={loading || isPending} className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {priceTables?.map((pt: any) => (
+                              <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -178,14 +187,18 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <textarea
-                      className={cn(
-                        "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                      )}
-                      placeholder='Descrição da loja'
-                      {...field}
-                      disabled={loading || isPending}
-                    />
+                    {loading ? (
+                      <Skeleton className="h-16 w-full" />
+                    ) : (
+                      <textarea
+                        className={cn(
+                          "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        )}
+                        placeholder='Descrição da loja'
+                        {...field}
+                        disabled={loading || isPending}
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -195,18 +208,22 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 <FormField control={form.control as any} name='desktopProductMediaSizeId' render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mídia Desktop</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                      <FormControl>
-                        <SelectTrigger disabled={loading || isPending} className="w-full">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {mediaSizes?.map((ms: any) => (
-                          <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                          <SelectTrigger disabled={loading || isPending} className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes?.map((ms: any) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -214,18 +231,22 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 <FormField control={form.control as any} name='tabletProductMediaSizeId' render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mídia Tablet</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                      <FormControl>
-                        <SelectTrigger disabled={loading || isPending} className="w-full">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {mediaSizes?.map((ms: any) => (
-                          <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                          <SelectTrigger disabled={loading || isPending} className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes?.map((ms: any) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -233,18 +254,22 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 <FormField control={form.control as any} name='mobileProductMediaSizeId' render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mídia Mobile</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                      <FormControl>
-                        <SelectTrigger disabled={loading || isPending} className="w-full">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {mediaSizes?.map((ms: any) => (
-                          <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                          <SelectTrigger disabled={loading || isPending} className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes?.map((ms: any) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -252,18 +277,22 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 <FormField control={form.control as any} name='mobileAppProductMediaSizeId' render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mídia App</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                      <FormControl>
-                        <SelectTrigger disabled={loading || isPending} className="w-full">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {mediaSizes?.map((ms: any) => (
-                          <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                          <SelectTrigger disabled={loading || isPending} className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mediaSizes?.map((ms: any) => (
+                              <SelectItem key={ms.id} value={String(ms.id)}>{ms.name} ({ms.width}x{ms.height})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

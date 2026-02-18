@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
@@ -55,7 +56,7 @@ export function EditMediaSizeSheet({
   async function fetchMediaSize() {
     try {
       setLoading(true)
-      const response = await privateInstance.get(`/api:jJaPcZVn/media_size/${mediaSizeId}`)
+      const response = await privateInstance.get(`/tenant/media-sizes/${mediaSizeId}`)
       const data = response?.data
       if (!data) {
         throw new Error('Resposta inválida ao buscar tamanho de mídia')
@@ -147,7 +148,11 @@ export function EditMediaSizeSheet({
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Banner Principal" {...field} disabled={loading || isPending} />
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Input placeholder="Ex: Banner Principal" {...field} disabled={loading || isPending} />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,7 +167,11 @@ export function EditMediaSizeSheet({
                     <FormItem>
                       <FormLabel>Largura (px)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="1920" {...field} disabled={loading || isPending} />
+                        {loading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (
+                          <Input type="number" placeholder="1920" {...field} disabled={loading || isPending} />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -176,7 +185,11 @@ export function EditMediaSizeSheet({
                     <FormItem>
                       <FormLabel>Altura (px)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="1080" {...field} disabled={loading || isPending} />
+                        {loading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (
+                          <Input type="number" placeholder="1080" {...field} disabled={loading || isPending} />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -190,19 +203,23 @@ export function EditMediaSizeSheet({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Dispositivo</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="desktop">Desktop</SelectItem>
-                        <SelectItem value="tablet">Tablet</SelectItem>
-                        <SelectItem value="mobile">Celular</SelectItem>
-                        <SelectItem value="mobile_app">Aplicativo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="desktop">Desktop</SelectItem>
+                            <SelectItem value="tablet">Tablet</SelectItem>
+                            <SelectItem value="mobile">Celular</SelectItem>
+                            <SelectItem value="mobile_app">Aplicativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -215,21 +232,25 @@ export function EditMediaSizeSheet({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Ajuste (Fit)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="scale-down">Reduzir</SelectItem>
-                          <SelectItem value="contain">Conter</SelectItem>
-                          <SelectItem value="cover">Cobrir</SelectItem>
-                          <SelectItem value="crop">Cortar</SelectItem>
-                          <SelectItem value="pad">Preencher</SelectItem>
-                          <SelectItem value="squeeze">Esticar</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        {loading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="scale-down">Reduzir</SelectItem>
+                              <SelectItem value="contain">Conter</SelectItem>
+                              <SelectItem value="cover">Cobrir</SelectItem>
+                              <SelectItem value="crop">Cortar</SelectItem>
+                              <SelectItem value="pad">Preencher</SelectItem>
+                              <SelectItem value="squeeze">Esticar</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -242,7 +263,11 @@ export function EditMediaSizeSheet({
                     <FormItem>
                       <FormLabel>Qualidade (1-100)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="85" min={1} max={100} {...field} value={field.value ?? ''} disabled={loading || isPending} />
+                        {loading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (
+                          <Input type="number" placeholder="85" min={1} max={100} {...field} value={field.value ?? ''} disabled={loading || isPending} />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -258,16 +283,20 @@ export function EditMediaSizeSheet({
                     <FormItem>
                       <FormLabel>Background</FormLabel>
                       <FormControl>
-                        <div className="flex gap-2">
-                          <Input placeholder="Ex: #ffffff" {...field} disabled={loading || isPending} />
-                          <input
-                            type="color"
-                            className="h-10 w-12 rounded-md border border-input bg-background p-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                            value={field.value && /^#[0-9A-F]{6}$/i.test(field.value) ? field.value : '#ffffff'}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            disabled={loading || isPending}
-                          />
-                        </div>
+                        {loading ? (
+                          <Skeleton className="h-10 w-full" />
+                        ) : (
+                          <div className="flex gap-2">
+                            <Input placeholder="Ex: #ffffff" {...field} disabled={loading || isPending} />
+                            <input
+                              type="color"
+                              className="h-10 w-12 rounded-md border border-input bg-background p-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                              value={field.value && /^#[0-9A-F]{6}$/i.test(field.value) ? field.value : '#ffffff'}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              disabled={loading || isPending}
+                            />
+                          </div>
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -280,17 +309,21 @@ export function EditMediaSizeSheet({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Formato</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full" disabled={loading || isPending}>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto</SelectItem>
-                          <SelectItem value="jpeg">JPEG</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        {loading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="w-full" disabled={loading || isPending}>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="auto">Auto</SelectItem>
+                              <SelectItem value="jpeg">JPEG</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -304,14 +337,18 @@ export function EditMediaSizeSheet({
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <textarea
-                        className={cn(
-                          "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        )}
-                        placeholder="Descrição opcional..."
-                        {...field}
-                        disabled={loading || isPending}
-                      />
+                      {loading ? (
+                        <Skeleton className="h-16 w-full" />
+                      ) : (
+                        <textarea
+                          className={cn(
+                            "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          )}
+                          placeholder="Descrição opcional..."
+                          {...field}
+                          disabled={loading || isPending}
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>

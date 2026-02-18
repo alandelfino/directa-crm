@@ -14,6 +14,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SignUpIndexRouteImport } from './routes/sign-up/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as CompanyNotFoundIndexRouteImport } from './routes/company-not-found/index'
 import { Route as EmailConfirmationTokenRouteImport } from './routes/email-confirmation/$token'
 import { Route as DashboardSettingsRouteRouteImport } from './routes/dashboard/settings/route'
@@ -65,6 +66,11 @@ const SignInIndexRoute = SignInIndexRouteImport.update({
   id: '/sign-in/',
   path: '/sign-in/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const CompanyNotFoundIndexRoute = CompanyNotFoundIndexRouteImport.update({
   id: '/company-not-found/',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/company-not-found': typeof CompanyNotFoundIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
@@ -246,10 +253,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/user': typeof UserRouteRoute
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/company-not-found': typeof CompanyNotFoundIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
@@ -284,6 +291,7 @@ export interface FileRoutesById {
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/company-not-found/': typeof CompanyNotFoundIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/sign-in/': typeof SignInIndexRoute
   '/sign-up/': typeof SignUpIndexRoute
   '/dashboard/brands/': typeof DashboardBrandsIndexRoute
@@ -319,6 +327,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/email-confirmation/$token'
     | '/company-not-found'
+    | '/dashboard/'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
@@ -347,10 +356,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
     | '/user'
     | '/email-confirmation/$token'
     | '/company-not-found'
+    | '/dashboard'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
@@ -384,6 +393,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/email-confirmation/$token'
     | '/company-not-found/'
+    | '/dashboard/'
     | '/sign-in/'
     | '/sign-up/'
     | '/dashboard/brands/'
@@ -457,6 +467,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/company-not-found/': {
       id: '/company-not-found/'
@@ -682,6 +699,7 @@ const DashboardSettingsRouteRouteWithChildren =
 
 interface DashboardRouteRouteChildren {
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
+  DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardBrandsIndexRoute: typeof DashboardBrandsIndexRoute
   DashboardCategoriesIndexRoute: typeof DashboardCategoriesIndexRoute
   DashboardCustomersIndexRoute: typeof DashboardCustomersIndexRoute
@@ -698,6 +716,7 @@ interface DashboardRouteRouteChildren {
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
+  DashboardIndexRoute: DashboardIndexRoute,
   DashboardBrandsIndexRoute: DashboardBrandsIndexRoute,
   DashboardCategoriesIndexRoute: DashboardCategoriesIndexRoute,
   DashboardCustomersIndexRoute: DashboardCustomersIndexRoute,

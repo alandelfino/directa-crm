@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
-import { List } from 'lucide-react'
+import { List, RefreshCw } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { DerivationItemCreateDialog } from './derivation-item-create-dialog'
@@ -22,6 +23,7 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
   const [open, setOpen] = useState(false)
   const [itemsLocal, setItemsLocal] = useState<DerivationItem[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [isReordering, setIsReordering] = useState(false)
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['derivation-items', derivationId],
@@ -60,6 +62,30 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
   useEffect(() => {
     setItemsLocal(items)
   }, [items])
+
+  const { mutateAsync: saveOrder } = useMutation({
+    mutationFn: async (payload: { derivationItemId: number; order: number }) => {
+      const response = await privateInstance.put(`/tenant/derivation-items/reorder`, payload)
+      if (response.status !== 200 && response.status !== 204) {
+        throw new Error('Erro ao reordenar itens')
+      }
+    },
+    onSuccess: () => {
+      toast.success('Ordem dos itens atualizada com sucesso!')
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao reordenar itens', {
+        description: errorData?.detail || 'Não foi possível atualizar a ordem dos itens.'
+      })
+    },
+    onMutate: () => {
+      setIsReordering(true)
+    },
+    onSettled: () => {
+      setIsReordering(false)
+    }
+  })
 
   const selectedItem = useMemo(() => itemsLocal.find((i) => i.id === selectedId) ?? null, [itemsLocal, selectedId])
 
@@ -105,7 +131,6 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
             <div className='rounded-sm border overflow-hidden h-[24px] w-[24px]'>
               <img src={i.value} alt='Imagem do item' className='h-full w-full object-cover' />
             </div>
-            <span className='truncate text-sm text-muted-foreground' title={i.value}>{i.value}</span>
           </div>
         ) : (
           <span className='truncate text-sm text-muted-foreground' title={i.value}>{i.value}</span>
@@ -143,6 +168,20 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
         <div className='flex flex-col flex-1 overflow-hidden'>
           {/* Actions */}
           <div className='flex items-center gap-2 px-4 justify-end'>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1"
+              onClick={() => { setSelectedId(null); refetch() }}
+              disabled={isLoading || isRefetching}
+            >
+              {isLoading || isRefetching ? (
+                <RefreshCw className="size-[0.85rem] animate-spin" />
+              ) : (
+                <RefreshCw className="size-[0.85rem]" />
+              )}
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
             {selectedItem ? (
               <>
                 <DerivationItemEditDialog derivationType={derivationType} item={selectedItem} onUpdated={() => { refetch(); }} />
@@ -161,10 +200,20 @@ export function DerivationItemsSheet({ derivationId, derivationType }: { derivat
             <DataTable<DerivationItem>
               columns={columns}
               data={itemsLocal}
-              loading={isLoading || isRefetching}
+              loading={isLoading || isRefetching || isReordering}
               hideFooter={true}
-              enableReorder={false} // Disabled reorder as per doc limitations
-              reorderDisabled={true}
+              enableReorder={true}
+              reorderDisabled={isReordering}
+              onReorder={(ordered) => {
+                setItemsLocal(ordered)
+              }}
+              onReorderItem={async ({ item, index }) => {
+                try {
+                  await saveOrder({ derivationItemId: item.id, order: index + 1 })
+                } catch {
+                  refetch()
+                }
+              }}
               onRowClick={(item) => setSelectedId(item.id)}
               rowIsSelected={(item) => item.id === selectedId}
             />

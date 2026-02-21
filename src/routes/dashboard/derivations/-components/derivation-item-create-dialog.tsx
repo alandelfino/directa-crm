@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { ImagePickerDialog } from '@/components/image-picker-dialog'
+import { MediaSelectorDialog } from '../../media/-components/media-selector-dialog'
+import type { MediaItem } from '../../media/index'
 import { Loader, Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -36,6 +37,7 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, onCre
 }) {
   const [open, setOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
 
   const schema = getSchemaByType(derivationType)
   const form = useForm<z.infer<typeof schema>>({
@@ -45,7 +47,15 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, onCre
 
   const { isPending: creating, mutate: createItem } = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
-      const payload: any = { derivationId: derivationId, value: values.value, name: values.nome }
+      const payload: any = { derivationId: derivationId, name: values.nome }
+      if (derivationType === 'image') {
+        if (!selectedMedia?.id) {
+          throw new Error('Mídia não selecionada')
+        }
+        payload.value = String(selectedMedia.id)
+      } else {
+        payload.value = values.value
+      }
       const response = await privateInstance.post(`/tenant/derivation-items`, payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao cadastrar item')
       return response
@@ -55,6 +65,7 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, onCre
       form.reset({ nome: '', value: derivationType === 'color' ? '#000000' : '' })
       setOpen(false)
       setPickerOpen(false)
+      setSelectedMedia(null)
       onCreated?.()
     },
     onError: (error: any) => {
@@ -71,6 +82,7 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, onCre
       if (!o) {
         form.reset({ nome: '', value: derivationType === 'color' ? '#000000' : '' })
         setPickerOpen(false)
+        setSelectedMedia(null)
       }
     }}>
       <DialogTrigger asChild>
@@ -131,10 +143,19 @@ export function DerivationItemCreateDialog({ derivationId, derivationType, onCre
                           )}
                         </div>
                       </div>
-                      <ImagePickerDialog
+                      <MediaSelectorDialog
                         open={pickerOpen}
                         onOpenChange={setPickerOpen}
-                        onInsert={(url) => { field.onChange(url); setPickerOpen(false) }}
+                        onSelect={(medias) => {
+                          const first = medias[0]
+                          if (first) {
+                            setSelectedMedia(first)
+                            if (first.url) {
+                              field.onChange(first.url)
+                            }
+                          }
+                          setPickerOpen(false)
+                        }}
                       />
                     </div>
                   </FormControl>

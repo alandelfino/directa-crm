@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { ImagePickerDialog } from '@/components/image-picker-dialog'
+import { MediaSelectorDialog } from '../../media/-components/media-selector-dialog'
+import type { MediaItem } from '../../media/index'
 import { Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -35,6 +36,7 @@ export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
 }) {
   const [open, setOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
 
   const schema = getSchemaByType(derivationType)
   const form = useForm<z.infer<typeof schema>>({
@@ -50,7 +52,14 @@ export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
 
   const { isPending: updating, mutate: updateItem } = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
-      const payload: any = { value: values.value, name: values.nome }
+      const payload: any = { name: values.nome }
+      if (derivationType === 'image') {
+        if (selectedMedia?.id) {
+          payload.value = String(selectedMedia.id)
+        }
+      } else {
+        payload.value = values.value
+      }
       const response = await privateInstance.put(`/tenant/derivation-items/${item.id}`, payload)
       if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao atualizar item')
       return response
@@ -59,6 +68,7 @@ export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
       toast.success('Item atualizado com sucesso!')
       setOpen(false)
       setPickerOpen(false)
+      setSelectedMedia(null)
       onUpdated?.()
     },
     onError: (error: any) => {
@@ -74,6 +84,7 @@ export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
       setOpen(o)
       if (!o) {
         setPickerOpen(false)
+        setSelectedMedia(null)
       }
     }}>
       <DialogTrigger asChild>
@@ -132,10 +143,19 @@ export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
                           )}
                         </div>
                       </div>
-                      <ImagePickerDialog
+                      <MediaSelectorDialog
                         open={pickerOpen}
                         onOpenChange={setPickerOpen}
-                        onInsert={(url) => { field.onChange(url); setPickerOpen(false) }}
+                        onSelect={(medias) => {
+                          const first = medias[0]
+                          if (first) {
+                            setSelectedMedia(first)
+                            if (first.url) {
+                              field.onChange(first.url)
+                            }
+                          }
+                          setPickerOpen(false)
+                        }}
                       />
                     </div>
                   </FormControl>

@@ -31,6 +31,7 @@ type DataTableProps<T> = {
   totalItems?: number
   onChange?: (next: { page?: number; perPage?: number }) => void
   onReorder?: (items: T[]) => void
+  onReorderItem?: (args: { item: T; index: number }) => void
   onRowClick?: (item: T) => void
   rowIsSelected?: (item: T) => boolean
   skeletonCount?: number
@@ -51,6 +52,7 @@ export function DataTable<T extends { id?: number | string }>({
   totalItems,
   onChange,
   onReorder,
+  onReorderItem,
   onRowClick,
   skeletonCount,
   rowClassName,
@@ -102,6 +104,10 @@ export function DataTable<T extends { id?: number | string }>({
       const next = arrayMove(ordered, oldIndex, newIndex)
       setOrdered(next)
       onReorder?.(next)
+      const movedItem = next[newIndex] as T | undefined
+      if (movedItem) {
+        onReorderItem?.({ item: movedItem, index: newIndex })
+      }
     }
   }
 

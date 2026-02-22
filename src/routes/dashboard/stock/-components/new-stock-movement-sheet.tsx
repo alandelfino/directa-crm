@@ -19,10 +19,10 @@ type DistributionCenter = {
   name: string
 }
 
-type Unit = {
+type UnitOfMeasurement = {
   id: number
   name: string
-  type: 'integer' | 'decimal'
+  numberType: 'integer' | 'decimal'
 }
 
 type Product = {
@@ -30,13 +30,51 @@ type Product = {
   name: string
   sku?: string
   type: 'simple' | 'with_derivations'
-  unit?: Unit
+  unitOfMeasurement?: UnitOfMeasurement
 }
 
 type DerivatedProduct = {
   id: number
   sku?: string
   name?: string
+}
+
+function normalizeDecimalInput(raw: string): string {
+  let val = raw.replace(/[^0-9,]/g, '')
+  if (!val) return ''
+  const parts = val.split(',')
+  const integerPart = parts[0] ?? ''
+  const decimalsRaw = parts.slice(1).join('')
+  if (parts.length === 1) {
+    return integerPart
+  }
+  const safeInteger = integerPart || '0'
+  const decimalPart = decimalsRaw.slice(0, 2)
+  if (decimalsRaw === '') {
+    return `${safeInteger},`
+  }
+  return `${safeInteger},${decimalPart}`
+}
+
+function parseQuantityToCents(raw: string): number {
+  if (!raw) return 0
+  const cleaned = raw.replace(/\s/g, '')
+  if (!cleaned) return 0
+  const normalized = cleaned.replace(/\./g, '').replace(',', '.')
+  const value = Number(normalized)
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.round(value * 100)
+}
+
+function getErrorTitleDetail(error: any): { title: string; detail: string } {
+  const data = error?.response?.data
+  const title = data?.title ?? 'Erro'
+  const detail =
+    data?.detail ??
+    data?.message ??
+    error?.message ??
+    'Erro ao cadastrar movimento'
+  return { title, detail }
 }
 
 export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void }) {
@@ -128,11 +166,15 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       }
 
       if (product?.type === 'simple') {
-        if (!amount || Number(amount) <= 0) throw new Error('Informe uma quantidade válida')
-        payload.amount = Number(amount)
+        const amountCents = parseQuantityToCents(amount)
+        if (amountCents <= 0) throw new Error('Informe uma quantidade válida')
+        payload.amount = amountCents
       } else if (product?.type === 'with_derivations') {
         const items = Object.entries(derivationsAmounts)
-          .map(([id, amt]) => ({ derivatedProductId: Number(id), amount: Number(amt) }))
+          .map(([id, amt]) => {
+            const amountCents = parseQuantityToCents(amt)
+            return { derivatedProductId: Number(id), amount: amountCents }
+          })
           .filter(item => item.amount > 0)
         
         if (items.length === 0) throw new Error('Informe a quantidade para pelo menos uma derivação')
@@ -149,15 +191,8 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] })
     },
     onError: (error: any) => {
-      const data = error?.response?.data
-      const message = data?.message ?? 'Erro ao cadastrar movimento'
-      const title = data?.payload?.title
-
-      if (title) {
-        toast.error(title, { description: message })
-      } else {
-        toast.error(message)
-      }
+      const { title, detail } = getErrorTitleDetail(error)
+      toast.error(title, { description: detail })
     }
   })
 
@@ -165,9 +200,10 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
     try {
       await mutateAsync()
     } catch (error: any) {
-      // Error is handled in mutation onError or caught here if thrown before mutation
-      if (error.message && !error?.response) {
-        toast.error(error.message)
+      if (!error?.response) {
+        const title = 'Erro'
+        const detail = error?.message ?? 'Ocorreu um erro inesperado'
+        toast.error(title, { description: detail })
       }
     }
   }
@@ -175,10 +211,10 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   const isFormValid = useMemo(() => {
     if (!productId || !distributionCenterId) return false
     if (product?.type === 'simple') {
-      return !!amount && Number(amount) > 0
+      return parseQuantityToCents(amount) > 0
     }
     if (product?.type === 'with_derivations') {
-      return Object.values(derivationsAmounts).some(v => Number(v) > 0)
+      return Object.values(derivationsAmounts).some(v => parseQuantityToCents(v) > 0)
     }
     return false
   }, [productId, distributionCenterId, product, amount, derivationsAmounts])
@@ -282,7 +318,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
               />
             </div>
 
-            {product && (
+            {productId && open && (
               <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                 <div className="flex items-center gap-4 mb-4">
                   <Separator className="flex-1" />
@@ -294,35 +330,47 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                   <div className="p-4 bg-muted/30 border-b flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Archive className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{product.name}</span>
+                      {product ? (
+                        <span className="font-medium text-sm">{product.name}</span>
+                      ) : (
+                        <span className="h-4 w-32 rounded bg-muted animate-pulse" />
+                      )}
                     </div>
-                    {product.sku && <Badge variant="outline" className="font-mono text-[10px]">{product.sku}</Badge>}
+                    {product ? (
+                      product.sku && <Badge variant="outline" className="font-mono text-[10px]">{product.sku}</Badge>
+                    ) : (
+                      <span className="h-4 w-16 rounded bg-muted animate-pulse" />
+                    )}
                   </div>
                   
                   <div className="p-4">
-                    {isLoadingProduct ? (
-                      <div className="flex justify-center py-8">
+                    {isLoadingProduct || !product ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          Carregando detalhes do produto...
+                        </span>
                       </div>
                     ) : product.type === 'simple' ? (
                       <div className="grid gap-2">
                         <Label>Quantidade</Label>
                         <div className="flex items-center gap-2">
                           <Input 
-                            type="number" 
-                            min={product.unit?.type === 'decimal' ? "0.001" : "1"}
-                            step={product.unit?.type === 'decimal' ? "0.001" : "1"}
+                            type="text"
+                            inputMode={product.unitOfMeasurement?.numberType === 'decimal' ? "decimal" : "numeric"}
                             placeholder="0"
                             value={amount}
                             onChange={(e) => {
                               let val = e.target.value
-                              if (product.unit?.type !== 'decimal' && (val.includes('.') || val.includes(','))) {
-                                val = val.split(/[.,]/)[0]
+                              if (product.unitOfMeasurement?.numberType === 'decimal') {
+                                val = normalizeDecimalInput(val)
+                              } else {
+                                val = val.replace(/[^0-9]/g, '')
                               }
                               setAmount(val)
                             }}
                             onKeyDown={(e) => {
-                              if (product.unit?.type !== 'decimal' && (e.key === '.' || e.key === ',')) {
+                              if (product.unitOfMeasurement?.numberType !== 'decimal' && (e.key === '.' || e.key === ',')) {
                                 e.preventDefault()
                               }
                             }}
@@ -361,16 +409,17 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                                     <TableCell className="py-2 font-medium">{deriv.name || '—'}</TableCell>
                                     <TableCell className="py-2 text-right">
                                       <Input 
-                                        type="number" 
-                                        min="0"
-                                        step={product.unit?.type === 'decimal' ? "0.001" : "1"}
+                                        type="text"
+                                        inputMode={product.unitOfMeasurement?.numberType === 'decimal' ? "decimal" : "numeric"}
                                         placeholder="0"
                                         className="h-8 w-24 ml-auto text-right"
                                         value={derivationsAmounts[deriv.id] || ''}
                                         onChange={(e) => {
                                           let val = e.target.value
-                                          if (product.unit?.type !== 'decimal' && (val.includes('.') || val.includes(','))) {
-                                            val = val.split(/[.,]/)[0]
+                                          if (product.unitOfMeasurement?.numberType === 'decimal') {
+                                            val = normalizeDecimalInput(val)
+                                          } else {
+                                            val = val.replace(/[^0-9]/g, '')
                                           }
                                           setDerivationsAmounts(prev => ({
                                             ...prev,
@@ -378,7 +427,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                                           }))
                                         }}
                                         onKeyDown={(e) => {
-                                          if (product.unit?.type !== 'decimal' && (e.key === '.' || e.key === ',')) {
+                                          if (product.unitOfMeasurement?.numberType !== 'decimal' && (e.key === '.' || e.key === ',')) {
                                             e.preventDefault()
                                           }
                                         }}

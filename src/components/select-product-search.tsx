@@ -48,6 +48,7 @@ export function SelectProductSearch({
   const [searchType, setSearchType] = React.useState<'name' | 'sku'>('name')
   const [searchQuery, setSearchQuery] = React.useState('')
   const [debouncedQuery, setDebouncedQuery] = React.useState('')
+  const [selectedProductLocal, setSelectedProductLocal] = React.useState<Product | null>(null)
 
   // Debounce effect
   React.useEffect(() => {
@@ -107,8 +108,8 @@ export function SelectProductSearch({
     staleTime: 1000 * 60 // 1 minute cache
   })
 
-  // Fetch selected product details if we have a value but it's not in the list
-  const { data: selectedProductData } = useQuery({
+  // Fetch selected product details if we have a value but it's not in the list (e.g. edição)
+  const { data: selectedProductData, isLoading: isLoadingSelected } = useQuery({
     queryKey: ['product', value],
     queryFn: async () => {
       if (!value) return null
@@ -119,12 +120,15 @@ export function SelectProductSearch({
   })
 
   const selectedProduct = React.useMemo(() => {
+    if (selectedProductLocal && selectedProductLocal.id === value) {
+      return selectedProductLocal
+    }
     if (products) {
       const found = products.find(p => p.id === value)
       if (found) return found
     }
-    return selectedProductData
-  }, [products, value, selectedProductData])
+    return selectedProductData ?? null
+  }, [selectedProductLocal, products, value, selectedProductData])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -142,7 +146,14 @@ export function SelectProductSearch({
                 <span className="truncate">{selectedProduct.name}</span>
               </span>
             ) : (
-              isLoading ? "Carregando..." : "Produto não encontrado"
+              isLoading || isLoadingSelected ? (
+                <span className="inline-flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Carregando...
+                </span>
+              ) : (
+                "Produto não encontrado"
+              )
             )
           ) : (
             <span className="text-muted-foreground">{placeholder}</span>
@@ -197,7 +208,13 @@ export function SelectProductSearch({
                   key={product.id}
                   value={String(product.id)}
                   onSelect={() => {
-                    onSelect?.(product.id === value ? null : product.id)
+                    const nextId = product.id === value ? null : product.id
+                    if (nextId) {
+                      setSelectedProductLocal(product)
+                    } else {
+                      setSelectedProductLocal(null)
+                    }
+                    onSelect?.(nextId)
                     setOpen(false)
                   }}
                 >

@@ -67,6 +67,22 @@ type ImagesResponse = {
   items?: APIImageItem[]
 }
 
+type ProductMediaItem = {
+  id: number
+  productId: number
+  mediaId: number
+  url: string
+}
+
+type ProductMediasResponse = {
+  data: ProductMediaItem[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+  }
+}
+
 function normalizeImages(data: ImagesResponse | APIImageItem[] | any): { items: ImageItem[] } {
   let items: APIImageItem[] = []
   
@@ -400,6 +416,190 @@ function DerivationImages({ derivation, isSelected, onToggleSelect }: { derivati
   )
 }
 
+function ProductGeneralImages({ productId }: { productId: number }) {
+  const queryClient = useQueryClient()
+  const [isAdding, setIsAdding] = useState(false)
+  const [orderedImages, setOrderedImages] = useState<ImageItem[]>([])
+  const [updatingId, setUpdatingId] = useState<number | null>(null)
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+  
+  const { data, isLoading, isError, isRefetching, refetch } = useQuery({
+    queryKey: ['product-general-images', productId],
+    refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const response = await privateInstance.get(`/tenant/product-medias`, {
+        params: {
+          productId,
+          limit: 100
+        }
+      })
+      if (response.status !== 200) throw new Error('Erro ao carregar imagens')
+      return response.data as ProductMediasResponse
+    }
+  })
+
+  const images: ImageItem[] = (data?.data || []).map(item => ({
+    id: item.id,
+    media_id: item.mediaId,
+    name: 'Imagem do Produto',
+    url: item.url,
+    original_url: item.url
+  }))
+
+  useEffect(() => {
+    setOrderedImages(images)
+  }, [JSON.stringify(images)])
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = orderedImages.findIndex((item) => item.id === active.id)
+      const newIndex = orderedImages.findIndex((item) => item.id === over.id)
+      const previousItems = [...orderedImages]
+
+      // Optimistic update
+      setOrderedImages(arrayMove(orderedImages, oldIndex, newIndex))
+
+      const newOrder = newIndex + 1 // base 1
+      
+      try {
+        setUpdatingId(Number(active.id))
+        await privateInstance.patch(`/tenant/product-medias/${active.id}/order`, {
+          order: newOrder
+        })
+        toast.success('Ordem atualizada com sucesso')
+        
+        await queryClient.invalidateQueries({ queryKey: ['product-general-images', productId] })
+        await refetch()
+
+      } catch (error: any) {
+         setOrderedImages(previousItems)
+         const title = error?.response?.data?.message || 'Erro ao atualizar ordem'
+         toast.error(title)
+      } finally {
+        setUpdatingId(null)
+      }
+    }
+  }
+
+  const handleAddMedias = async (medias: MediaItem[]) => {
+    if (medias.length === 0) return
+    setIsAdding(true)
+    try {
+      const response = await privateInstance.post('/tenant/product-medias', {
+        productId,
+        mediaIds: medias.map(m => m.id)
+      })
+      
+      if (response.status === 200 || response.status === 201) {
+        toast.success('Imagens adicionadas com sucesso')
+        await queryClient.invalidateQueries({ queryKey: ['product-general-images', productId] })
+      } else {
+        throw new Error('Falha ao adicionar imagens')
+      }
+    } catch (error: any) {
+      const title = error?.response?.data?.message || 'Erro ao adicionar imagens'
+      toast.error(title)
+    } finally {
+      setIsAdding(false)
+    }
+  }
+
+  const handleDeleteImage = async (id: number) => {
+    try {
+      const response = await privateInstance.delete(`/tenant/product-medias/${id}`)
+      if (response.status === 200 || response.status === 204) {
+        toast.success('Imagem removida com sucesso')
+        queryClient.invalidateQueries({ queryKey: ['product-general-images', productId] })
+      } else {
+        throw new Error('Falha ao remover imagem')
+      }
+    } catch (error: any) {
+      const title = error?.response?.data?.message || 'Erro ao remover imagem'
+      toast.error(title)
+    }
+  }
+
+  const isUpdatingAny = updatingId !== null
+
+  return (
+    <Card className="overflow-hidden shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between bg-muted/50 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <ImageIcon className="h-4 w-4" />
+          </div>
+          <div className="space-y-1">
+            <CardTitle className="text-sm font-semibold">Imagens Gerais</CardTitle>
+          </div>
+        </div>
+        <MediaSelectorDialog
+          multiple={true}
+          trigger={
+            <Button size="sm" variant="outline" className="h-8 gap-2" disabled={isAdding || isLoading || isRefetching}>
+              {isAdding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Adicionar
+            </Button>
+          }
+          onSelect={handleAddMedias}
+        />
+      </CardHeader>
+      <Separator />
+      <CardContent className="p-4">
+        {isLoading || isRefetching ? (
+          <div className="grid grid-cols-5 gap-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="aspect-square w-full rounded-lg" />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="mb-2 rounded-full bg-destructive/10 p-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-medium text-destructive">Falha ao carregar imagens</p>
+          </div>
+        ) : orderedImages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+            <p className="text-sm">Nenhuma imagem geral vinculada.</p>
+          </div>
+        ) : (
+          <DndContext 
+            sensors={sensors} 
+            collisionDetection={closestCenter} 
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={orderedImages.map(img => img.id)} strategy={rectSortingStrategy} disabled={isUpdatingAny}>
+              <div className="grid grid-cols-5 gap-3">
+                {orderedImages.map((img) => (
+                  <SortableImageThumbnail 
+                    key={img.id} 
+                    img={img} 
+                    onDelete={handleDeleteImage}
+                    isUpdating={updatingId === img.id} 
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function ProductImagesSheet({ productId }: { productId: number }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -541,6 +741,20 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 flex flex-col gap-6">
+            <ProductGeneralImages productId={productId} />
+
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <div className="flex gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-medium mb-1">Atenção</p>
+                  <p>
+                    Se as imagens forem iguais para todas as derivações, insira elas somente na sessão acima (Imagens Gerais). As imagens individuais por derivação devem ser inseridas somente se a imagem ou vídeo for diferente para cada derivação.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {isLoadingDerivations ? (
               <div className="flex flex-col gap-4">
                 {[1, 2, 3].map((i) => (

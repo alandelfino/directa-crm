@@ -24,8 +24,19 @@ type DerivatedProduct = {
   length?: number
 }
 
-import { NumericFormat } from 'react-number-format'
-import type { NumberFormatValues } from 'react-number-format'
+const NumericInput = React.forwardRef<HTMLInputElement, React.ComponentProps<typeof Input> & { onValueChange?: (val: string) => void }>(
+  ({ value, onChange, onValueChange, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value
+      if (/^[0-9.,]*$/.test(val)) {
+        if (onChange) onChange(e)
+        if (onValueChange) onValueChange(val.replace(',', '.'))
+      }
+    }
+    return <Input {...props} ref={ref} value={value} onChange={handleChange} />
+  }
+)
+NumericInput.displayName = 'NumericInput'
 
 const formSchema = z.object({
   update_active: z.boolean().default(false),
@@ -93,7 +104,7 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
       // Parse string values to numbers
       const parseValue = (val: string | undefined) => {
         if (!val) return undefined
-        return parseFloat(val)
+        return parseFloat(val.replace(',', '.'))
       }
 
       const width = parseValue(values.width)
@@ -303,17 +314,10 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Largura (cm)</FormLabel>
                                 <FormControl>
-                                  <NumericFormat
-                                    customInput={Input}
-                                    decimalScale={2}
-                                    fixedDecimalScale
-                                    decimalSeparator=","
-                                    thousandSeparator="."
+                                  <NumericInput
                                     placeholder="0,00"
                                     value={field.value}
-                                    onValueChange={(values: NumberFormatValues) => {
-                                      field.onChange(values.value)
-                                    }}
+                                    onValueChange={field.onChange}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -327,17 +331,10 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Altura (cm)</FormLabel>
                                 <FormControl>
-                                  <NumericFormat
-                                    customInput={Input}
-                                    decimalScale={2}
-                                    fixedDecimalScale
-                                    decimalSeparator=","
-                                    thousandSeparator="."
+                                  <NumericInput
                                     placeholder="0,00"
                                     value={field.value}
-                                    onValueChange={(values: NumberFormatValues) => {
-                                      field.onChange(values.value)
-                                    }}
+                                    onValueChange={field.onChange}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -351,17 +348,10 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Comprimento (cm)</FormLabel>
                                 <FormControl>
-                                  <NumericFormat
-                                    customInput={Input}
-                                    decimalScale={2}
-                                    fixedDecimalScale
-                                    decimalSeparator=","
-                                    thousandSeparator="."
+                                  <NumericInput
                                     placeholder="0,00"
                                     value={field.value}
-                                    onValueChange={(values: NumberFormatValues) => {
-                                      field.onChange(values.value)
-                                    }}
+                                    onValueChange={field.onChange}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -401,17 +391,10 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Peso (kg)</FormLabel>
                                 <FormControl>
-                                  <NumericFormat
-                                    customInput={Input}
-                                    decimalScale={3}
-                                    fixedDecimalScale
-                                    decimalSeparator=","
-                                    thousandSeparator="."
+                                  <NumericInput
                                     placeholder="0,000"
                                     value={field.value}
-                                    onValueChange={(values: NumberFormatValues) => {
-                                      field.onChange(values.value)
-                                    }}
+                                    onValueChange={field.onChange}
                                   />
                                 </FormControl>
                                 <FormMessage />

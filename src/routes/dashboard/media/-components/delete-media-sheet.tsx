@@ -123,14 +123,14 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
           
           setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done' } : q))
         } catch (err: any) {
-          const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao excluir'
+          const errorData = err?.response?.data
+          const msg = errorData?.detail || errorData?.title || errorData?.message || err?.message || 'Erro ao excluir'
           setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
         } finally {
           deletingRef.current = false
         }
       })()
     } else if (queue.length > 0 && allProcessed && !hasNotified) {
-      toast.success(`Processo finalizado: ${successCount} excluídos, ${errorCount} erros`)
       onDeleted?.()
       setHasNotified(true)
     }

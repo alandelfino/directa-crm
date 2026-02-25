@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { Plus, Loader2, ArrowRightLeft, Building2, Archive, Package } from 'lucide-react'
+import { Plus, Loader2, ArrowRightLeft, Building2, Archive, Package, Search } from 'lucide-react'
 import { SelectProductSearch } from '@/components/select-product-search'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Types
 type DistributionCenter = {
@@ -29,7 +30,6 @@ type Product = {
   id: number
   name: string
   sku?: string
-  type: 'simple' | 'with_derivations'
   unitOfMeasurement?: UnitOfMeasurement
 }
 
@@ -87,6 +87,11 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   const [distributionCenterId, setDistributionCenterId] = useState<string>('')
   const [derivationsAmounts, setDerivationsAmounts] = useState<Record<number, string>>({})
   const [stockType, setStockType] = useState<'physical' | 'reserved'>('physical')
+  
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+  const [searchOperator, setSearchOperator] = useState<'contains' | 'equals'>('contains')
 
   // Reset form when sheet opens/closes or product changes
   useEffect(() => {
@@ -95,15 +100,27 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       setProductId(null)
       setDistributionCenterId('')
       setDerivationsAmounts({})
+      setSearchTerm('')
     }
   }, [open])
 
   useEffect(() => {
     setDerivationsAmounts({})
+    setSearchTerm('')
   }, [productId])
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 500)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [searchTerm])
+
   // Queries
-  const { data: distributionCenters } = useQuery({
+  const { data: distributionCenters, isLoading: isLoadingDistributionCenters } = useQuery({
     queryKey: ['distribution-centers', 'select'],
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/warehouses', {
@@ -170,6 +187,10 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
         .filter(item => item.amount > 0)
       
       if (items.length === 0) throw new Error('Informe a quantidade para pelo menos uma derivação')
+      
+      const totalAmount = items.reduce((acc, curr) => acc + curr.amount, 0)
+      
+      payload.amount = totalAmount
       payload.derivatedProducts = items
 
       const response = await privateInstance.post('/tenant/stock-moviments', payload)
@@ -203,6 +224,20 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
     if (!productId || !distributionCenterId) return false
     return Object.values(derivationsAmounts).some(v => parseQuantityToCents(v) > 0)
   }, [productId, distributionCenterId, derivationsAmounts])
+
+  const filteredDerivations = useMemo(() => {
+    if (!derivations) return []
+    return derivations.filter(d => {
+      if (!debouncedSearchTerm) return true
+      const name = d.name?.toLowerCase() || ''
+      const term = debouncedSearchTerm.toLowerCase()
+      
+      if (searchOperator === 'equals') {
+        return name === term
+      }
+      return name.includes(term)
+    })
+  }, [derivations, debouncedSearchTerm, searchOperator])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -259,18 +294,22 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                   <Building2 className="h-3.5 w-3.5" />
                   Centro de Distribuição
                 </Label>
-                <Select value={distributionCenterId} onValueChange={setDistributionCenterId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {distributionCenters?.map((dc) => (
-                      <SelectItem key={dc.id} value={String(dc.id)}>
-                        {dc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingDistributionCenters ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select value={distributionCenterId} onValueChange={setDistributionCenterId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {distributionCenters?.map((dc) => (
+                        <SelectItem key={dc.id} value={String(dc.id)}>
+                          {dc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
@@ -344,6 +383,27 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                             Preencha a quantidade para cada variação
                           </span>
                         </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <Select value={searchOperator} onValueChange={(v: 'contains' | 'equals') => setSearchOperator(v)}>
+                            <SelectTrigger className="w-[110px] h-8 text-xs">
+                              <SelectValue placeholder="Tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">Contém</SelectItem>
+                              <SelectItem value="equals">Igual a</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="relative flex-1">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input 
+                              placeholder="Buscar derivação..." 
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="h-8 pl-8 text-xs"
+                            />
+                          </div>
+                        </div>
                         
                         {isLoadingDerivations ? (
                            <div className="flex justify-center py-8">
@@ -354,15 +414,13 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                             <Table>
                               <TableHeader className="bg-muted/50">
                                 <TableRow className="hover:bg-transparent">
-                                  <TableHead className="w-[100px]">SKU</TableHead>
                                   <TableHead>Variação</TableHead>
                                   <TableHead className="w-[120px] text-right">Qtd.</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {derivations?.map((deriv) => (
+                                {filteredDerivations.map((deriv) => (
                                   <TableRow key={deriv.id} className="hover:bg-muted/30">
-                                    <TableCell className="font-mono text-xs text-muted-foreground py-2">{deriv.sku || '—'}</TableCell>
                                     <TableCell className="py-2 font-medium">{deriv.name || '—'}</TableCell>
                                     <TableCell className="py-2 text-right">
                                       <Input 
@@ -392,10 +450,10 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                                     </TableCell>
                                   </TableRow>
                                 ))}
-                                {(!derivations || derivations.length === 0) && (
+                                {filteredDerivations.length === 0 && (
                                   <TableRow>
-                                    <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
-                                      Nenhuma derivação encontrada.
+                                    <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                                      {derivations?.length === 0 ? 'Nenhuma derivação encontrada.' : 'Nenhum resultado para a busca.'}
                                     </TableCell>
                                   </TableRow>
                                 )}

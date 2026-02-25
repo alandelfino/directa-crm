@@ -42,8 +42,6 @@ function normalizeDerivatedProducts(data: any): { items: DerivatedProduct[], tot
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search } from 'lucide-react'
-import { NumericFormat } from 'react-number-format'
-import type { NumberFormatValues } from 'react-number-format'
 
 type EditableDimensionCellProps = {
   value: number | undefined
@@ -72,7 +70,7 @@ function EditableDimensionCell({ value, onChange, isWeight }: EditableDimensionC
     setIsEditing(false)
     if (!localValue) return
     
-    const parsed = parseFloat(localValue)
+    const parsed = parseFloat(localValue.replace(',', '.'))
     if (isNaN(parsed)) return
 
     const multiplier = isWeight ? 1000 : 100
@@ -85,14 +83,12 @@ function EditableDimensionCell({ value, onChange, isWeight }: EditableDimensionC
 
   if (isEditing) {
     return (
-      <NumericFormat
-        customInput={Input}
-        decimalScale={isWeight ? 3 : 2}
-        fixedDecimalScale
-        decimalSeparator=","
-        thousandSeparator="."
+      <Input
         value={localValue}
-        onValueChange={(values: NumberFormatValues) => setLocalValue(values.value)}
+        onChange={(e) => {
+          const val = e.target.value.replace(/[^0-9,.]/g, '')
+          setLocalValue(val)
+        }}
         onBlur={handleBlur}
         autoFocus
         className="h-7 w-full px-2 text-right"
@@ -108,15 +104,7 @@ function EditableDimensionCell({ value, onChange, isWeight }: EditableDimensionC
     >
       <span className={cn('text-sm tabular-nums', !value && 'text-muted-foreground')}>
         {value ? (
-          <NumericFormat
-            value={displayValue}
-            displayType="text"
-            decimalScale={isWeight ? 3 : 2}
-            fixedDecimalScale
-            decimalSeparator=","
-            thousandSeparator="."
-            suffix={isWeight ? ' kg' : ' cm'}
-          />
+           `${displayValue.toLocaleString('pt-BR', { minimumFractionDigits: isWeight ? 3 : 2, maximumFractionDigits: isWeight ? 3 : 2 })}${isWeight ? ' kg' : ' cm'}`
         ) : '-'}
       </span>
     </div>

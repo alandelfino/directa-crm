@@ -24,17 +24,20 @@ type DerivatedProduct = {
   length?: number
 }
 
+import { NumericFormat } from 'react-number-format'
+import type { NumberFormatValues } from 'react-number-format'
+
 const formSchema = z.object({
   update_active: z.boolean().default(false),
   active: z.boolean().default(true),
   
   update_dimensions: z.boolean().default(false),
-  width: z.coerce.number().min(0).optional(),
-  height: z.coerce.number().min(0).optional(),
-  length: z.coerce.number().min(0).optional(),
+  width: z.string().optional(),
+  height: z.string().optional(),
+  length: z.string().optional(),
   
   update_weight: z.boolean().default(false),
-  weight: z.coerce.number().min(0).optional(),
+  weight: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -87,22 +90,27 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
       setProcessedCount(0)
       setResults(null)
 
+      // Parse string values to numbers
+      const parseValue = (val: string | undefined) => {
+        if (!val) return undefined
+        return parseFloat(val)
+      }
+
+      const width = parseValue(values.width)
+      const height = parseValue(values.height)
+      const length = parseValue(values.length)
+      const weight = parseValue(values.weight)
+
       for (let i = 0; i < total; i++) {
         const item = itemsToUpdate[i]
-        
-        // Construct payload based on what fields are selected for update
-        // We need to preserve existing values for fields NOT being updated
-        // But since we are doing a PUT, we might need to send all fields?
-        // Usually PUT requires full resource. If PATCH is not available, we need to merge.
-        // Let's assume we need to merge with existing item data.
         
         const payload: any = {
           name: item.name, // Name is not editable in mass edit, so keep existing
           active: values.update_active ? values.active : item.active,
-          width: values.update_dimensions && values.width !== undefined ? Math.round(values.width * 10) : item.width,
-          height: values.update_dimensions && values.height !== undefined ? Math.round(values.height * 10) : item.height,
-          length: values.update_dimensions && values.length !== undefined ? Math.round(values.length * 10) : item.length,
-          weight: values.update_weight && values.weight !== undefined ? Math.round(values.weight * 1000) : item.weight,
+          width: values.update_dimensions && width !== undefined ? Math.round(width * 100) : item.width,
+          height: values.update_dimensions && height !== undefined ? Math.round(height * 100) : item.height,
+          length: values.update_dimensions && length !== undefined ? Math.round(length * 100) : item.length,
+          weight: values.update_weight && weight !== undefined ? Math.round(weight * 1000) : item.weight,
         }
         
         try {
@@ -295,7 +303,18 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Largura (cm)</FormLabel>
                                 <FormControl>
-                                  <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                                  <NumericFormat
+                                    customInput={Input}
+                                    decimalScale={2}
+                                    fixedDecimalScale
+                                    decimalSeparator=","
+                                    thousandSeparator="."
+                                    placeholder="0,00"
+                                    value={field.value}
+                                    onValueChange={(values: NumberFormatValues) => {
+                                      field.onChange(values.value)
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -308,7 +327,18 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Altura (cm)</FormLabel>
                                 <FormControl>
-                                  <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                                  <NumericFormat
+                                    customInput={Input}
+                                    decimalScale={2}
+                                    fixedDecimalScale
+                                    decimalSeparator=","
+                                    thousandSeparator="."
+                                    placeholder="0,00"
+                                    value={field.value}
+                                    onValueChange={(values: NumberFormatValues) => {
+                                      field.onChange(values.value)
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -321,7 +351,18 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Comprimento (cm)</FormLabel>
                                 <FormControl>
-                                  <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} value={field.value ?? ''} />
+                                  <NumericFormat
+                                    customInput={Input}
+                                    decimalScale={2}
+                                    fixedDecimalScale
+                                    decimalSeparator=","
+                                    thousandSeparator="."
+                                    placeholder="0,00"
+                                    value={field.value}
+                                    onValueChange={(values: NumberFormatValues) => {
+                                      field.onChange(values.value)
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -360,7 +401,18 @@ export function DerivatedProductMassEditSheet({ items, onUpdated, trigger }: { i
                               <FormItem>
                                 <FormLabel className="text-xs">Peso (kg)</FormLabel>
                                 <FormControl>
-                                  <Input type="number" step="0.001" min="0" placeholder="0.000" {...field} value={field.value ?? ''} />
+                                  <NumericFormat
+                                    customInput={Input}
+                                    decimalScale={3}
+                                    fixedDecimalScale
+                                    decimalSeparator=","
+                                    thousandSeparator="."
+                                    placeholder="0,000"
+                                    value={field.value}
+                                    onValueChange={(values: NumberFormatValues) => {
+                                      field.onChange(values.value)
+                                    }}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

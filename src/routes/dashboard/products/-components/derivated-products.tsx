@@ -39,12 +39,109 @@ function normalizeDerivatedProducts(data: any): { items: DerivatedProduct[], tot
 }
 
 
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Search } from 'lucide-react'
+import { NumericFormat } from 'react-number-format'
+import type { NumberFormatValues } from 'react-number-format'
+
+type EditableDimensionCellProps = {
+  value: number | undefined
+  onChange: (value: number) => void
+  isWeight?: boolean
+}
+
+function EditableDimensionCell({ value, onChange, isWeight }: EditableDimensionCellProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [localValue, setLocalValue] = useState<string>('')
+
+  // Convert raw value to display format (e.g., 1000 -> 10,00 for dimensions)
+  const displayValue = useMemo(() => {
+    if (value === undefined || value === null) return ''
+    const divisor = isWeight ? 1000 : 100
+    return (value / divisor)
+  }, [value, isWeight])
+
+  useEffect(() => {
+    if (displayValue !== '') {
+      setLocalValue(displayValue.toString())
+    }
+  }, [displayValue])
+
+  const handleBlur = () => {
+    setIsEditing(false)
+    if (!localValue) return
+    
+    const parsed = parseFloat(localValue)
+    if (isNaN(parsed)) return
+
+    const multiplier = isWeight ? 1000 : 100
+    const finalValue = Math.round(parsed * multiplier)
+    
+    if (finalValue !== value) {
+      onChange(finalValue)
+    }
+  }
+
+  if (isEditing) {
+    return (
+      <NumericFormat
+        customInput={Input}
+        decimalScale={isWeight ? 3 : 2}
+        fixedDecimalScale
+        decimalSeparator=","
+        thousandSeparator="."
+        value={localValue}
+        onValueChange={(values: NumberFormatValues) => setLocalValue(values.value)}
+        onBlur={handleBlur}
+        autoFocus
+        className="h-7 w-full px-2 text-right"
+      />
+    )
+  }
+
+  return (
+    <div 
+      className="h-full w-full flex items-center justify-end px-4 cursor-pointer hover:bg-muted/50 transition-colors"
+      onDoubleClick={() => setIsEditing(true)}
+      title="Clique duas vezes para editar"
+    >
+      <span className={cn('text-sm tabular-nums', !value && 'text-muted-foreground')}>
+        {value ? (
+          <NumericFormat
+            value={displayValue}
+            displayType="text"
+            decimalScale={isWeight ? 3 : 2}
+            fixedDecimalScale
+            decimalSeparator=","
+            thousandSeparator="."
+            suffix={isWeight ? ' kg' : ' cm'}
+          />
+        ) : '-'}
+      </span>
+    </div>
+  )
+}
+
 export function DerivatedProductsSheet({ productId }: { productId: number }) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<DerivatedProduct[]>([])
   const [selectedIds, setSelectedIds] = useState<number[]>([])
-  // const [editingDerivation, setEditingDerivation] = useState<DerivatedProduct | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+  const [searchOperator, setSearchOperator] = useState<'contains' | 'equals'>('contains')
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+      setSelectedIds([]) // Clear selection when search term changes
+    }, 500)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [searchTerm])
 
   const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({
     queryKey: ['derivated-products', productId],
@@ -80,16 +177,29 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
     setItems(normalized.items)
   }, [data])
 
+  const filteredItems = useMemo(() => {
+    return items.filter(i => {
+      if (!debouncedSearchTerm) return true
+      const name = i.name?.toLowerCase() || ''
+      const term = debouncedSearchTerm.toLowerCase()
+      
+      if (searchOperator === 'equals') {
+        return name === term
+      }
+      return name.includes(term)
+    })
+  }, [items, debouncedSearchTerm, searchOperator])
+
   // Selection Logic
   const allSelected = useMemo(() => {
-    return items.length > 0 && selectedIds.length === items.length
-  }, [items.length, selectedIds.length])
+    return filteredItems.length > 0 && filteredItems.every(i => selectedIds.includes(i.id))
+  }, [filteredItems, selectedIds])
 
   const toggleSelectAll = () => {
     if (allSelected) {
       setSelectedIds([])
     } else {
-      setSelectedIds(items.map(i => i.id))
+      setSelectedIds(filteredItems.map(i => i.id))
     }
   }
 
@@ -102,6 +212,21 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
   const selectedItems = useMemo(() => {
     return items.filter(i => selectedIds.includes(i.id))
   }, [items, selectedIds])
+
+  const handleUpdateItem = async (id: number, field: string, value: number) => {
+    try {
+      await privateInstance.put(`/tenant/derivated-product/${id}`, {
+        [field]: value
+      })
+      toast.success('Atualizado com sucesso')
+      queryClient.invalidateQueries({ queryKey: ['derivated-products', productId] })
+      refetch()
+    } catch (error: any) {
+      const errorData = error?.response?.data
+      const message = errorData?.title || errorData?.detail || 'Erro ao atualizar'
+      toast.error(message)
+    }
+  }
 
   const columns: ColumnDef<DerivatedProduct>[] = [
     {
@@ -155,27 +280,36 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
       className: 'w-[200px] min-w-[200px] !px-4 border-r',
     },
     {
-      id: 'dimensions',
-      header: 'Dimensões (LxAxC)',
-      cell: (i) => {
-        const w = i.width ? i.width / 10 : '-'
-        const h = i.height ? i.height / 10 : '-'
-        const l = i.length ? i.length / 10 : '-'
-        return <span className='text-muted-foreground'>{w} x {h} x {l} cm</span>
-      },
-      width: '140px',
-      headerClassName: 'w-[140px] min-w-[140px] border-r',
-      className: 'w-[140px] min-w-[140px] !px-4 border-r',
+      id: 'width',
+      header: 'Largura',
+      cell: (i) => <EditableDimensionCell value={i.width} onChange={(val) => handleUpdateItem(i.id, 'width', val)} />,
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r text-right',
+      className: 'w-[100px] min-w-[100px] !p-0 border-r',
+    },
+    {
+      id: 'height',
+      header: 'Altura',
+      cell: (i) => <EditableDimensionCell value={i.height} onChange={(val) => handleUpdateItem(i.id, 'height', val)} />,
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r text-right',
+      className: 'w-[100px] min-w-[100px] !p-0 border-r',
+    },
+    {
+      id: 'length',
+      header: 'Comprimento',
+      cell: (i) => <EditableDimensionCell value={i.length} onChange={(val) => handleUpdateItem(i.id, 'length', val)} />,
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r text-right',
+      className: 'w-[100px] min-w-[100px] !p-0 border-r',
     },
     {
       id: 'weight',
       header: 'Peso',
-      cell: (i) => (
-        <span className='text-muted-foreground'>{i.weight ? i.weight / 1000 : '-'} kg</span>
-      ),
+      cell: (i) => <EditableDimensionCell value={i.weight} onChange={(val) => handleUpdateItem(i.id, 'weight', val)} isWeight />,
       width: '100px',
-      headerClassName: 'w-[100px] min-w-[100px] border-r',
-      className: 'w-[100px] min-w-[100px] !px-4 border-r',
+      headerClassName: 'w-[100px] min-w-[100px] border-r text-right',
+      className: 'w-[100px] min-w-[100px] !p-0 border-r',
     }
   ]
   
@@ -196,16 +330,38 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
         </Button>
       </SheetTrigger>
       <SheetContent className='w-4xl sm:max-w-[1000px] p-0'>
-        <SheetHeader className='px-4 py-4'>
-          <SheetTitle>Derivações do produto</SheetTitle>
-          <SheetDescription>Gerencie as derivações do produto selecionado.</SheetDescription>
+        <SheetHeader className='px-4 py-4 space-y-3'>
+          <div className="space-y-1">
+            <SheetTitle>Derivações do produto</SheetTitle>
+            <SheetDescription>Gerencie as derivações do produto selecionado.</SheetDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={searchOperator} onValueChange={(v: 'contains' | 'equals') => setSearchOperator(v)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contains">Contém</SelectItem>
+                <SelectItem value="equals">Igual a</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar derivação..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
         </SheetHeader>
 
         <div className='flex flex-col flex-1 overflow-hidden'>
           <div className='flex items-center justify-between px-4 gap-2 mb-2'>
             <div className='flex items-center gap-2'>
               <span className='text-sm text-muted-foreground'>
-                {items.length} {items.length === 1 ? 'derivação encontrada' : 'derivações encontradas'}
+                {filteredItems.length} {filteredItems.length === 1 ? 'derivação encontrada' : 'derivações encontradas'}
               </span>
             </div>
 
@@ -219,27 +375,26 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
                 <RefreshCw className={cn("size-[0.85rem]", isRefetching && "animate-spin")} />
               </Button>
 
-              {selectedIds.length > 0 && (
-                <DerivatedProductMassEditSheet
-                  items={selectedItems}
-                  onUpdated={() => {
-                    refetch()
-                    setSelectedIds([])
-                  }}
-                />
-              )}
+              <DerivatedProductMassEditSheet
+                items={selectedItems}
+                onUpdated={() => {
+                  refetch()
+                  setSelectedIds([])
+                }}
+              />
             </div>
           </div>
 
           <div className='flex-1 flex flex-col overflow-hidden border-t'>
             <DataTable<DerivatedProduct>
               columns={columns}
-              data={items}
+              data={filteredItems}
               loading={isLoading || isRefetching}
               hideFooter={true}
               onRowClick={(item) => toggleSelect(item.id)}
               rowIsSelected={(item) => selectedIds.includes(item.id)}
               rowClassName="h-8"
+              emptyMessage='Nenhuma derivação encontrada'
             />
           </div>
         </div>

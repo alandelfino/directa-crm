@@ -144,12 +144,7 @@ function RouteComponent() {
 
   const selectedProduct = useMemo(() => items.find((i) => i.id === selected[0]), [items, selected])
   const canManageChilds = useMemo(() => {
-    const p: any = selectedProduct as any
-    if (!p) return false
-    const byType = p?.type === 'with_derivations'
-    const hasArray = Array.isArray(p?.derivations) && (p?.derivations?.length ?? 0) > 0
-    const hasItems = Array.isArray(p?.derivations?.items) && (p?.derivations?.items?.length ?? 0) > 0
-    return byType || hasArray || hasItems
+    return !!selectedProduct
   }, [selectedProduct])
 
   const columns: ColumnDef<Product>[] = useMemo(() => [

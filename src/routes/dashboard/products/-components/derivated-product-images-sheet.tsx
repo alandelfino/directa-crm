@@ -238,9 +238,8 @@ function DerivationImages({ derivation, isSelected, onToggleSelect }: { derivati
     refetchOnWindowFocus: false,
     refetchOnMount: 'always',
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/product-medias`, {
+      const response = await privateInstance.get(`/tenant/derivated-product-medias`, {
         params: {
-          productId: derivation.productId,
           derivatedProductId: derivation.id,
           limit: 100
         }
@@ -252,7 +251,7 @@ function DerivationImages({ derivation, isSelected, onToggleSelect }: { derivati
 
   const handleDeleteImage = async (id: number) => {
     try {
-      const response = await privateInstance.delete(`/tenant/product-medias/${id}`)
+      const response = await privateInstance.delete(`/tenant/derivated-product-medias/${id}`)
       if (response.status === 200 || response.status === 204) {
         toast.success('Imagem removida com sucesso')
         queryClient.invalidateQueries({ queryKey: ['derivation-images', derivation.id] })
@@ -313,7 +312,7 @@ function DerivationImages({ derivation, isSelected, onToggleSelect }: { derivati
       
       try {
         setUpdatingId(Number(active.id)) // Start updating state for specific item
-        await privateInstance.patch(`/tenant/product-medias/${active.id}/order`, {
+        await privateInstance.patch(`/tenant/derivated-product-medias/${active.id}/order`, {
           order: newOrder
         })
         toast.success('Ordem atualizada com sucesso')
@@ -475,8 +474,7 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
 
     setIsProcessing(true)
     try {
-      const response = await privateInstance.post('/tenant/product-medias', {
-        productId: productId,
+      const response = await privateInstance.post('/tenant/derivated-product-medias', {
         mediaIds: medias.map(m => m.id),
         to: selectedDerivations
       })

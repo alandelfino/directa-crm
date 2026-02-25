@@ -40,7 +40,7 @@ type DerivatedProduct = {
 }
 
 function normalizeDecimalInput(raw: string): string {
-  let val = raw.replace(/[^0-9,]/g, '')
+  const val = raw.replace(/[^0-9,]/g, '')
   if (!val) return ''
   const parts = val.split(',')
   const integerPart = parts[0] ?? ''
@@ -85,7 +85,6 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   const [type, setType] = useState<'in' | 'out'>('in')
   const [productId, setProductId] = useState<number | null>(null)
   const [distributionCenterId, setDistributionCenterId] = useState<string>('')
-  const [amount, setAmount] = useState<string>('')
   const [derivationsAmounts, setDerivationsAmounts] = useState<Record<number, string>>({})
   const [stockType, setStockType] = useState<'physical' | 'reserved'>('physical')
 
@@ -95,7 +94,6 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       setType('in')
       setProductId(null)
       setDistributionCenterId('')
-      setAmount('')
       setDerivationsAmounts({})
     }
   }, [open])
@@ -149,7 +147,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       if (data && Array.isArray(data.items)) return data.items as DerivatedProduct[]
       return []
     },
-    enabled: !!productId && product?.type === 'with_derivations' && open
+    enabled: !!productId && open
   })
 
   // Mutation
@@ -165,21 +163,15 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
         stockType,
       }
 
-      if (product?.type === 'simple') {
-        const amountCents = parseQuantityToCents(amount)
-        if (amountCents <= 0) throw new Error('Informe uma quantidade válida')
-        payload.amount = amountCents
-      } else if (product?.type === 'with_derivations') {
-        const items = Object.entries(derivationsAmounts)
-          .map(([id, amt]) => {
-            const amountCents = parseQuantityToCents(amt)
-            return { derivatedProductId: Number(id), amount: amountCents }
-          })
-          .filter(item => item.amount > 0)
-        
-        if (items.length === 0) throw new Error('Informe a quantidade para pelo menos uma derivação')
-        payload.derivatedProducts = items
-      }
+      const items = Object.entries(derivationsAmounts)
+        .map(([id, amt]) => {
+          const amountCents = parseQuantityToCents(amt)
+          return { derivatedProductId: Number(id), amount: amountCents }
+        })
+        .filter(item => item.amount > 0)
+      
+      if (items.length === 0) throw new Error('Informe a quantidade para pelo menos uma derivação')
+      payload.derivatedProducts = items
 
       const response = await privateInstance.post('/tenant/stock-moviments', payload)
       return response.data
@@ -210,14 +202,8 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
 
   const isFormValid = useMemo(() => {
     if (!productId || !distributionCenterId) return false
-    if (product?.type === 'simple') {
-      return parseQuantityToCents(amount) > 0
-    }
-    if (product?.type === 'with_derivations') {
-      return Object.values(derivationsAmounts).some(v => parseQuantityToCents(v) > 0)
-    }
-    return false
-  }, [productId, distributionCenterId, product, amount, derivationsAmounts])
+    return Object.values(derivationsAmounts).some(v => parseQuantityToCents(v) > 0)
+  }, [productId, distributionCenterId, derivationsAmounts])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -351,35 +337,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                           Carregando detalhes do produto...
                         </span>
                       </div>
-                    ) : product.type === 'simple' ? (
-                      <div className="grid gap-2">
-                        <Label>Quantidade</Label>
-                        <div className="flex items-center gap-2">
-                          <Input 
-                            type="text"
-                            inputMode={product.unitOfMeasurement?.numberType === 'decimal' ? "decimal" : "numeric"}
-                            placeholder="0"
-                            value={amount}
-                            onChange={(e) => {
-                              let val = e.target.value
-                              if (product.unitOfMeasurement?.numberType === 'decimal') {
-                                val = normalizeDecimalInput(val)
-                              } else {
-                                val = val.replace(/[^0-9]/g, '')
-                              }
-                              setAmount(val)
-                            }}
-                            onKeyDown={(e) => {
-                              if (product.unitOfMeasurement?.numberType !== 'decimal' && (e.key === '.' || e.key === ',')) {
-                                e.preventDefault()
-                              }
-                            }}
-                            className="text-lg font-medium"
-                          />
-                          <span className="text-sm text-muted-foreground font-medium">un.</span>
-                        </div>
-                      </div>
-                    ) : product.type === 'with_derivations' ? (
+                    ) : (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <Label>Derivações</Label>
@@ -447,7 +405,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                           </div>
                         )}
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>

@@ -7,9 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { DerivatedProductPriceCreateSheet } from './derivated-product-price-create-sheet'
-import { DerivatedProductPriceEditSheet } from './derivated-product-price-edit-sheet'
-import { DerivatedProductPriceMassEditSheet } from './derivated-product-price-mass-edit-sheet'
+import { ProductPriceCreateSheet } from './product-price-create-sheet'
+import { ProductPriceEditSheet } from './product-price-edit-sheet'
+import { ProductPriceMassEditSheet } from './product-price-mass-edit-sheet'
 import { privateInstance } from '@/lib/auth'
 import { formatMoneyFromCents, cn, maskMoneyInput } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -61,7 +61,7 @@ function EditablePriceCell({
         salePrice: field === 'salePrice' ? priceCents : (row.salePrice ?? 0)
       }
 
-      await privateInstance.put(`/tenant/product-prices/derivated/${row.id}`, payload)
+      await privateInstance.put(`/tenant/product-prices/${row.id}`, payload)
       return priceCents
     },
     onSuccess: (newPrice) => {
@@ -72,7 +72,7 @@ function EditablePriceCell({
     onError: (error: any) => {
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro ao atualizar preço', {
-        description: errorData?.detail || 'Não foi possível atualizar o preço da derivação.'
+        description: errorData?.detail || 'Não foi possível atualizar o preço.'
       })
     }
   })
@@ -155,7 +155,7 @@ function EditablePriceCell({
   )
 }
 
-export function DerivatedProductPricesSheet({ productId }: { productId: number }) {
+export function ProductPricesSheet({ productId }: { productId: number }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -216,7 +216,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
         params.priceTableId = selectedPriceTableId
       }
       
-      const response = await privateInstance.get('/tenant/product-prices/derivated', { params })
+      const response = await privateInstance.get('/tenant/product-prices', { params })
       if (response.status !== 200) throw new Error('Erro ao carregar preços')
       return response.data
     },
@@ -386,12 +386,12 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
                 <RefreshCw className={cn("size-[0.85rem]", isRefetching && "animate-spin")} />
               </Button>
               {selectedIds.length === 1 ? (
-                <DerivatedProductPriceEditSheet 
+                <ProductPriceEditSheet 
                   item={selectedItems[0]} 
                   onUpdated={() => { refetch(); setSelectedIds([]) }} 
                 />
               ) : selectedIds.length > 1 ? (
-                <DerivatedProductPriceMassEditSheet 
+                <ProductPriceMassEditSheet 
                   selectedIds={selectedIds}
                   onUpdated={() => {
                     refetch()
@@ -403,7 +403,7 @@ export function DerivatedProductPricesSheet({ productId }: { productId: number }
                   <Edit className='size-[0.85rem]' /> Editar
                 </Button>
               )}
-              <DerivatedProductPriceCreateSheet productId={productId} onCreated={() => refetch()} />
+              <ProductPriceCreateSheet productId={productId} onCreated={() => refetch()} />
             </div>
           </div>
 

@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Suspense, lazy } from 'react'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
+import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Archive } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -10,14 +11,14 @@ import { privateInstance } from '@/lib/auth'
 import { DataTable } from '@/components/data-table'
 import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
-import { NewProductSheet } from './-components/new-product'
-import { EditProductSheet } from './-components/edit-product'
-import { DeleteProductDialog } from './-components/delete-product'
-import { DerivatedProductsSheet } from './-components/derivated-products'
-import { DerivatedProductPricesSheet } from './-components/derivated-product-prices/derivated-product-prices-sheet'
-import { SimpleProductPricesSheet } from './-components/simple-product-prices/simple-product-prices-sheet'
-import { ProductImagesSheet as DerivatedProductImagesSheet } from './-components/derivated-product-images-sheet'
-import { ProductImagesSheet as SimpleProductImagesSheet } from './-components/product-images-sheet'
+// Lazy chunks for heavy UI
+const NewProductSheet = lazy(() => import('./-components/new-product').then(m => ({ default: m.NewProductSheet })))
+const EditProductSheet = lazy(() => import('./-components/edit-product').then(m => ({ default: m.EditProductSheet })))
+const DeleteProductDialog = lazy(() => import('./-components/delete-product').then(m => ({ default: m.DeleteProductDialog })))
+const DerivatedProductsSheet = lazy(() => import('./-components/derivated-products').then(m => ({ default: m.DerivatedProductsSheet })))
+const ProductPricesSheet = lazy(() => import('./-components/product-prices/product-prices-sheet').then(m => ({ default: m.ProductPricesSheet })))
+const ProductImagesSheet = lazy(() => import('./-components/derivated-product-images-sheet').then(m => ({ default: m.ProductImagesSheet })))
+const ProductStockSheet = lazy(() => import('./-components/product-stock-sheet').then(m => ({ default: m.ProductStockSheet })))
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -42,6 +43,7 @@ type Product = {
   mainMediaId: number | null
   createdAt: string
   updatedAt: string
+  stock?: string | number
   // Helper properties for UI compatibility
   derivations?: any[]
   derivation_ids?: number[]
@@ -82,8 +84,6 @@ function RouteComponent() {
   const [filterSkuOperator, setFilterSkuOperator] = useState('cont')
   const [filterActive, setFilterActive] = useState('all')
   const [filterActiveOperator, setFilterActiveOperator] = useState('eq')
-  const [filterType, setFilterType] = useState('all')
-  const [filterTypeOperator, setFilterTypeOperator] = useState('eq')
 
   // Local Filter State (Popover)
   const [localSortBy, setLocalSortBy] = useState('createdAt')
@@ -94,17 +94,15 @@ function RouteComponent() {
   const [localFilterSkuOperator, setLocalFilterSkuOperator] = useState('cont')
   const [localFilterActive, setLocalFilterActive] = useState('all')
   const [localFilterActiveOperator, setLocalFilterActiveOperator] = useState('eq')
-  const [localFilterType, setLocalFilterType] = useState('all')
-  const [localFilterTypeOperator, setLocalFilterTypeOperator] = useState('eq')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   // Calculate active filters count
-  const activeFilterCount = (filterName ? 1 : 0) + (filterSku ? 1 : 0) + (filterActive !== 'all' ? 1 : 0) + (filterType !== 'all' ? 1 : 0)
+  const activeFilterCount = (filterName ? 1 : 0) + (filterSku ? 1 : 0) + (filterActive !== 'all' ? 1 : 0)
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    queryKey: ['products', currentPage, perPage, filterName, filterNameOperator, filterSku, filterSkuOperator, filterActive, filterActiveOperator, filterType, filterTypeOperator, sortBy, orderBy],
+    queryKey: ['products', currentPage, perPage, filterName, filterNameOperator, filterSku, filterSkuOperator, filterActive, filterActiveOperator, sortBy, orderBy],
     queryFn: async () => {
       const searchParams = new URLSearchParams()
       searchParams.append('page', currentPage.toString())
@@ -128,12 +126,6 @@ function RouteComponent() {
         searchParams.append('active', JSON.stringify({
           operator: filterActiveOperator,
           value: filterActive === 'true'
-        }))
-      }
-      if (filterType !== 'all') {
-        searchParams.append('type', JSON.stringify({
-          operator: filterTypeOperator,
-          value: filterType
         }))
       }
 
@@ -180,9 +172,15 @@ function RouteComponent() {
     },
     { id: 'sku', header: 'SKU', width: '60px', maxWidth: '60px', cell: (p) => (<span className='block truncate px-2' title={p.sku ?? '—'}>{p.sku ?? '—'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
     { id: 'name', header: 'Nome', width: '280px', cell: (p) => (<span className='block truncate px-2' title={p.name ?? '—'}>{p.name ?? '—'}</span>), headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! min-w-0' },
-    { id: 'type', header: 'Tipo', width: '80px', maxWidth: '80px', cell: (p) => (<span className='block truncate px-2' title={p.type === 'with_derivations' ? 'Com variações' : 'Simples'}>{p.type === 'with_derivations' ? 'Com variações' : 'Simples'}</span>), headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! min-w-0' },
     
     { id: 'managedInventory', header: 'Ger. estoque', width: '100px', maxWidth: '100px', cell: (p) => (<span className='block truncate px-2' title={p.managedInventory ? 'Sim' : 'Não'}>{p.managedInventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
+    { id: 'stock', header: 'Estoque', width: '120px', maxWidth: '120px', cell: (p) => {
+      const raw = (p as any)?.stock
+      const cents = (typeof raw === 'string' || typeof raw === 'number') ? Number(raw) : 0
+      const value = Number.isFinite(cents) ? cents / 100 : 0
+      const formatted = value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return (<span className='block px-2 text-right tabular-nums' title={formatted}>{formatted}</span>)
+    }, headerClassName: 'w-[140px] min-w-[140px] border-r text-right', className: 'w-[140px] min-w-[140px] p-2! text-right' },
     { id: 'active', header: 'Status', width: '80px', maxWidth: '80px', cell: (p) => {
       const active = p.active === true
       return (
@@ -241,8 +239,6 @@ function RouteComponent() {
                 setLocalFilterSkuOperator(filterSkuOperator)
                 setLocalFilterActive(filterActive)
                 setLocalFilterActiveOperator(filterActiveOperator)
-                setLocalFilterType(filterType)
-                setLocalFilterTypeOperator(filterTypeOperator)
               }
               setIsFilterOpen(open)
             }}>
@@ -368,29 +364,7 @@ function RouteComponent() {
                           </Select>
                         </div>
                       </div>
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="type" className="text-xs font-medium text-muted-foreground">Tipo</Label>
-                        <div className="flex gap-2">
-                          <Select value={localFilterTypeOperator} onValueChange={setLocalFilterTypeOperator} disabled>
-                            <SelectTrigger className="w-[130px] h-9">
-                              <SelectValue placeholder="Op." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="eq">Igual</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select value={localFilterType} onValueChange={setLocalFilterType}>
-                            <SelectTrigger id="type" className="h-9 w-full flex-1">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos</SelectItem>
-                              <SelectItem value="simple">Simples</SelectItem>
-                              <SelectItem value="with_derivations">Com Variações</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+
                     </div>
                   </div>
 
@@ -404,8 +378,6 @@ function RouteComponent() {
                       setLocalFilterSkuOperator('cont')
                       setLocalFilterActive('all')
                       setLocalFilterActiveOperator('eq')
-                      setLocalFilterType('all')
-                      setLocalFilterTypeOperator('eq')
                       
                       setSortBy('createdAt')
                       setOrderBy('desc')
@@ -415,8 +387,6 @@ function RouteComponent() {
                       setFilterSkuOperator('cont')
                       setFilterActive('all')
                       setFilterActiveOperator('eq')
-                      setFilterType('all')
-                      setFilterTypeOperator('eq')
                       setCurrentPage(1)
                       setIsFilterOpen(false)
                     }}>
@@ -431,8 +401,6 @@ function RouteComponent() {
                       setFilterSkuOperator(localFilterSkuOperator)
                       setFilterActive(localFilterActive)
                       setFilterActiveOperator(localFilterActiveOperator)
-                      setFilterType(localFilterType)
-                      setFilterTypeOperator(localFilterTypeOperator)
                       setCurrentPage(1)
                       setIsFilterOpen(false)
                     }}>
@@ -449,11 +417,19 @@ function RouteComponent() {
             </Button>
 
             {selected.length === 1 ? (
-              selectedProduct?.type === 'with_derivations' ? (
-                <DerivatedProductImagesSheet productId={selected[0]} />
-              ) : (
-                <SimpleProductImagesSheet productId={selected[0]} />
-              )
+              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><Archive className="size-[0.85rem]" /> Estoque</Button>}>
+                <ProductStockSheet productId={selected[0]} />
+              </Suspense>
+            ) : (
+              <Button variant={'outline'} disabled size={'sm'}>
+                <Archive className="size-[0.85rem]" /> Estoque
+              </Button>
+            )}
+
+            {selected.length === 1 ? (
+              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><ImageIcon className="size-[0.85rem]" /> Imagens</Button>}>
+                <ProductImagesSheet productId={selected[0]} />
+              </Suspense>
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <ImageIcon className="size-[0.85rem]" /> Imagens
@@ -461,11 +437,9 @@ function RouteComponent() {
             )}
 
             {selected.length === 1 ? (
-              selectedProduct?.type === 'with_derivations' ? (
-                <DerivatedProductPricesSheet productId={selected[0]} />
-              ) : (
-                <SimpleProductPricesSheet productId={selected[0]} />
-              )
+              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><BadgeDollarSign className="size-[0.85rem]" /> Preços</Button>}>
+                <ProductPricesSheet productId={selected[0]} />
+              </Suspense>
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <BadgeDollarSign className="size-[0.85rem]" /> Preços
@@ -473,7 +447,9 @@ function RouteComponent() {
             )}
 
             {selected.length === 1 ? (
-              <DeleteProductDialog productId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
+              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><Trash className="size-[0.85rem]" /> Excluir</Button>}>
+                <DeleteProductDialog productId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
+              </Suspense>
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <Trash className="size-[0.85rem]" /> Excluir
@@ -481,20 +457,26 @@ function RouteComponent() {
             )}
 
             {selected.length === 1 ? (
-              <EditProductSheet productId={selected[0]} onSaved={() => { refetch() }} />
+              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><Edit className="size-[0.85rem]" /> Editar</Button>}>
+                <EditProductSheet productId={selected[0]} onSaved={() => { refetch() }} />
+              </Suspense>
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
             {selected.length === 1 && canManageChilds ? (
-              <DerivatedProductsSheet productId={selected[0]} />
+              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><GitFork className="size-[0.85rem]" /> Derivações</Button>}>
+                <DerivatedProductsSheet productId={selected[0]} />
+              </Suspense>
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <GitFork className="size-[0.85rem]" /> Derivações
               </Button>
             )}
-            <NewProductSheet onCreated={(p) => { refetch(); if(p?.id) setCreatedProductId(p.id) }} />
+            <Suspense fallback={<Button variant={'outline'} size="sm" disabled><Package className="size-[0.85rem]" /> Novo</Button>}>
+              <NewProductSheet onCreated={(p) => { refetch(); if(p?.id) setCreatedProductId(p.id) }} />
+            </Suspense>
           </div>
         </div>
 
@@ -532,13 +514,15 @@ function RouteComponent() {
         />
       </div>
       {createdProductId && (
-        <EditProductSheet
-          productId={createdProductId}
-          open={true}
-          onOpenChange={(open) => { if (!open) setCreatedProductId(null) }}
-          trigger={null}
-          onSaved={() => { refetch() }}
-        />
+        <Suspense fallback={null}>
+          <EditProductSheet
+            productId={createdProductId}
+            open={true}
+            onOpenChange={(open) => { if (!open) setCreatedProductId(null) }}
+            trigger={null}
+            onSaved={() => { refetch() }}
+          />
+        </Suspense>
       )}
     </div>
   )

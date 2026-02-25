@@ -80,13 +80,13 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="default" size="sm">
-          <Plus className="size-[0.85rem]" />Cadastrar
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <Plus className="size-4" />
         </Button>
       </SheetTrigger>
       <SheetContent>
         <Form {...form}>
-          <form {...props} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+          <form {...props} onSubmit={(e) => { e.stopPropagation(); form.handleSubmit(onSubmit)(e); }} className="flex flex-col h-full">
             <SheetHeader>
               <SheetTitle>Cadastro de garantia</SheetTitle>
               <SheetDescription>Preencha os campos abaixo para cadastrar.</SheetDescription>

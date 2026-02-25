@@ -72,13 +72,13 @@ export function NewBrandSheet({
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button variant="default" size="sm">
-                    <Plus className="size-[0.85rem]" />Cadastrar
-                </Button>
-            </SheetTrigger>
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <Plus className="size-4" />
+        </Button>
+      </SheetTrigger>
             <SheetContent>
                 <Form {...form}>
-                    <form {...props} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+                    <form {...props} onSubmit={(e) => { e.stopPropagation(); form.handleSubmit(onSubmit)(e); }} className="flex flex-col h-full">
                         <SheetHeader>
                             <SheetTitle>Cadastro de marca</SheetTitle>
                             <SheetDescription>

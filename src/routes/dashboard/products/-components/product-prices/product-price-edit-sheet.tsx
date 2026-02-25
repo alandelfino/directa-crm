@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -8,54 +8,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
-import { Loader, Plus } from 'lucide-react'
+import { Edit, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { maskMoneyInput } from '@/lib/utils'
+import { formatMoneyFromCents, maskMoneyInput } from '@/lib/utils'
 
 const formSchema = z.object({
   price_table_id: z.string().min(1, { message: 'Selecione uma tabela de preço' }),
-  price: z.string().min(1, { message: 'Informe o preço' }),
-  sale_price: z.string().min(1, { message: 'Informe o preço promocional' })
-}).superRefine((data, ctx) => {
+  price: z.string().min(1, { message: 'Preço é obrigatório' }),
+  sale_price: z.string().optional(),
+}).refine((data) => {
+  if (!data.sale_price) return true
   const price = parseInt(data.price.replace(/\D/g, '')) || 0
   const salePrice = parseInt(data.sale_price.replace(/\D/g, '')) || 0
-
-  if (price < 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'O preço deve ser maior ou igual a zero',
-      path: ['price']
-    })
-  }
-
-  if (salePrice < 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'O preço promocional deve ser maior ou igual a zero',
-      path: ['sale_price']
-    })
-  }
-
-  if (salePrice > price) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'O preço promocional deve ser menor ou igual ao preço',
-      path: ['sale_price']
-    })
-  }
+  return salePrice <= price
+}, {
+  message: 'O preço promocional não pode ser maior que o preço',
+  path: ['sale_price'],
 })
 
-export function SimpleProductPriceCreateSheet({ productId, onCreated }: { productId: number, onCreated?: () => void }) {
+export function ProductPriceEditSheet({ item, onUpdated }: { item: any, onUpdated?: () => void }) {
   const [open, setOpen] = useState(false)
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { 
-      price_table_id: '',
-      price: 'R$ 0,00',
-      sale_price: 'R$ 0,00'
-    },
+    defaultValues: { price_table_id: '', price: 'R$ 0,00', sale_price: 'R$ 0,00' },
   })
 
   // Fetch price tables
@@ -71,29 +48,36 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
   const priceTables = Array.isArray(priceTablesData) ? priceTablesData : 
                       (priceTablesData as any)?.items ? (priceTablesData as any).items : []
 
+  useEffect(() => {
+    if (open && item) {
+      form.reset({
+        price_table_id: String(item.priceTableId),
+        price: formatMoneyFromCents(item.price),
+        sale_price: item.salePrice ? formatMoneyFromCents(item.salePrice) : 'R$ 0,00'
+      })
+    }
+  }, [open, item, form])
+
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = parseInt(values.sale_price.replace(/\D/g, ''))
-
+      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       const payload = {
-        productId: productId,
         price: priceCents,
-        salePrice: salePriceCents,
-        priceTableId: Number(values.price_table_id)
+        salePrice: salePriceCents
       }
-      const response = await privateInstance.post('/tenant/product-prices/simple', payload)
-      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao adicionar preço')
+      
+      const response = await privateInstance.put(`/tenant/product-prices/${item.id}`, payload)
+      if (response.status !== 200) throw new Error('Erro ao atualizar preço')
       return response.data
     },
     onSuccess: () => {
-      toast.success('Preço adicionado com sucesso!')
+      toast.success('Preço atualizado com sucesso!')
       setOpen(false)
-      form.reset({ price_table_id: '', price: 'R$ 0,00', sale_price: 'R$ 0,00' })
-      onCreated?.()
+      onUpdated?.()
     },
     onError: (error: any) => {
-      const title = error?.response?.data?.title ?? 'Erro ao adicionar preço'
+      const title = error?.response?.data?.title ?? 'Erro ao atualizar preço'
       const description = error?.response?.data?.detail
       toast.error(title, { description })
     }
@@ -103,15 +87,15 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button size='sm' variant='outline'>
-          <Plus className='mr-2 h-4 w-4' /> Adicionar tabela
+          <Edit className='h-4 w-4 mr-2' /> Editar
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-[420px]'>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(async (v) => await mutateAsync(v))} className='flex flex-col h-full'>
             <SheetHeader>
-              <SheetTitle>Inserir tabela no produto</SheetTitle>
-              <SheetDescription>Vincule uma tabela de preço e defina os valores.</SheetDescription>
+              <SheetTitle>Editar Preço</SheetTitle>
+              <SheetDescription>Atualize o preço para a tabela selecionada.</SheetDescription>
             </SheetHeader>
             
             <div className='flex-1 overflow-y-auto px-4 py-4'>
@@ -122,9 +106,9 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tabela de Preço</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
                         <FormControl>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
@@ -138,8 +122,7 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
                     </FormItem>
                   )}
                 />
-
-                <div className='grid grid-cols-2 gap-4'>
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="price"
@@ -148,15 +131,16 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
                         <FormLabel>Preço</FormLabel>
                         <FormControl>
                           <Input 
-                            {...field}
-                            onChange={(e) => field.onChange(maskMoneyInput(e.target.value))}
+                            {...field} 
+                            onChange={(e) => {
+                              field.onChange(maskMoneyInput(e.target.value))
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="sale_price"
@@ -165,8 +149,11 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
                         <FormLabel>Preço Promocional</FormLabel>
                         <FormControl>
                           <Input 
-                            {...field}
-                            onChange={(e) => field.onChange(maskMoneyInput(e.target.value))}
+                            placeholder="R$ 0,00" 
+                            {...field} 
+                            onChange={(e) => {
+                              field.onChange(maskMoneyInput(e.target.value))
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -183,7 +170,7 @@ export function SimpleProductPriceCreateSheet({ productId, onCreated }: { produc
                   <Button variant="outline" className='w-full'>Cancelar</Button>
                 </SheetClose>
                 <Button type="submit" disabled={isPending} className='w-full'>
-                  {isPending ? <Loader className='animate-spin h-4 w-4' /> : 'Salvar'}
+                  {isPending ? <Loader className='animate-spin h-4 w-4' /> : 'Salvar alterações'}
                 </Button>
               </div>
             </div>

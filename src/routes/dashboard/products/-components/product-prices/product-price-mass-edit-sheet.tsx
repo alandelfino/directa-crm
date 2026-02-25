@@ -12,50 +12,20 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { maskMoneyInput } from '@/lib/utils'
 
-type SimpleProductPriceItem = {
-  id: number
-  price: number
-  salePrice: number
-  productId: number
-  priceTableId: number
-  productName: string
-  sku: string
-  updatedAt: string
-}
-
 const formSchema = z.object({
-  price: z.string().min(1, { message: 'Informe o preço' }),
+  price: z.string().min(1, { message: 'Preço é obrigatório' }),
   sale_price: z.string().optional(),
-}).superRefine((data, ctx) => {
+}).refine((data) => {
+  if (!data.sale_price) return true
   const price = parseInt(data.price.replace(/\D/g, '')) || 0
-  const salePrice = data.sale_price ? parseInt(data.sale_price.replace(/\D/g, '')) : 0
-
-  if (price < 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'O preço deve ser maior ou igual a zero',
-      path: ['price']
-    })
-  }
-
-  if (salePrice < 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'O preço promocional deve ser maior ou igual a zero',
-      path: ['sale_price']
-    })
-  }
-
-  if (data.sale_price && salePrice > price) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'O preço promocional deve ser menor ou igual ao preço',
-      path: ['sale_price']
-    })
-  }
+  const salePrice = parseInt(data.sale_price.replace(/\D/g, '')) || 0
+  return salePrice <= price
+}, {
+  message: 'O preço promocional não pode ser maior que o preço',
+  path: ['sale_price'],
 })
 
-export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: { items: SimpleProductPriceItem[], onUpdated?: () => void, trigger?: React.ReactNode }) {
+export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: { selectedIds: number[], onUpdated?: () => void, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [progress, setProgress] = useState(0)
   const [processedCount, setProcessedCount] = useState(0)
@@ -80,8 +50,8 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
       const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       
-      const itemsToUpdate = [...items]
-      const total = itemsToUpdate.length
+      const idsToUpdate = [...selectedIds]
+      const total = idsToUpdate.length
       const currentResults = { success: 0, errors: [] as { id: number, message: string }[] }
       
       setProgress(0)
@@ -89,20 +59,20 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
       setResults(null)
 
       for (let i = 0; i < total; i++) {
-        const item = itemsToUpdate[i]
+        const id = idsToUpdate[i]
         const payload = {
           price: priceCents,
           salePrice: salePriceCents
         }
         
         try {
-          await privateInstance.put(`/tenant/product-prices/simple/${item.id}`, payload)
+          await privateInstance.put(`/tenant/product-prices/${id}`, payload)
           currentResults.success++
         } catch (error: any) {
           const errorData = error?.response?.data
           const message = errorData?.title || errorData?.detail || 'Erro desconhecido'
-          currentResults.errors.push({ id: item.id, message })
-          console.error(`Error updating price for item ${item.id}`, error)
+          currentResults.errors.push({ id, message })
+          console.error(`Error updating price ${id}`, error)
         } finally {
           const current = i + 1
           setProcessedCount(current)
@@ -138,7 +108,7 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
       <SheetTrigger asChild>
         {trigger || (
           <Button size='sm' variant='outline'>
-            <Edit className='h-4 w-4 mr-2' /> Editar em Lote ({items.length})
+            <Edit className='h-4 w-4 mr-2' /> Editar em Lote ({selectedIds.length})
           </Button>
         )}
       </SheetTrigger>
@@ -148,7 +118,7 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
              <SheetHeader>
                <SheetTitle>Relatório de Atualização</SheetTitle>
                <SheetDescription>
-                 Resultado da atualização em massa de {items.length} itens.
+                 Resultado da atualização em massa de {selectedIds.length} itens.
                </SheetDescription>
              </SheetHeader>
              
@@ -184,9 +154,9 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
         ) : (
           <div className='flex flex-col h-full'>
             <SheetHeader>
-              <SheetTitle>Editar {items.length} Preços</SheetTitle>
+              <SheetTitle>Editar {selectedIds.length} Preços</SheetTitle>
               <SheetDescription>
-                Defina o novo preço para os {items.length} itens selecionados.
+                Defina o novo preço para os {selectedIds.length} itens selecionados.
                 Esta ação substituirá os preços atuais.
               </SheetDescription>
             </SheetHeader>
@@ -206,7 +176,7 @@ export function SimpleProductPriceMassEditSheet({ items, onUpdated, trigger }: {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground text-center pt-1">
-                      Processando {processedCount} de {items.length} itens
+                      Processando {processedCount} de {selectedIds.length} itens
                     </p>
                   </div>
                 </div>

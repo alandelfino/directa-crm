@@ -14,10 +14,15 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
-import { Skeleton } from '@/components/ui/skeleton'
 import { buildCategoryTree } from '@/utils/category-tree'
-import ReactQuill from 'react-quill-new'
-import 'react-quill-new/dist/quill.snow.css'
+import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// Lazy load auxiliary creation sheets
+const NewCategorySheet = lazy(() => import('../../categories/-components/new-category').then(m => ({ default: m.NewCategorySheet })))
+const NewBrandSheet = lazy(() => import('../../brands/-components/new-brand').then(m => ({ default: m.NewBrandSheet })))
+const NewUnitSheet = lazy(() => import('../../units/-components/new-unit').then(m => ({ default: m.NewUnitSheet })))
+const NewWarrantySheet = lazy(() => import('../../warranties/-components/new-warranty').then(m => ({ default: m.NewWarrantySheet })))
 
 function ProductFormSkeleton() {
   return (
@@ -30,11 +35,9 @@ function ProductFormSkeleton() {
       </SheetHeader>
 
       <div className='flex-1 overflow-y-auto px-4 py-4 space-y-6'>
-        {/* Tabs List Skeleton */}
         <Skeleton className="h-10 w-48 rounded-md bg-muted" />
 
         <div className="space-y-6">
-          {/* SKU + Name */}
           <div className='grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4'>
             <div className="space-y-2">
               <Skeleton className="h-4 w-10" />
@@ -45,20 +48,10 @@ function ProductFormSkeleton() {
               <Skeleton className="h-10 w-full" />
             </div>
           </div>
-
-          {/* Categories */}
           <div className="space-y-2">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-10 w-full" />
           </div>
-
-          {/* Type */}
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-10" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-
-          {/* Unit + Brand */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div className="space-y-2">
               <Skeleton className="h-4 w-16" />
@@ -69,20 +62,14 @@ function ProductFormSkeleton() {
               <Skeleton className="h-10 w-full" />
             </div>
           </div>
-
-          {/* Warranties */}
           <div className="space-y-2">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-10 w-full" />
           </div>
-
-          {/* Stores */}
           <div className="space-y-2">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-10 w-full" />
           </div>
-
-          {/* Switches */}
           <div className="space-y-4">
             <Skeleton className="h-16 w-full rounded-md" />
             <Skeleton className="h-16 w-full rounded-md" />
@@ -100,17 +87,12 @@ function ProductFormSkeleton() {
   )
 }
 
-import { useEffect, useState, useMemo } from 'react'
-import React from 'react'
-
-
 const formSchema = z.object({
-  sku: z.string().optional(),
-  name: z.string().optional(),
+  sku: z.string().min(1, { message: 'Campo obrigatório' }).regex(/^[a-z0-9-]+$/, 'Use apenas minúsculas, números e hífen (-)'),
+  name: z.string().min(1, { message: 'Campo obrigatório' }),
   description: z.string().optional(),
-  type: z.enum(['simple', 'with_derivations'] as const).optional(),
-  active: z.boolean().optional(),
-  managedInventory: z.boolean().optional(),
+  active: z.boolean().default(true),
+  managedInventory: z.boolean().default(false),
   unitId: z.preprocess(
     (v) => {
       if (v === '' || v === null || v === undefined) return undefined
@@ -121,11 +103,10 @@ const formSchema = z.object({
       return v
     },
     z
-      .number()
-      .refine((v) => !Number.isNaN(v))
+      .number({ message: 'Campo obrigatório' })
+      .refine((v) => !Number.isNaN(v), { message: 'Campo obrigatório' })
       .int()
-      .min(1)
-      .optional()
+      .min(1, 'Selecione uma unidade')
   ),
   brandId: z.preprocess(
     (v) => {
@@ -137,16 +118,18 @@ const formSchema = z.object({
       return v
     },
     z
-      .number()
-      .refine((v) => !Number.isNaN(v))
+      .number({ message: 'Campo obrigatório' })
+      .refine((v) => !Number.isNaN(v), { message: 'Campo obrigatório' })
       .int()
-      .min(1)
-      .optional()
+      .min(1, 'Selecione uma marca')
   ),
-  warranties: z.array(z.number()).optional(),
-  stores: z.array(z.number()).min(1).optional(),
-  categories: z.array(z.number()).min(1).optional(),
+  derivations: z.array(z.number()).default([]),
+  warranties: z.array(z.number()).default([]),
+  stores: z.array(z.number()).min(1, 'Selecione pelo menos uma loja').default([]),
+  categories: z.array(z.number()).min(1, 'Selecione pelo menos uma categoria').default([]),
 })
+
+type ProductFormValues = z.infer<typeof formSchema>
 
 export function EditProductSheet({
   productId,
@@ -168,6 +151,23 @@ export function EditProductSheet({
 
   const queryClient = useQueryClient()
 
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(formSchema) as any,
+    defaultValues: {
+      sku: '',
+      name: '',
+      description: '',
+      active: true,
+      managedInventory: false,
+      unitId: undefined,
+      brandId: undefined,
+      derivations: [],
+      categories: [],
+      warranties: [],
+      stores: [],
+    }
+  })
+
   function extractIds(data: any): number[] {
     if (!Array.isArray(data)) return []
     return data.map((item: any) => {
@@ -178,26 +178,8 @@ export function EditProductSheet({
     }).filter(n => Number.isFinite(n))
   }
 
-
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
-    defaultValues: {
-      sku: '',
-      name: '',
-      description: '',
-      type: 'simple',
-      active: true,
-      managedInventory: false,
-      unitId: undefined,
-      brandId: undefined,
-      warranties: [],
-      stores: [],
-      categories: [],
-    }
-  })
-
   async function fetchProduct() {
+    if (!productId) return
     try {
       setLoading(true)
       const response = await privateInstance.get(`/tenant/products/${productId}`)
@@ -208,11 +190,11 @@ export function EditProductSheet({
         sku: p.sku || '',
         name: p.name,
         description: p.description || '',
-        type: String(p.type || 'simple').toLowerCase() as any,
         active: p.active,
         managedInventory: p.managed_inventory ?? p.managedInventory ?? false,
-        unitId: p.unit_id ?? p.unitId ?? p.unit?.id,
+        unitId: p.unit_id ?? p.unitId ?? p.unit?.id ?? p.unitOfMeasurement?.id,
         brandId: p.brand_id ?? p.brandId ?? p.brand?.id,
+        derivations: extractIds(p.derivations),
         warranties: extractIds(p.warranties),
         stores: extractIds(p.stores),
         categories: extractIds(p.categories),
@@ -226,29 +208,19 @@ export function EditProductSheet({
     }
   }
 
-  useEffect(() => { if (open && productId) fetchProduct() }, [open, productId])
-
   useEffect(() => {
-    if (!open) {
-      form.reset({
-        sku: '',
-        name: '',
-        description: '',
-        type: 'simple',
-        active: true,
-        managedInventory: false,
-        unitId: undefined,
-        brandId: undefined,
-        warranties: [],
-        stores: [],
-        categories: [],
-      })
+    if (open && productId) {
+      fetchProduct()
     }
-  }, [open])
+  }, [open, productId])
 
   const { isPending, mutate } = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const { type, ...payload } = values
+    mutationFn: async (values: ProductFormValues) => {
+      const payload = {
+        ...values,
+        derivations: undefined, // Backend does not accept derivations update
+        description: values.description || undefined,
+      }
       return privateInstance.put(`/tenant/products/${productId}`, payload)
     },
     onSuccess: (response) => {
@@ -272,7 +244,9 @@ export function EditProductSheet({
     }
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) { mutate(values) }
+  function onSubmit(values: ProductFormValues) {
+    mutate(values)
+  }
 
   function onInvalid(errors: any) {
     console.log('Form errors:', errors)
@@ -285,8 +259,7 @@ export function EditProductSheet({
   // Carregar marcas e unidades do backend (Xano Products API)
   const { data: brandsData, isLoading: isBrandsLoading } = useQuery({
     queryKey: ['brands'],
-    enabled: true,
-    staleTime: 5 * 60 * 1000,
+    enabled: open,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
@@ -298,8 +271,7 @@ export function EditProductSheet({
 
   const { data: unitsData, isLoading: isUnitsLoading } = useQuery({
     queryKey: ['units'],
-    enabled: true,
-    staleTime: 5 * 60 * 1000,
+    enabled: open,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
@@ -316,33 +288,27 @@ export function EditProductSheet({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     queryFn: async () => {
-      // Aumentado o limite para garantir que todas as categorias (pais e filhos) sejam carregadas
       const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')
       return res.data
     },
   })
   
-  // Usar utilitário centralizado para construção da árvore
   const { items: categoryItems, rootChildren: categoryRootChildren } = useMemo(() => {
     return buildCategoryTree(categoriesResponse)
   }, [categoriesResponse])
-  
 
-
-
-  function toSkuSlug(val: string) {
+  function toSkuSlug(val: string): string {
     const base = String(val || '')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
+      .replace(/[\u0300-\u036f]/g, '')
     const spaced = base.replace(/\s+/g, '-')
     return spaced
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-{2,}/g, '-')
   }
-
-  
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -360,303 +326,301 @@ export function EditProductSheet({
           <ProductFormSkeleton />
         ) : (
           <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className='flex flex-col h-full'>
-            <SheetHeader>
-              <SheetTitle>Editar produto</SheetTitle>
-              <SheetDescription>
-                {loading ? (
-                  <span className='flex items-center gap-2'><Loader className='size-[0.85rem] animate-spin' />Carregando dados do produto...</span>
-                ) : (
-                  <>Atualize os campos abaixo e salve as alterações.</>
-                )}
-              </SheetDescription>
-            </SheetHeader>
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className='flex flex-col h-full'>
+              <SheetHeader>
+                <SheetTitle>Editar produto</SheetTitle>
+                <SheetDescription>Atualize os campos abaixo e salve as alterações.</SheetDescription>
+              </SheetHeader>
 
-            <div className='flex-1 overflow-y-auto px-4 py-4'>
-              <Tabs defaultValue='geral' className='flex-1'>
-                <TabsList>
-                  <TabsTrigger value='geral'>Geral</TabsTrigger>
-                  <TabsTrigger value='descricao'>Descrição</TabsTrigger>
-                </TabsList>
+              <div className='flex-1 overflow-y-auto px-4 py-4'>
+                <Tabs defaultValue='geral' className='flex-1'>
+                  <TabsList>
+                    <TabsTrigger value='geral'>Geral</TabsTrigger>
+                    <TabsTrigger value='descricao'>Descrição</TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value='geral' className='mt-4'>
-                <div className='grid auto-rows-min gap-6'>
-                  <div className='grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4'>
-                      <FormField control={form.control} name='sku' render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>SKU</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder='Código interno do produto'
-                              className='min-w-[120px] w-[150px] max-w-[150px]'
-                              value={field.value ?? ''}
-                              onChange={(e) => field.onChange(toSkuSlug(e.target.value))}
-                              disabled={loading || isPending}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                  <TabsContent value='geral' className='mt-4'>
+                    <div className='grid auto-rows-min gap-6'>
+                      <div className='grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4'>
+                        <FormField control={form.control as any} name='sku' render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>SKU</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder='SKU'
+                                className='min-w-[120px] w-[150px] max-w-[150px]'
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(toSkuSlug(e.target.value))}
+                                disabled={isPending}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
 
-                      <FormField control={form.control} name='name' render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input className='w-full' placeholder='Nome do produto' {...field} disabled={loading || isPending} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </div>
+                        <FormField control={form.control as any} name='name' render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                              <Input className='w-full' placeholder='Nome do produto' {...field} disabled={isPending} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                      <div className='grid grid-cols-1 gap-4'>
+                        <FormField control={form.control as any} name='categories' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between'>
+                              <FormLabel>Categorias</FormLabel>
+                              <Suspense fallback={null}>
+                                <NewCategorySheet />
+                              </Suspense>
+                            </div>
+                            <FormControl>
+                              <CategoryTreeSelect
+                                value={field.value || []}
+                                onChange={(next) => form.setValue('categories', next, { shouldDirty: true, shouldValidate: true })}
+                                disabled={isPending}
+                                items={categoryItems}
+                                rootChildren={categoryRootChildren}
+                                placeholder='Selecione as categorias...'
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                      <div className='grid grid-cols-1 gap-4'>
+                        <FormField control={form.control as any} name='derivations' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between'>
+                              <FormLabel>Derivações</FormLabel>
+                            </div>
+                            <FormControl>
+                              <TagsSelect
+                                value={(field.value as any[]) || []}
+                                onChange={(next) => form.setValue('derivations', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                                disabled={true}
+                                enabled={open}
+                                queryKey={['derivations']}
+                                fetcher={async () => {
+                                  const response = await privateInstance.get('/tenant/derivations?limit=100')
+                                  if (response.status !== 200) throw new Error('Erro ao carregar derivações')
+                                  return response.data as any
+                                }}
+                                getId={(item: any) => item?.id}
+                                getLabel={(item: any) => item?.name ?? item?.title ?? `#${item?.id}`}
+                                placeholder='Selecione as derivações...'
+                                searchPlaceholder='Digite para pesquisar'
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
 
-                    <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='categories' render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categorias</FormLabel>
-                          <FormControl>
-                            <CategoryTreeSelect
-                              value={(field.value || [])}
-                              onChange={(next) => form.setValue('categories', next.map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                              disabled={isPending || loading}
-                              items={categoryItems}
-                              rootChildren={categoryRootChildren}
-                              placeholder='Selecione as categorias...'
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </div>
-
-                    <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='type' render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tipo</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange} disabled>
-                              <SelectTrigger className='w-full' aria-label='Tipo do produto'>
-                                <SelectValue placeholder='Selecione o tipo' />
-                              </SelectTrigger>
-                              <SelectContent
-                                position="popper"
-                                className="max-h-64 z-[60] overscroll-y-contain"
-                                onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                                onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                              >
-                                <SelectGroup>
-                                  <SelectItem value='simple'>Simples</SelectItem>
-                                  <SelectItem value='with_derivations'>Com variações</SelectItem>
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-
-                    </div>
-
-                    
-
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <FormField control={form.control} name='unitId' render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unidade</FormLabel>
-                          <FormControl>
-                            <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isUnitsLoading || loading}>
-                              <SelectTrigger className='w-full'>
-                                <SelectValue placeholder={isUnitsLoading ? 'Carregando unidades...' : 'Selecione a unidade'} />
-                              </SelectTrigger>
-                              <SelectContent
-                                position="popper"
-                                className="max-h-64 z-[60] overscroll-y-contain"
-                                onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                                onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                              >
-                                <SelectGroup>
-                                  {Array.isArray((unitsData as any)?.items)
-                                    ? (unitsData as any).items.map((u: any) => (
-                                      <SelectItem key={u.id} value={String(u.id)}>{u.name ?? `Unidade #${u.id}`}</SelectItem>
-                                    ))
-                                    : Array.isArray(unitsData)
-                                      ? (unitsData as any).map((u: any) => (
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <FormField control={form.control as any} name='unitId' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between'>
+                              <FormLabel>Unidade</FormLabel>
+                              <Suspense fallback={null}>
+                                <NewUnitSheet />
+                              </Suspense>
+                            </div>
+                            <FormControl>
+                              <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isUnitsLoading}>
+                                <SelectTrigger className='w-full'>
+                                  <SelectValue placeholder={isUnitsLoading ? 'Carregando unidades...' : 'Selecione a unidade'} />
+                                </SelectTrigger>
+                                <SelectContent
+                                  position="popper"
+                                  className="max-h-64 z-[60] overscroll-y-contain"
+                                  onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                  onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                >
+                                  <SelectGroup>
+                                    {Array.isArray((unitsData as any)?.items)
+                                      ? (unitsData as any).items.map((u: any) => (
                                         <SelectItem key={u.id} value={String(u.id)}>{u.name ?? `Unidade #${u.id}`}</SelectItem>
                                       ))
-                                      : null}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                                      : Array.isArray(unitsData)
+                                        ? (unitsData as any).map((u: any) => (
+                                          <SelectItem key={u.id} value={String(u.id)}>{u.name ?? `Unidade #${u.id}`}</SelectItem>
+                                        ))
+                                        : null}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
 
-                      <FormField control={form.control} name='brandId' render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Marca</FormLabel>
-                          <FormControl>
-                            <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isBrandsLoading || loading}>
-                              <SelectTrigger className='w-full'>
-                                <SelectValue placeholder={isBrandsLoading ? 'Carregando marcas...' : 'Selecione a marca'} />
-                              </SelectTrigger>
-                              <SelectContent
-                                position="popper"
-                                className="max-h-64 z-[60] overscroll-y-contain"
-                                onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                                onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                              >
-                                <SelectGroup>
-                                  {Array.isArray((brandsData as any)?.items)
-                                    ? (brandsData as any).items.map((b: any) => (
-                                      <SelectItem key={b.id} value={String(b.id)}>{b.name ?? `Marca #${b.id}`}</SelectItem>
-                                    ))
-                                    : Array.isArray(brandsData)
-                                      ? (brandsData as any).map((b: any) => (
+                        <FormField control={form.control as any} name='brandId' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between'>
+                              <FormLabel>Marca</FormLabel>
+                              <Suspense fallback={null}>
+                                <NewBrandSheet />
+                              </Suspense>
+                            </div>
+                            <FormControl>
+                              <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isBrandsLoading}>
+                                <SelectTrigger className='w-full'>
+                                  <SelectValue placeholder={isBrandsLoading ? 'Carregando marcas...' : 'Selecione a marca'} />
+                                </SelectTrigger>
+                                <SelectContent
+                                  position="popper"
+                                  className="max-h-64 z-[60] overscroll-y-contain"
+                                  onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                  onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                >
+                                  <SelectGroup>
+                                    {Array.isArray((brandsData as any)?.items)
+                                      ? (brandsData as any).items.map((b: any) => (
                                         <SelectItem key={b.id} value={String(b.id)}>{b.name ?? `Marca #${b.id}`}</SelectItem>
                                       ))
-                                      : null}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
+                                      : Array.isArray(brandsData)
+                                        ? (brandsData as any).map((b: any) => (
+                                          <SelectItem key={b.id} value={String(b.id)}>{b.name ?? `Marca #${b.id}`}</SelectItem>
+                                        ))
+                                        : null}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+
+                      <div className='grid grid-cols-1 gap-4'>
+                        <FormField control={form.control as any} name='warranties' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between'>
+                              <FormLabel>Garantias</FormLabel>
+                              <Suspense fallback={null}>
+                                <NewWarrantySheet />
+                              </Suspense>
+                            </div>
+                            <FormControl>
+                              <TagsSelect
+                                value={(field.value as any[]) || []}
+                                onChange={(next) => form.setValue('warranties', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                                disabled={isPending}
+                                enabled={open}
+                                queryKey={['warranties']}
+                                fetcher={async () => {
+                                  const response = await privateInstance.get('/tenant/warranties?limit=100')
+                                  if (response.status !== 200) throw new Error('Erro ao carregar garantias')
+                                  return response.data as any
+                                }}
+                                getId={(item: any) => item?.id}
+                                getLabel={(item: any) => item?.name ?? item?.store_name ?? `#${item?.id}`}
+                                placeholder='Selecione as garantias...'
+                                searchPlaceholder='Digite para pesquisar'
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+
+                      <div className='grid grid-cols-1 gap-4'>
+                        <FormField control={form.control as any} name='stores' render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Lojas</FormLabel>
+                            <FormControl>
+                              <TagsSelect
+                                value={(field.value as any[]) || []}
+                                onChange={(next) => form.setValue('stores', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                                disabled={isPending}
+                                enabled={open}
+                                queryKey={['stores']}
+                                fetcher={async () => {
+                                  const response = await privateInstance.get('/tenant/stores?limit=100')
+                                  if (response.status !== 200) throw new Error('Erro ao carregar lojas')
+                                  return response.data as any
+                                }}
+                                getId={(item: any) => item?.id}
+                                getLabel={(item: any) => item?.name ?? `#${item?.id}`}
+                                placeholder='Selecione as lojas...'
+                                searchPlaceholder='Digite para pesquisar'
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+
+                      <div className='grid grid-cols-1 gap-4'>
+                        <FormField control={form.control as any} name='active' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
+                              <div className='flex flex-col gap-0.5'>
+                                <FormLabel>Ativo</FormLabel>
+                                <FormDescription className='leading-snug text-xs'>Quando habilitado, o produto aparece ativo no catálogo.</FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch checked={Boolean(field.value)} onCheckedChange={(v) => field.onChange(v)} disabled={isPending} />
+                              </FormControl>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control as any} name='managedInventory' render={({ field }) => (
+                          <FormItem>
+                            <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
+                              <div className='flex flex-col gap-0.5'>
+                                <FormLabel>Gerenciar estoque</FormLabel>
+                                <FormDescription className='leading-snug text-xs'>Controla o estoque automaticamente para vendas e entradas.</FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} disabled={isPending} />
+                              </FormControl>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value='descricao' className='mt-4'>
+                    <div className='grid auto-rows-min gap-6'>
+                      <FormField control={form.control as any} name='description' render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descrição</FormLabel>
+                          <FormControl>
+                            <textarea placeholder='Opcional' {...field} value={field.value || ''} disabled={isPending}
+                              className='file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm h-28 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive'
+                            />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                  </div>
-
-                  <div className='grid grid-cols-1 gap-4'>
-              <FormField control={form.control} name='warranties' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Garantias</FormLabel>
-                  <FormControl>
-                    <TagsSelect
-                      value={(field.value as any[]) || []}
-                      onChange={(next) => form.setValue('warranties', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                      disabled={loading || isPending}
-                      enabled={open}
-                      queryKey={['warranties']}
-                      fetcher={async () => {
-                        const response = await privateInstance.get('/tenant/warranties?limit=100')
-                        if (response.status !== 200) throw new Error('Erro ao carregar garantias')
-                        return response.data as any
-                      }}
-                      getId={(item: any) => item?.id}
-                      getLabel={(item: any) => item?.name ?? item?.store_name ?? `#${item?.id}`}
-                      placeholder='Selecione as garantias...'
-                      searchPlaceholder='Digite para pesquisar'
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-                  </div>
-
-                  <div className='grid grid-cols-1 gap-4'>
-                    <FormField control={form.control} name='stores' render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Lojas</FormLabel>
-                        <FormControl>
-                          <TagsSelect
-                            value={(field.value as any[]) || []}
-                            onChange={(next) => form.setValue('stores', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                            disabled={loading || isPending}
-                            enabled={open}
-                            queryKey={['stores']}
-                            fetcher={async () => {
-                              const response = await privateInstance.get('/tenant/stores?limit=100')
-                              if (response.status !== 200) throw new Error('Erro ao carregar lojas')
-                              return response.data as any
-                            }}
-                            getId={(item: any) => item?.id}
-                            getLabel={(item: any) => item?.name ?? `#${item?.id}`}
-                            placeholder='Selecione as lojas...'
-                            searchPlaceholder='Digite para pesquisar'
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-
-
-                    <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='active' render={({ field }) => (
-                        <FormItem>
-                          <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
-                            <div className='flex flex-col gap-0.5'>
-                              <FormLabel>Ativo</FormLabel>
-                              <FormDescription className='leading-snug'>Quando habilitado, o produto aparece ativo no catálogo.</FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} disabled={loading || isPending} />
-                            </FormControl>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-
-
-
-                      
-
-                      <FormField control={form.control} name='managedInventory' render={({ field }) => (
-                        <FormItem>
-                          <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
-                            <div className='flex flex-col gap-0.5'>
-                              <FormLabel>Gerenciar estoque</FormLabel>
-                              <FormDescription className='leading-snug'>Controla o estoque automaticamente para vendas e entradas.</FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} disabled={loading || isPending} />
-                            </FormControl>
-                          </div>
                           <FormMessage />
                         </FormItem>
                       )} />
                     </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
 
-                <TabsContent value='descricao' className='mt-4'>
-                  <div className='grid auto-rows-min gap-6'>
-                    <FormField control={form.control} name='description' render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descrição</FormLabel>
-                        <FormControl>
-                          <div className="h-72 mb-12">
-                            <ReactQuill 
-                              theme="snow" 
-                              value={field.value || ''} 
-                              onChange={field.onChange}
-                              readOnly={loading || isPending}
-                              className="h-full bg-background text-foreground"
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                </TabsContent>
-
-
-
-              </Tabs>
-            </div>
-
-            <div className='mt-auto border-t p-4'>
-              <div className='flex justify-end gap-4'>
-                <SheetClose asChild>
-                  <Button variant='outline' size="sm" className='w-fit'>Cancelar</Button>
-                </SheetClose>
-                <Button type='submit' size="sm" disabled={isPending} className='w-fit'>
-                  {isPending ? <Loader className='animate-spin' /> : 'Salvar alterações'}
-                </Button>
+                </Tabs>
               </div>
-            </div>
-          </form>
-        </Form>
-      )}
+
+              <div className='mt-auto border-t p-4'>
+                <div className='grid grid-cols-2 gap-4'>
+                  <SheetClose asChild>
+                    <Button variant='outline' size="sm" className='w-full'>Cancelar</Button>
+                  </SheetClose>
+                  <Button type='submit' size="sm" disabled={isPending} className='w-full'>
+                    {isPending ? <><Loader className='animate-spin' /> Salvando...</> : 'Salvar alterações'}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </Form>
+        )}
       </SheetContent>
     </Sheet>
   )

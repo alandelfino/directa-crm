@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup } from "@/components/ui/field"
+import { FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -9,9 +9,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
-import { useNavigate, useLocation } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { auth, formSchema } from "@/lib/auth"
-import { useEffect, useState, useRef } from "react"
+import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 
@@ -28,10 +28,7 @@ export function LoginForm({
 }: LoginFormProps) {
 
   const navigate = useNavigate()
-  const location = useLocation()
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const processingCode = useRef<string | null>(null)
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => auth.login(values, companyAlias),
@@ -65,85 +62,6 @@ export function LoginForm({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutate(values)
-  }
-
-  const processGoogleLogin = async (code: string) => {
-    if (processingCode.current === code || isGoogleLoading) return
-    
-    processingCode.current = code
-    setIsGoogleLoading(true)
-    try {
-      const redirectUri = window.location.origin + '/sign-in'
-      const response = await auth.continueWithGoogle(code, redirectUri)
-
-      if (response.status === 200) {
-        toast.success("Login com Google realizado com sucesso!")
-        await navigate({ to: "/dashboard" })
-      } else {
-        const errorData = response?.data
-        toast.error(errorData?.title || "Falha no login com Google", {
-          description: errorData?.detail || "Não foi possível completar o login com Google."
-        })
-        setIsGoogleLoading(false)
-      }
-    } catch (error: any) {
-      console.error("Google login error:", error)
-      const errorData = error?.response?.data
-      toast.error(errorData?.title || "Erro no login com Google", {
-        description: errorData?.detail || "Ocorreu um erro inesperado ao processar o login."
-      })
-      setIsGoogleLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-      if (event.data?.type === 'GOOGLE_LOGIN_SUCCESS' && event.data?.code) {
-        processGoogleLogin(event.data.code)
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [navigate])
-
-  useEffect(() => {
-    const handleGoogleCallback = async () => {
-      // TanStack Router: Acessa o parâmetro 'code' diretamente do estado da rota
-      const code = (location.search as any)?.code
-
-      if (code) {
-        // Remove o code da URL para limpar o estado
-        await navigate({ to: '/sign-in', replace: true })
-        processGoogleLogin(code)
-      }
-    }
-
-    handleGoogleCallback()
-  }, [navigate])
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsGoogleLoading(true)
-      const redirectUri = window.location.origin + '/sign-in'
-      const authUrl = await auth.initGoogleLogin(redirectUri)
-      if (authUrl) {
-        window.location.href = authUrl
-      } else {
-        toast.error("Erro ao iniciar login", {
-          description: "Não foi possível obter a URL de autenticação do Google."
-        })
-      }
-    } catch (error: any) {
-      console.error("Google init error:", error)
-      const errorData = error?.response?.data
-      toast.error(errorData?.title || "Erro ao conectar", {
-        description: errorData?.detail || "Não foi possível conectar com o Google."
-      })
-    } finally {
-      setIsGoogleLoading(false)
-    }
   }
 
   return (
@@ -206,39 +124,13 @@ export function LoginForm({
             )}
           />
 
-          <Button type="submit" disabled={isPending || isGoogleLoading}>
+          <Button type="submit" disabled={isPending}>
             {isPending ? (
               <Loader2 className="ml-2 h-4 w-4 animate-spin" />
             ) : (
               "Entrar"
             )}
           </Button>
-
-          <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-            <span className="relative z-10 bg-background px-2 text-muted-foreground">
-              ou continuar com
-            </span>
-          </div>
-
-          <Button variant="outline" type="button" className="w-full" onClick={handleGoogleLogin} disabled={isPending || isGoogleLoading}>
-            {isGoogleLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-              </svg>
-            )}
-            Entrar com Google
-          </Button>
-
-          <Field>
-            <FieldDescription className="text-center">
-              Não tem uma conta?{" "}
-              <a href="/sign-up" className="underline underline-offset-4">
-                Cadastre-se
-              </a>
-            </FieldDescription>
-          </Field>
         </FieldGroup>
       </form>
     </Form>

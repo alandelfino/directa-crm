@@ -15,30 +15,18 @@ import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
 import { buildCategoryTree } from '@/utils/category-tree'
-import { useEffect, useState, useMemo } from 'react'
- 
+import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+
+// Lazy load auxiliary creation sheets
+const NewCategorySheet = lazy(() => import('../../categories/-components/new-category').then(m => ({ default: m.NewCategorySheet })))
+const NewBrandSheet = lazy(() => import('../../brands/-components/new-brand').then(m => ({ default: m.NewBrandSheet })))
+const NewUnitSheet = lazy(() => import('../../units/-components/new-unit').then(m => ({ default: m.NewUnitSheet })))
+const NewWarrantySheet = lazy(() => import('../../warranties/-components/new-warranty').then(m => ({ default: m.NewWarrantySheet })))
 
   const formSchema = z.object({
     sku: z.string().min(1, { message: 'Campo obrigatório' }).regex(/^[a-z0-9-]+$/, 'Use apenas minúsculas, números e hífen (-)'),
     name: z.string().min(1, { message: 'Campo obrigatório' }),
     description: z.string().optional(),
-    type: z.enum(['simple', 'with_derivations'] as const, { message: 'Campo obrigatório' }),
-    width: z.preprocess(
-      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-      z.number().optional()
-    ),
-    height: z.preprocess(
-      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-      z.number().optional()
-    ),
-    length: z.preprocess(
-      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-      z.number().optional()
-    ),
-    weight: z.preprocess(
-      (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-      z.number().optional()
-    ),
     active: z.boolean().default(true),
     managedInventory: z.boolean().default(false),
   unitId: z.preprocess(
@@ -71,36 +59,23 @@ import { useEffect, useState, useMemo } from 'react'
       .int()
       .min(1, 'Selecione uma marca')
   ),
-  derivations: z.array(z.number()).default([]),
+  derivations: z.array(z.number()).min(1, 'Selecione pelo menos uma derivação').default([]),
   warranties: z.array(z.number()).default([]),
   stores: z.array(z.number()).min(1, 'Selecione pelo menos uma loja').default([]),
   categories: z.array(z.number()).min(1, 'Selecione pelo menos uma categoria').default([]),
-  }).superRefine((data, ctx) => {
-  if (data.type === 'with_derivations' && (!data.derivations || data.derivations.length === 0)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['derivations'], message: 'Selecione pelo menos uma derivação' })
-  }
-  if (data.type === 'simple') {
-    if (data.width === undefined || data.width === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['width'], message: 'Campo obrigatório' })
-    if (data.height === undefined || data.height === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['height'], message: 'Campo obrigatório' })
-    if (data.length === undefined || data.length === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['length'], message: 'Campo obrigatório' })
-    if (data.weight === undefined || data.weight === null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['weight'], message: 'Campo obrigatório' })
-  }
-})
+  })
+
+type ProductFormValues = z.infer<typeof formSchema>
 
 export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => void }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<ProductFormValues>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       sku: '',
       name: '',
       description: '',
-      type: 'simple',
-      width: undefined,
-      height: undefined,
-      length: undefined,
-      weight: undefined,
       active: true,
       managedInventory: false,
       unitId: undefined,
@@ -112,19 +87,11 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
     }
   })
 
-  const isWithDerivations = form.watch('type') === 'with_derivations'
-
   const { isPending, mutate } = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
+    mutationFn: async (values: ProductFormValues) => {
       const payload = {
         ...values,
         description: values.description || undefined,
-        // Convert units if type is simple
-        // Frontend: cm/kg -> Backend: mm/g (integers)
-        width: values.type === 'simple' && values.width ? Math.round(values.width * 10) : undefined,
-        height: values.type === 'simple' && values.height ? Math.round(values.height * 10) : undefined,
-        length: values.type === 'simple' && values.length ? Math.round(values.length * 10) : undefined,
-        weight: values.type === 'simple' && values.weight ? Math.round(values.weight * 1000) : undefined,
       }
       const response = await privateInstance.post('/tenant/products', payload)
       return response
@@ -151,7 +118,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
     }
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: ProductFormValues) {
     mutate(values)
   }
 
@@ -210,21 +177,17 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
   }, [categoriesResponse])
 
   // Helpers de máscara
-  function toSkuSlug(val: string) {
+  function toSkuSlug(val: string): string {
     const base = String(val || '')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
+      .replace(/[\u0300-\u036f]/g, '')
     const spaced = base.replace(/\s+/g, '-')
     return spaced
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-{2,}/g, '-')
   }
-  
-  
-  
-
-  
 
   useEffect(() => {
     if (!open) {
@@ -232,11 +195,6 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
         sku: '',
         name: '',
         description: '',
-        type: 'simple',
-        width: undefined,
-        height: undefined,
-        length: undefined,
-        weight: undefined,
         active: true,
         managedInventory: true,
         unitId: undefined,
@@ -275,7 +233,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                 <TabsContent value='geral' className='mt-4'>
                   <div className='grid auto-rows-min gap-6'>
                     <div className='grid grid-cols-1 md:grid-cols-[150px_1fr] gap-4'>
-                      <FormField control={form.control} name='sku' render={({ field }) => (
+                      <FormField control={form.control as any} name='sku' render={({ field }) => (
                         <FormItem>
                           <FormLabel>SKU</FormLabel>
                           <FormControl>
@@ -291,7 +249,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='name' render={({ field }) => (
+                      <FormField control={form.control as any} name='name' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Nome</FormLabel>
                           <FormControl>
@@ -302,9 +260,14 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                       )} />
                     </div>
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='categories' render={({ field }) => (
+                      <FormField control={form.control as any} name='categories' render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Categorias</FormLabel>
+                          <div className='flex items-center justify-between'>
+                            <FormLabel>Categorias</FormLabel>
+                            <Suspense fallback={null}>
+                              <NewCategorySheet />
+                            </Suspense>
+                          </div>
                           <FormControl>
                             <CategoryTreeSelect
                               value={field.value || []}
@@ -320,104 +283,45 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                       )} />
                     </div>
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='type' render={({ field }) => (
+                      <FormField control={form.control as any} name='derivations' render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Tipo</FormLabel>
+                          <div className='flex items-center justify-between'>
+                            <FormLabel>Derivações</FormLabel>
+                          </div>
                           <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger className='w-full' aria-label='Tipo do produto'>
-                                <SelectValue placeholder='Selecione o tipo' />
-                              </SelectTrigger>
-                              <SelectContent
-                                position="popper"
-                                className="max-h-64 z-[60] overscroll-y-contain"
-                                onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                                onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                              >
-                                <SelectGroup>
-                                  <SelectItem value='simple'>Simples</SelectItem>
-                                  <SelectItem value='with_derivations'>Com variações</SelectItem>
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
+                            <TagsSelect
+                              value={(field.value as any[]) || []}
+                              onChange={(next) => form.setValue('derivations', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
+                              disabled={isPending}
+                              enabled={open}
+                              queryKey={['derivations']}
+                              fetcher={async () => {
+                                const response = await privateInstance.get('/tenant/derivations?limit=100')
+                                if (response.status !== 200) throw new Error('Erro ao carregar derivações')
+                                return response.data as any
+                              }}
+                              getId={(item: any) => item?.id}
+                              getLabel={(item: any) => item?.name ?? item?.title ?? `#${item?.id}`}
+                              placeholder='Selecione as derivações...'
+                              searchPlaceholder='Digite para pesquisar'
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
-                      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${!isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                          <FormField control={form.control} name='width' render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Largura (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.1" min="0" placeholder="0.0" {...field} value={field.value ?? ''} disabled={isPending} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name='height' render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Altura (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.1" min="0" placeholder="0.0" {...field} value={field.value ?? ''} disabled={isPending} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name='length' render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Comprimento (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.1" min="0" placeholder="0.0" {...field} value={field.value ?? ''} disabled={isPending} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name='weight' render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Peso (kg)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.001" min="0" placeholder="0.000" {...field} value={field.value ?? ''} disabled={isPending} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                        </div>
-                      </div>
-                      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isWithDerivations ? 'opacity-100 translate-y-0 max-h-[500px]' : 'opacity-0 -translate-y-1 max-h-0'}`}>
-                        <FormField control={form.control} name='derivations' render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Derivações</FormLabel>
-                            <FormControl>
-                              <TagsSelect
-                              value={(field.value as any[]) || []}
-                              onChange={(next) => form.setValue('derivations', (next as any[]).map((v) => Number(v)).filter((n) => Number.isFinite(n)), { shouldDirty: true, shouldValidate: true })}
-                              disabled={isPending}
-                                enabled={open}
-                                queryKey={['derivations']}
-                                fetcher={async () => {
-                                  const response = await privateInstance.get('/tenant/derivations?limit=100')
-                                  if (response.status !== 200) throw new Error('Erro ao carregar derivações')
-                                  return response.data as any
-                                }}
-                                getId={(item: any) => item?.id}
-                                getLabel={(item: any) => item?.name ?? item?.title ?? `#${item?.id}`}
-                                placeholder='Selecione as derivações...'
-                                searchPlaceholder='Digite para pesquisar'
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
                     </div>
 
                     
 
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <FormField control={form.control} name='unitId' render={({ field }) => (
+                      <FormField control={form.control as any} name='unitId' render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Unidade</FormLabel>
+                          <div className='flex items-center justify-between'>
+                            <FormLabel>Unidade</FormLabel>
+                            <Suspense fallback={null}>
+                              <NewUnitSheet />
+                            </Suspense>
+                          </div>
                           <FormControl>
                             <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isUnitsLoading}>
                               <SelectTrigger className='w-full'>
@@ -447,9 +351,14 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='brandId' render={({ field }) => (
+                      <FormField control={form.control as any} name='brandId' render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Marca</FormLabel>
+                          <div className='flex items-center justify-between'>
+                            <FormLabel>Marca</FormLabel>
+                            <Suspense fallback={null}>
+                              <NewBrandSheet />
+                            </Suspense>
+                          </div>
                           <FormControl>
                             <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isBrandsLoading}>
                               <SelectTrigger className='w-full'>
@@ -481,9 +390,14 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                     </div>
 
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='warranties' render={({ field }) => (
+                      <FormField control={form.control as any} name='warranties' render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Garantias</FormLabel>
+                          <div className='flex items-center justify-between'>
+                            <FormLabel>Garantias</FormLabel>
+                            <Suspense fallback={null}>
+                              <NewWarrantySheet />
+                            </Suspense>
+                          </div>
                           <FormControl>
                             <TagsSelect
                               value={(field.value as any[]) || []}
@@ -508,7 +422,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                     </div>
 
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='stores' render={({ field }) => (
+                      <FormField control={form.control as any} name='stores' render={({ field }) => (
                         <FormItem>
                           <FormLabel>Lojas</FormLabel>
                           <FormControl>
@@ -536,7 +450,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
 
 
                     <div className='grid grid-cols-1 gap-4'>
-                      <FormField control={form.control} name='active' render={({ field }) => (
+                      <FormField control={form.control as any} name='active' render={({ field }) => (
                         <FormItem>
                           <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>
@@ -551,7 +465,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                         </FormItem>
                       )} />
 
-                      <FormField control={form.control} name='managedInventory' render={({ field }) => (
+                      <FormField control={form.control as any} name='managedInventory' render={({ field }) => (
                         <FormItem>
                           <div className='flex items-center justify-between gap-3 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 rounded-md'>
                             <div className='flex flex-col gap-0.5'>
@@ -571,11 +485,11 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
 
                 <TabsContent value='descricao' className='mt-4'>
                   <div className='grid auto-rows-min gap-6'>
-                    <FormField control={form.control} name='description' render={({ field }) => (
+                    <FormField control={form.control as any} name='description' render={({ field }) => (
                       <FormItem>
                         <FormLabel>Descrição</FormLabel>
                         <FormControl>
-                          <textarea placeholder='Opcional' {...field} disabled={isPending}
+                          <textarea placeholder='Opcional' {...field} value={field.value || ''} disabled={isPending}
                             className='file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm h-28 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive'
                           />
                         </FormControl>

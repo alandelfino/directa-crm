@@ -99,7 +99,6 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
   }, [open])
 
   useEffect(() => {
-    setAmount('')
     setDerivationsAmounts({})
   }, [productId])
 

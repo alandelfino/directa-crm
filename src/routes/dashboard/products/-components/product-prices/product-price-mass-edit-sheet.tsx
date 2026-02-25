@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import { Edit } from 'lucide-react'
@@ -13,32 +14,60 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { maskMoneyInput } from '@/lib/utils'
 
 const formSchema = z.object({
-  price: z.string().min(1, { message: 'Preço é obrigatório' }),
+  update_price: z.boolean().default(false),
+  price: z.string().optional(),
+  update_sale_price: z.boolean().default(false),
   sale_price: z.string().optional(),
 }).refine((data) => {
-  if (!data.sale_price) return true
-  const price = parseInt(data.price.replace(/\D/g, '')) || 0
-  const salePrice = parseInt(data.sale_price.replace(/\D/g, '')) || 0
-  return salePrice <= price
+  if (data.update_price && (!data.price || data.price.trim() === '')) {
+    return false
+  }
+  return true
+}, {
+  message: 'Preço é obrigatório quando selecionado',
+  path: ['price'],
+}).refine((data) => {
+  if (data.update_price && data.update_sale_price) {
+    const price = parseInt((data.price || '').replace(/\D/g, '')) || 0
+    const salePrice = parseInt((data.sale_price || '').replace(/\D/g, '')) || 0
+    return salePrice <= price
+  }
+  return true
 }, {
   message: 'O preço promocional não pode ser maior que o preço',
   path: ['sale_price'],
 })
 
-export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: { selectedIds: number[], onUpdated?: () => void, trigger?: React.ReactNode }) {
+type PriceItem = {
+  id: number
+  price: number
+  salePrice: number
+}
+
+export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }: { selectedItems: PriceItem[], onUpdated?: () => void, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [progress, setProgress] = useState(0)
   const [processedCount, setProcessedCount] = useState(0)
   const [results, setResults] = useState<{ success: number, errors: { id: number, message: string }[] } | null>(null)
   
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { price: 'R$ 0,00', sale_price: 'R$ 0,00' },
+    resolver: zodResolver(formSchema) as any,
+    defaultValues: { 
+      update_price: false,
+      price: 'R$ 0,00', 
+      update_sale_price: false,
+      sale_price: 'R$ 0,00' 
+    },
   })
 
   useEffect(() => {
     if (open) {
-      form.reset({ price: 'R$ 0,00', sale_price: 'R$ 0,00' })
+      form.reset({ 
+        update_price: false,
+        price: 'R$ 0,00', 
+        update_sale_price: false,
+        sale_price: 'R$ 0,00' 
+      })
       setProcessedCount(0)
       setProgress(0)
       setResults(null)
@@ -47,11 +76,11 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const priceCents = parseInt(values.price.replace(/\D/g, ''))
+      const priceCents = parseInt((values.price || '').replace(/\D/g, ''))
       const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
       
-      const idsToUpdate = [...selectedIds]
-      const total = idsToUpdate.length
+      const itemsToUpdate = [...selectedItems]
+      const total = itemsToUpdate.length
       const currentResults = { success: 0, errors: [] as { id: number, message: string }[] }
       
       setProgress(0)
@@ -59,20 +88,22 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
       setResults(null)
 
       for (let i = 0; i < total; i++) {
-        const id = idsToUpdate[i]
+        const item = itemsToUpdate[i]
+        
+        // Construct payload: preserve existing values if not updating
         const payload = {
-          price: priceCents,
-          salePrice: salePriceCents
+          price: values.update_price ? priceCents : item.price,
+          salePrice: values.update_sale_price ? salePriceCents : (item.salePrice ?? 0)
         }
         
         try {
-          await privateInstance.put(`/tenant/product-prices/${id}`, payload)
+          await privateInstance.put(`/tenant/product-prices/${item.id}`, payload)
           currentResults.success++
         } catch (error: any) {
           const errorData = error?.response?.data
           const message = errorData?.title || errorData?.detail || 'Erro desconhecido'
-          currentResults.errors.push({ id, message })
-          console.error(`Error updating price ${id}`, error)
+          currentResults.errors.push({ id: item.id, message })
+          console.error(`Error updating price ${item.id}`, error)
         } finally {
           const current = i + 1
           setProcessedCount(current)
@@ -98,6 +129,9 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
     }
   }
 
+  const updatePrice = form.watch('update_price')
+  const updateSalePrice = form.watch('update_sale_price')
+
   return (
     <Sheet open={open} onOpenChange={(o) => {
       if (!o && results) {
@@ -108,7 +142,7 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
       <SheetTrigger asChild>
         {trigger || (
           <Button size='sm' variant='outline'>
-            <Edit className='h-4 w-4 mr-2' /> Editar em Lote ({selectedIds.length})
+            <Edit className='h-4 w-4 mr-2' /> Editar em Lote ({selectedItems.length})
           </Button>
         )}
       </SheetTrigger>
@@ -118,7 +152,7 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
              <SheetHeader>
                <SheetTitle>Relatório de Atualização</SheetTitle>
                <SheetDescription>
-                 Resultado da atualização em massa de {selectedIds.length} itens.
+                 Resultado da atualização em massa de {selectedItems.length} itens.
                </SheetDescription>
              </SheetHeader>
              
@@ -154,10 +188,9 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
         ) : (
           <div className='flex flex-col h-full'>
             <SheetHeader>
-              <SheetTitle>Editar {selectedIds.length} Preços</SheetTitle>
+              <SheetTitle>Editar {selectedItems.length} Preços</SheetTitle>
               <SheetDescription>
-                Defina o novo preço para os {selectedIds.length} itens selecionados.
-                Esta ação substituirá os preços atuais.
+                Selecione os campos que deseja alterar para os itens selecionados.
               </SheetDescription>
             </SheetHeader>
             
@@ -176,7 +209,7 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground text-center pt-1">
-                      Processando {processedCount} de {selectedIds.length} itens
+                      Processando {processedCount} de {selectedItems.length} itens
                     </p>
                   </div>
                 </div>
@@ -184,45 +217,94 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
 
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(async (v) => await mutateAsync(v))} className='space-y-4'>
-                  <fieldset disabled={isPending} className="grid grid-cols-2 gap-4 disabled:opacity-50">
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Preço</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="R$ 0,00" 
-                              {...field} 
-                              onChange={(e) => {
-                                field.onChange(maskMoneyInput(e.target.value))
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                  <fieldset disabled={isPending} className="grid gap-4 disabled:opacity-50">
+                    
+                    <div className="space-y-2 border p-3 rounded-md">
+                      <FormField
+                        control={form.control}
+                        name="update_price"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Atualizar Preço
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {updatePrice && (
+                        <FormField
+                          control={form.control}
+                          name="price"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input 
+                                  placeholder="R$ 0,00" 
+                                  {...field} 
+                                  onChange={(e) => {
+                                    field.onChange(maskMoneyInput(e.target.value))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sale_price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Preço Promocional</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="R$ 0,00" 
-                              {...field} 
-                              onChange={(e) => {
-                                field.onChange(maskMoneyInput(e.target.value))
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    </div>
+
+                    <div className="space-y-2 border p-3 rounded-md">
+                      <FormField
+                        control={form.control}
+                        name="update_sale_price"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Atualizar Preço Promocional
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {updateSalePrice && (
+                        <FormField
+                          control={form.control}
+                          name="sale_price"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input 
+                                  placeholder="R$ 0,00" 
+                                  {...field} 
+                                  onChange={(e) => {
+                                    field.onChange(maskMoneyInput(e.target.value))
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
+                    </div>
+
                   </fieldset>
                 </form>
               </Form>
@@ -239,7 +321,7 @@ export function ProductPriceMassEditSheet({ selectedIds, onUpdated, trigger }: {
                   type="button" 
                   onClick={form.handleSubmit(async (v) => await mutateAsync(v))} 
                   className='w-full'
-                  disabled={isPending}
+                  disabled={isPending || (!updatePrice && !updateSalePrice)}
                 >
                   {isPending ? 'Atualizando...' : 'Salvar Alterações'}
                 </Button>

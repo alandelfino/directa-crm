@@ -8,7 +8,6 @@ import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { ProductPriceCreateSheet } from './product-price-create-sheet'
-import { ProductPriceEditSheet } from './product-price-edit-sheet'
 import { ProductPriceMassEditSheet } from './product-price-mass-edit-sheet'
 import { privateInstance } from '@/lib/auth'
 import { formatMoneyFromCents, cn, maskMoneyInput } from '@/lib/utils'
@@ -385,14 +384,9 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
               >
                 <RefreshCw className={cn("size-[0.85rem]", isRefetching && "animate-spin")} />
               </Button>
-              {selectedIds.length === 1 ? (
-                <ProductPriceEditSheet 
-                  item={selectedItems[0]} 
-                  onUpdated={() => { refetch(); setSelectedIds([]) }} 
-                />
-              ) : selectedIds.length > 1 ? (
+              {selectedIds.length >= 1 ? (
                 <ProductPriceMassEditSheet 
-                  selectedIds={selectedIds}
+                  selectedItems={selectedItems}
                   onUpdated={() => {
                     refetch()
                     setSelectedIds([])

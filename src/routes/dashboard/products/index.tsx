@@ -138,7 +138,7 @@ function RouteComponent() {
   })
 
   const [items, setItems] = useState<Product[]>([])
-  const [createdProductId, setCreatedProductId] = useState<number | null>(null)
+
 
   
 
@@ -475,7 +475,7 @@ function RouteComponent() {
               </Button>
             )}
             <Suspense fallback={<Button variant={'outline'} size="sm" disabled><Package className="size-[0.85rem]" /> Novo</Button>}>
-              <NewProductSheet onCreated={(p) => { refetch(); if(p?.id) setCreatedProductId(p.id) }} />
+              <NewProductSheet onCreated={() => refetch()} />
             </Suspense>
           </div>
         </div>
@@ -502,7 +502,7 @@ function RouteComponent() {
               </EmptyHeader>
               <EmptyContent>
                 <div className='flex gap-2'>
-                  <NewProductSheet onCreated={(p) => { refetch(); if(p?.id) setCreatedProductId(p.id) }} />
+                  <NewProductSheet onCreated={() => refetch()} />
                   <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
                     {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
@@ -513,17 +513,6 @@ function RouteComponent() {
           onChange={({ page, perPage }) => { if (typeof page === 'number') setCurrentPage(page); if (typeof perPage === 'number') setPerPage(perPage); refetch() }}
         />
       </div>
-      {createdProductId && (
-        <Suspense fallback={null}>
-          <EditProductSheet
-            productId={createdProductId}
-            open={true}
-            onOpenChange={(open) => { if (!open) setCreatedProductId(null) }}
-            trigger={null}
-            onSaved={() => { refetch() }}
-          />
-        </Suspense>
-      )}
     </div>
   )
 }

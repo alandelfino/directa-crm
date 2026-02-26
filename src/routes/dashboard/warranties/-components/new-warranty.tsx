@@ -21,7 +21,11 @@ const formSchema = z.object({
   price: z.coerce.number().int().min(0, { message: "Preço deve ser >= 0" }),
 })
 
-export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"form">) {
+type NewWarrantySheetProps = React.ComponentProps<"form"> & {
+  trigger?: React.ReactNode
+}
+
+export function NewWarrantySheet({ className, trigger, ...props }: NewWarrantySheetProps) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const formatCurrencyBRL = (centavos: number) => {
@@ -80,9 +84,12 @@ export function NewWarrantySheet({ className, ...props }: React.ComponentProps<"
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
-          <Plus className="size-4" />
-        </Button>
+        {trigger ? trigger : (
+          <Button size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Garantia
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent>
         <Form {...form}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { XIcon } from 'lucide-react';
+import { XIcon, ChevronDown } from 'lucide-react';
 import {
   type ComponentProps,
   createContext,
@@ -130,6 +130,7 @@ export const TagsTrigger = ({
           {placeholder}
         </span>
       </div>
+      <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
     </Button>
   </PopoverTrigger>
 );

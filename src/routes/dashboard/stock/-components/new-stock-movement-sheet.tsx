@@ -143,7 +143,10 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
     queryFn: async () => {
       if (!productId) return null
       const response = await privateInstance.get(`/tenant/products/${productId}`)
-      return response.data as Product
+      const data = response.data
+      // Normalize unitOfMeasurement if it comes as unit_of_measurement
+      const unitOfMeasurement = data.unitOfMeasurement || data.unit_of_measurement
+      return { ...data, unitOfMeasurement } as Product
     },
     enabled: !!productId && open
   })

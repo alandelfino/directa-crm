@@ -32,6 +32,11 @@ type ProductStockResponse = {
     name: string
     type: 'simple' | 'with_derivations'
   }
+  unitOfMeasurement?: {
+    id: number
+    name: string
+    numberType: 'integer' | 'decimal'
+  }
   total: number
   items: Array<ProductStockSimpleItem | ProductStockWithDerivationsItem>
 }
@@ -45,9 +50,11 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
 
   const formatQuantityFromCents = (value: number) => {
     const base = Number.isFinite(value) ? value / 100 : 0
+    const numberType = data?.unitOfMeasurement?.numberType ?? 'decimal'
+
     return base.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: numberType === 'integer' ? 0 : 2,
+      maximumFractionDigits: numberType === 'integer' ? 0 : 2,
     })
   }
 
@@ -159,7 +166,7 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
             'w-[140px] min-w-[140px] !px-4 text-right',
         },
       ],
-      [],
+      [data?.unitOfMeasurement],
     )
 
   const itemsCount = derivationItems.length

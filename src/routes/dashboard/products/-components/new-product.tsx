@@ -8,7 +8,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader, PackagePlus } from 'lucide-react'
+import { Loader, PackagePlus, Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
 import { buildCategoryTree } from '@/utils/category-tree'
 import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Lazy load auxiliary creation sheets
 const NewCategorySheet = lazy(() => import('../../categories/-components/new-category').then(m => ({ default: m.NewCategorySheet })))
@@ -158,7 +159,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
   // Carregar derivações
   
   // Carregar categorias
-  const { data: categoriesResponse } = useQuery({
+  const { data: categoriesResponse, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ['categories'],
     enabled: open,
     refetchOnWindowFocus: false,
@@ -190,7 +191,14 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
   }
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      queryClient.invalidateQueries({ queryKey: ['brands'] })
+      queryClient.invalidateQueries({ queryKey: ['units'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['derivations'] })
+      queryClient.invalidateQueries({ queryKey: ['warranties'] })
+      queryClient.invalidateQueries({ queryKey: ['stores'] })
+    } else {
       form.reset({
         sku: '',
         name: '',
@@ -265,18 +273,28 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                           <div className='flex items-center justify-between'>
                             <FormLabel>Categorias</FormLabel>
                             <Suspense fallback={null}>
-                              <NewCategorySheet />
+                              <NewCategorySheet 
+                                trigger={
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
                             </Suspense>
                           </div>
                           <FormControl>
-                            <CategoryTreeSelect
-                              value={field.value || []}
-                              onChange={(next) => form.setValue('categories', next, { shouldDirty: true, shouldValidate: true })}
-                              disabled={isPending}
-                              items={categoryItems}
-                              rootChildren={categoryRootChildren}
-                              placeholder='Selecione as categorias...'
-                            />
+                            {isCategoriesLoading ? (
+                              <Skeleton className="h-10 w-full" />
+                            ) : (
+                              <CategoryTreeSelect
+                                value={field.value || []}
+                                onChange={(next) => form.setValue('categories', next, { shouldDirty: true, shouldValidate: true })}
+                                disabled={isPending}
+                                items={categoryItems}
+                                rootChildren={categoryRootChildren}
+                                placeholder='Selecione as categorias...'
+                              />
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -319,33 +337,43 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                           <div className='flex items-center justify-between'>
                             <FormLabel>Unidade</FormLabel>
                             <Suspense fallback={null}>
-                              <NewUnitSheet />
+                              <NewUnitSheet 
+                                trigger={
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
                             </Suspense>
                           </div>
                           <FormControl>
-                            <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isUnitsLoading}>
-                              <SelectTrigger className='w-full'>
-                                <SelectValue placeholder={isUnitsLoading ? 'Carregando unidades...' : 'Selecione a unidade'} />
-                              </SelectTrigger>
-                              <SelectContent
-                                position="popper"
-                                className="max-h-64 z-[60] overscroll-y-contain"
-                                onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                                onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                              >
-                                <SelectGroup>
-                                  {Array.isArray((unitsData as any)?.items)
-                                    ? (unitsData as any).items.map((u: any) => (
-                                      <SelectItem key={u.id} value={String(u.id)}>{u.name ?? `Unidade #${u.id}`}</SelectItem>
-                                    ))
-                                    : Array.isArray(unitsData)
-                                      ? (unitsData as any).map((u: any) => (
+                            {isUnitsLoading ? (
+                              <Skeleton className="h-10 w-full" />
+                            ) : (
+                              <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isUnitsLoading}>
+                                <SelectTrigger className='w-full'>
+                                  <SelectValue placeholder={isUnitsLoading ? 'Carregando unidades...' : 'Selecione a unidade'} />
+                                </SelectTrigger>
+                                <SelectContent
+                                  position="popper"
+                                  className="max-h-64 z-[60] overscroll-y-contain"
+                                  onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                  onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                >
+                                  <SelectGroup>
+                                    {Array.isArray((unitsData as any)?.items)
+                                      ? (unitsData as any).items.map((u: any) => (
                                         <SelectItem key={u.id} value={String(u.id)}>{u.name ?? `Unidade #${u.id}`}</SelectItem>
                                       ))
-                                      : null}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
+                                      : Array.isArray(unitsData)
+                                        ? (unitsData as any).map((u: any) => (
+                                          <SelectItem key={u.id} value={String(u.id)}>{u.name ?? `Unidade #${u.id}`}</SelectItem>
+                                        ))
+                                        : null}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -356,33 +384,43 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                           <div className='flex items-center justify-between'>
                             <FormLabel>Marca</FormLabel>
                             <Suspense fallback={null}>
-                              <NewBrandSheet />
+                              <NewBrandSheet 
+                                trigger={
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
                             </Suspense>
                           </div>
                           <FormControl>
-                            <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isBrandsLoading}>
-                              <SelectTrigger className='w-full'>
-                                <SelectValue placeholder={isBrandsLoading ? 'Carregando marcas...' : 'Selecione a marca'} />
-                              </SelectTrigger>
-                              <SelectContent
-                                position="popper"
-                                className="max-h-64 z-[60] overscroll-y-contain"
-                                onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                                onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
-                              >
-                                <SelectGroup>
-                                  {Array.isArray((brandsData as any)?.items)
-                                    ? (brandsData as any).items.map((b: any) => (
-                                      <SelectItem key={b.id} value={String(b.id)}>{b.name ?? `Marca #${b.id}`}</SelectItem>
-                                    ))
-                                    : Array.isArray(brandsData)
-                                      ? (brandsData as any).map((b: any) => (
+                            {isBrandsLoading ? (
+                              <Skeleton className="h-10 w-full" />
+                            ) : (
+                              <Select value={field.value ? String(field.value) : ''} onValueChange={(v) => field.onChange(Number(v))} disabled={isBrandsLoading}>
+                                <SelectTrigger className='w-full'>
+                                  <SelectValue placeholder={isBrandsLoading ? 'Carregando marcas...' : 'Selecione a marca'} />
+                                </SelectTrigger>
+                                <SelectContent
+                                  position="popper"
+                                  className="max-h-64 z-[60] overscroll-y-contain"
+                                  onWheel={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                  onWheelCapture={(e) => { e.stopPropagation(); const el = e.currentTarget as HTMLElement; el.scrollTop += e.deltaY; e.preventDefault(); }}
+                                >
+                                  <SelectGroup>
+                                    {Array.isArray((brandsData as any)?.items)
+                                      ? (brandsData as any).items.map((b: any) => (
                                         <SelectItem key={b.id} value={String(b.id)}>{b.name ?? `Marca #${b.id}`}</SelectItem>
                                       ))
-                                      : null}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
+                                      : Array.isArray(brandsData)
+                                        ? (brandsData as any).map((b: any) => (
+                                          <SelectItem key={b.id} value={String(b.id)}>{b.name ?? `Marca #${b.id}`}</SelectItem>
+                                        ))
+                                        : null}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -395,7 +433,13 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
                           <div className='flex items-center justify-between'>
                             <FormLabel>Garantias</FormLabel>
                             <Suspense fallback={null}>
-                              <NewWarrantySheet />
+                              <NewWarrantySheet 
+                                trigger={
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
                             </Suspense>
                           </div>
                           <FormControl>

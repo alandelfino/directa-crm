@@ -24,10 +24,15 @@ const formSchema = z.object({
   parent_id: z.number().optional().default(0),
 })
 
+type NewCategorySheetProps = React.ComponentProps<"form"> & {
+  trigger?: React.ReactNode
+}
+
 export function NewCategorySheet({
   className,
+  trigger,
   ...props
-}: React.ComponentProps<"form">) {
+}: NewCategorySheetProps) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
@@ -109,9 +114,12 @@ export function NewCategorySheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
-          <Plus className="size-4" />
-        </Button>
+        {trigger ? trigger : (
+          <Button size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Categoria
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent>
         <Form {...form}>

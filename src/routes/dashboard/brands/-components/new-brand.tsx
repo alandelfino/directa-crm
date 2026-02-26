@@ -17,10 +17,15 @@ const formSchema = z.object({
     name: z.string().min(1, { message: "Nome é obrigatório" }),
 })
 
+type NewBrandSheetProps = React.ComponentProps<"form"> & {
+  trigger?: React.ReactNode
+}
+
 export function NewBrandSheet({
     className,
+    trigger,
     ...props
-}: React.ComponentProps<"form">) {
+}: NewBrandSheetProps) {
 
     const [open, setOpen] = useState(false)
     const queryClient = useQueryClient()
@@ -72,10 +77,13 @@ export function NewBrandSheet({
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
-          <Plus className="size-4" />
-        </Button>
-      </SheetTrigger>
+                {trigger ? trigger : (
+                    <Button size="sm">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nova Marca
+                    </Button>
+                )}
+            </SheetTrigger>
             <SheetContent>
                 <Form {...form}>
                     <form {...props} onSubmit={(e) => { e.stopPropagation(); form.handleSubmit(onSubmit)(e); }} className="flex flex-col h-full">

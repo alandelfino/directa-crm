@@ -17,10 +17,15 @@ const formSchema = z.object({
   numberType: z.enum(["integer", "decimal"], { message: "Tipo é obrigatório" }),
 })
 
+type NewUnitSheetProps = React.ComponentProps<"form"> & {
+  trigger?: React.ReactNode
+}
+
 export function NewUnitSheet({
   className,
+  trigger,
   ...props
-}: React.ComponentProps<"form">) {
+}: NewUnitSheetProps) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
@@ -69,9 +74,12 @@ export function NewUnitSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
-          <Plus className="size-4" />
-        </Button>
+        {trigger ? trigger : (
+          <Button size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Unidade
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent>
         <Form {...form}>

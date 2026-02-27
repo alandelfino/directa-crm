@@ -14,10 +14,10 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 
 const formSchema = z.object({
   nameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
-  lastNameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
+  lastNameOrTradeName: z.string().optional(),
   personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
   cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
-  rgOrIe: z.string().min(1, { message: "Campo obrigatório" }),
+  rgOrIe: z.string().optional(),
   phone: z.string().min(1, { message: "Campo obrigatório" }),
   email: z.string().email({ message: "Email inválido" }).min(1, { message: "Campo obrigatório" }),
 })
@@ -187,25 +187,51 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{personType === 'entity' ? 'Razão Social' : 'Nome'}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Digite o nome do cliente..." {...field} disabled={loading || isPending} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {personType === 'entity' ? (
+                <>
+                  <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Fantasia</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Opcional" {...field} disabled={loading || isPending} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
 
-              <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{personType === 'entity' ? 'Nome Fantasia' : 'Sobrenome'}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Opcional" {...field} disabled={loading || isPending} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+                  <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Razão Social</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Digite a razão social..." {...field} disabled={loading || isPending} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </>
+              ) : (
+                <>
+                  <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Digite o nome..." {...field} disabled={loading || isPending} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sobrenome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Opcional" {...field} disabled={loading || isPending} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="cpfOrCnpj" render={({ field }) => (
@@ -231,7 +257,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                   <FormItem>
                     <FormLabel>{personType === 'entity' ? 'Inscrição Estadual (IE)' : 'RG'}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Opcional" {...field} disabled={loading || isPending} />
+                      <Input placeholder="Opcional" {...field} disabled={loading || isPending} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

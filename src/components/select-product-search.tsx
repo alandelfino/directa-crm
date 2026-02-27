@@ -45,7 +45,7 @@ export function SelectProductSearch({
   placeholder = "Selecione um produto..."
 }: SelectProductSearchProps) {
   const [open, setOpen] = React.useState(false)
-  const [searchType, setSearchType] = React.useState<'name' | 'sku'>('name')
+  const [searchType, setSearchType] = React.useState<'name' | 'sku'>('sku')
   const [searchQuery, setSearchQuery] = React.useState('')
   const [debouncedQuery, setDebouncedQuery] = React.useState('')
   const [selectedProductLocal, setSelectedProductLocal] = React.useState<Product | null>(null)

@@ -26,6 +26,7 @@ type StockMovement = {
   warehouse: { id: number, name: string }
   type: string
   stockType: string
+  observation?: string
 }
 
 type StockMovementsResponse = {
@@ -87,9 +88,9 @@ function RouteComponent() {
       header: () => (<div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>),
       cell: (item) => (
         <div className='flex justify-center items-center'>
-          <Checkbox 
-            checked={selectedId === item.id} 
-            onCheckedChange={() => setSelectedId(selectedId === item.id ? null : item.id)} 
+          <Checkbox
+            checked={selectedId === item.id}
+            onCheckedChange={() => setSelectedId(selectedId === item.id ? null : item.id)}
           />
         </div>
       ),
@@ -102,7 +103,7 @@ function RouteComponent() {
       cell: (item) => {
         const isInflow = item.type === 'in'
         const isInflowOrOutflow = item.type === 'in' || item.type === 'out'
-        
+
         if (!isInflowOrOutflow) {
           return <span className='capitalize'>{item.type}</span>
         }
@@ -193,6 +194,16 @@ function RouteComponent() {
       headerClassName: 'w-[100px] min-w-[100px] border-r',
       className: 'w-[100px] min-w-[100px] p-2!'
     },
+    {
+      id: 'observation',
+      header: 'Observação',
+      cell: (item) => (
+        <span className='block truncate min-w-0 text-muted-foreground' title={item.observation}>{item.observation || '—'}</span>
+      ),
+      width: '200px',
+      headerClassName: 'w-[200px] min-w-[200px] border-r',
+      className: 'w-[200px] min-w-[200px] p-2!'
+    },
   ], [selectedId])
 
   useEffect(() => {
@@ -206,6 +217,7 @@ function RouteComponent() {
       amount: item.amount,
       type: item.type,
       stockType: item.stockType ?? item.stock_type ?? '',
+      observation: item.observation,
       product: {
         id: item.product?.id ?? item.productId ?? item.product_id,
         sku: item.product?.sku ?? item.productSku ?? item.product_sku ?? null,
@@ -263,7 +275,6 @@ function RouteComponent() {
           </div>
 
           <div className='flex items-center gap-2'>
-            <NewStockMovementSheet onCreated={() => refetch()} />
             <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => refetch()}>
               {
                 (isLoading || isRefetching)
@@ -271,6 +282,7 @@ function RouteComponent() {
                   : <RefreshCw className="size-[0.85rem]" />
               }
             </Button>
+            <NewStockMovementSheet onCreated={() => refetch()} />
           </div>
 
         </div>

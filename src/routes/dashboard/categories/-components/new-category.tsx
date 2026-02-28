@@ -39,7 +39,8 @@ export function NewCategorySheet({
   const { data: categoriesResponse, isLoading: isLoadingCategories } = useQuery({
     queryKey: ["categories"],
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       const res = await privateInstance.get("/tenant/categories", {
         params: {

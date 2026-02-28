@@ -105,7 +105,7 @@ export function SelectProductSearch({
       }))
     },
     enabled: open && debouncedQuery.length > 0,
-    staleTime: 1000 * 60 // 1 minute cache
+    staleTime: 0,
   })
 
   // Fetch selected product details if we have a value but it's not in the list (e.g. edição)

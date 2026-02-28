@@ -38,7 +38,7 @@ function RouteComponent() {
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['categories', currentPage, perPage],
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryFn: async () => {
       const res = await privateInstance.get('/tenant/categories', {
         params: { 

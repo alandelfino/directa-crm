@@ -44,7 +44,7 @@ export function CompanyProfileContent() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['company-profile'],
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryFn: async () => {
       const res = await privateInstance.get('/api:kdrFy_tm/companies/single')
       if (res.status !== 200) {

@@ -45,6 +45,8 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
   // Fetch Price Tables
   const { data: priceTables } = useQuery({
     queryKey: ['price-tables-list-select'],
+    staleTime: 0,
+    refetchOnMount: true,
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/price-tables?limit=100')
       return response.data.items || []

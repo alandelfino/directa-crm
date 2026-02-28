@@ -7,15 +7,17 @@ import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { DataTable, type ColumnDef } from '@/components/data-table'
+import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { UserFormSheet as UserFormDialog, type CustomerUser } from './customer-user-form-sheet'
+import { UserEditSheet as UserEditDialog } from './customer-user-edit-sheet'
 
 
 
 function RefreshPasswordDialog({ customerId, userId }: { customerId: number, userId: string }) {
     const { isPending: refreshing, mutate: refreshPassword } = useMutation({
         mutationFn: async () => {
-          const response = await privateInstance.post(`/tenant/customers/${customerId}/user/${userId}/refresh-password`)
+          const response = await privateInstance.post(`/tenant/customers/${customerId}/users/${userId}/refresh-password`)
           return response.data
         },
         onSuccess: (data) => {
@@ -34,7 +36,7 @@ function RefreshPasswordDialog({ customerId, userId }: { customerId: number, use
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button size={'sm'} variant={'outline'}> <KeyRound className="size-[0.85rem]" /> Senha</Button>
+                <Button size={'sm'} variant={'outline'}> <KeyRound className="size-[0.85rem]" /> Gerar nova senha</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -62,11 +64,18 @@ export function CustomerUserSheet({ customerId }: { customerId: number }) {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['customer-users', customerId],
     queryFn: async () => {
-        const response = await privateInstance.get(`/tenant/customers/${customerId}/users`)
+        const response = await privateInstance.get(`/tenant/customers/${customerId}/users`, {
+            params: {
+                page: 1,
+                limit: 100
+            }
+        })
         return response.data.items as CustomerUser[]
     },
     enabled: open,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0
   })
 
   const items: CustomerUser[] = useMemo(() => {
@@ -118,6 +127,26 @@ export function CustomerUserSheet({ customerId }: { customerId: number }) {
         width: '150px',
         headerClassName: 'min-w-[150px] border-r',
         className: 'min-w-[150px] !px-4',
+    },
+    {
+        id: 'priceTable',
+        header: 'Tabela de Preço',
+        cell: (item) => item.priceTable?.name || '—',
+        width: '150px',
+        headerClassName: 'min-w-[150px] border-r',
+        className: 'min-w-[150px] !px-4',
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        cell: (item) => (
+            <Badge variant={item.active ? 'default' : 'secondary'} className='rounded-full'>
+                {item.active ? 'Ativo' : 'Inativo'}
+            </Badge>
+        ),
+        width: '100px',
+        headerClassName: 'min-w-[100px]',
+        className: 'min-w-[100px] !px-4',
     }
   ]
 
@@ -128,7 +157,7 @@ export function CustomerUserSheet({ customerId }: { customerId: number }) {
           <User className="size-[0.85rem]" /> Usuários
         </Button>
       </SheetTrigger>
-      <SheetContent className='w-full sm:max-w-[700px] p-0'>
+      <SheetContent className='w-full sm:max-w-[900px] p-0'>
         <SheetHeader className="px-4 py-4">
           <SheetTitle>Usuários do Cliente</SheetTitle>
           <SheetDescription>
@@ -152,11 +181,11 @@ export function CustomerUserSheet({ customerId }: { customerId: number }) {
                 {selectedItem ? (
                     <>
                         <RefreshPasswordDialog customerId={customerId} userId={selectedItem.id} />
-                        <UserFormDialog customerId={customerId} user={selectedItem} onSuccess={() => { refetch(); }} />
+                        <UserEditDialog customerId={customerId} user={selectedItem} onSuccess={() => { refetch(); }} />
                     </>
                 ) : (
                     <>
-                         <Button size={'sm'} variant={'outline'} disabled> <KeyRound className="size-[0.85rem]" /> Senha</Button>
+                         <Button size={'sm'} variant={'outline'} disabled> <KeyRound className="size-[0.85rem]" /> Gerar nova senha</Button>
                          <Button size={'sm'} variant={'outline'} disabled> <Edit className="size-[0.85rem]" /> Editar</Button>
                     </>
                 )}

@@ -136,7 +136,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
     queryKey: ['brands'],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/brands?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar marcas')
@@ -163,7 +163,8 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
     queryKey: ['categories'],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       // Aumentado o limite para garantir que todas as categorias (pais e filhos) sejam carregadas
       const res = await privateInstance.get('/tenant/categories?page=1&limit=100')

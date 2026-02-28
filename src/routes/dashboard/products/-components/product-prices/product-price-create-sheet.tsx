@@ -12,6 +12,7 @@ import { Loader, Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { maskMoneyInput } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const formSchema = z.object({
   price_table_id: z.string().min(1, { message: 'Selecione uma tabela de preço' }),
@@ -59,13 +60,15 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
   })
 
   // Fetch price tables
-  const { data: priceTablesData } = useQuery({
+  const { data: priceTablesData, isLoading: isLoadingPriceTables } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
       return response.data
     },
-    enabled: open
+    enabled: open,
+    refetchOnMount: true,
+    staleTime: 0,
   })
 
   const priceTables = Array.isArray(priceTablesData) ? priceTablesData : 
@@ -122,18 +125,22 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tabela de Preço</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {priceTables.map((pt: any) => (
-                            <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {isLoadingPriceTables ? (
+                        <Skeleton className="h-10 w-full" />
+                      ) : (
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {priceTables.map((pt: any) => (
+                              <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

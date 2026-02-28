@@ -81,7 +81,7 @@ function RouteComponent() {
 
     const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
         refetchOnWindowFocus: false,
-        refetchOnMount: false,
+        refetchOnMount: true,
         queryKey: ['customers', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterLastName, filterLastNameOperator, filterCpf, filterCpfOperator, filterEmail, filterEmailOperator],
         queryFn: async () => {
             const searchParams = new URLSearchParams()

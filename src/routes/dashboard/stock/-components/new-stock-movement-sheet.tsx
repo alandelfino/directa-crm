@@ -140,7 +140,8 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       return []
     },
     enabled: open,
-    staleTime: 1000 * 60 * 5
+    staleTime: 0,
+    refetchOnMount: true
   })
 
   const { data: product, isLoading: isLoadingProduct } = useQuery({
@@ -153,7 +154,9 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       const unitOfMeasurement = data.unitOfMeasurement || data.unit_of_measurement
       return { ...data, unitOfMeasurement } as Product
     },
-    enabled: !!productId && open
+    enabled: !!productId && open,
+    staleTime: 0,
+    refetchOnMount: true
   })
 
   const { data: derivations, isLoading: isLoadingDerivations } = useQuery({
@@ -171,7 +174,9 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
       if (data && Array.isArray(data.items)) return data.items as DerivatedProduct[]
       return []
     },
-    enabled: !!productId && open
+    enabled: !!productId && open,
+    staleTime: 0,
+    refetchOnMount: true
   })
 
   // Mutation
@@ -332,7 +337,7 @@ export function NewStockMovementSheet({ onCreated }: { onCreated?: () => void })
                     <Skeleton className="h-10 w-full" />
                   ) : (
                     <Select value={distributionCenterId} onValueChange={setDistributionCenterId}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="!w-full">
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>

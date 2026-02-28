@@ -52,7 +52,7 @@ export function EditUserSheet({ user, onSaved }: { user: User, onSaved?: () => v
   const { data: teamsData, isLoading: isTeamsLoading } = useQuery({
     queryKey: ['teams', 'lookup'],
     enabled: open,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/teams?limit=100')
       return response.data?.items as { id: number, name: string }[]
@@ -62,7 +62,8 @@ export function EditUserSheet({ user, onSaved }: { user: User, onSaved?: () => v
   const { data: profilesData, isLoading: isProfilesLoading } = useQuery({
     queryKey: ['profiles', 'lookup'],
     enabled: open,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnMount: true,
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/user-profiles?limit=100')
       return response.data?.items as { id: number, name: string }[]

@@ -12,6 +12,7 @@ import { ProductPriceMassEditSheet } from './product-price-mass-edit-sheet'
 import { privateInstance } from '@/lib/auth'
 import { formatMoneyFromCents, cn, maskMoneyInput } from '@/lib/utils'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type ProductPriceItem = {
   id: number
@@ -179,7 +180,7 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
   }
 
   // Fetch price tables for filter
-  const { data: priceTablesData } = useQuery({
+  const { data: priceTablesData, isLoading: isLoadingPriceTables } = useQuery({
     queryKey: ['price-tables', 'select'],
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/price-tables?page=1&limit=100')
@@ -220,7 +221,9 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
       return response.data
     },
     enabled: open && !!selectedPriceTableId,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0,
   })
 
   const items: ProductPriceItem[] = useMemo(() => {
@@ -362,17 +365,21 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
           <div className='flex items-center justify-between px-4 gap-2'>
             <div className='flex items-center gap-2'>
               <span className='text-sm text-muted-foreground'>Filtros: </span>
-              <Select value={selectedPriceTableId} onValueChange={setSelectedPriceTableId}>
-                <SelectTrigger className="w-[200px] h-8">
-                  <SelectValue placeholder="Selecione uma tabela" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {priceTables.map((pt: any) => (
-                    <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingPriceTables ? (
+                <Skeleton className="h-8 w-[200px]" />
+              ) : (
+                <Select value={selectedPriceTableId} onValueChange={setSelectedPriceTableId}>
+                  <SelectTrigger className="w-[200px] h-8">
+                    <SelectValue placeholder="Selecione uma tabela" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {priceTables.map((pt: any) => (
+                      <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className='flex items-center gap-2'>

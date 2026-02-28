@@ -64,7 +64,7 @@ function RouteComponent() {
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     queryKey: ['price-tables', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator],
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryFn: async () => {
       const params: any = {
         page: currentPage,

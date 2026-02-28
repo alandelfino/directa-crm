@@ -46,7 +46,8 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
       return response.data
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     enabled: open,
   })
 

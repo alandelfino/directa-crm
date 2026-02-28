@@ -41,7 +41,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
   const { data, isLoading, isRefetching, refetch, isPending } = useQuery({
     queryKey: ['medias', page, perPage],
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     enabled: open,
     queryFn: async () => {
       const res = await privateInstance.get(`/tenant/medias`, {

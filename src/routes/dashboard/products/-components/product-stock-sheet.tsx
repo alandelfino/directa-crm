@@ -66,6 +66,8 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
     },
     enabled: open,
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0,
   })
 
   const product = data?.product

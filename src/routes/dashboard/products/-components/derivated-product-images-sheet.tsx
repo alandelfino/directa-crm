@@ -253,6 +253,7 @@ function DerivationImages({ derivation, isSelected, onToggleSelect }: { derivati
     queryKey: ['derivation-images', derivation.id],
     refetchOnWindowFocus: false,
     refetchOnMount: 'always',
+    staleTime: 0,
     queryFn: async () => {
       const response = await privateInstance.get(`/tenant/derivated-product-medias`, {
         params: {

@@ -69,7 +69,8 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
     queryKey: ['company-profile', 'edit-sheet'],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       const res = await privateInstance.get('/api:kdrFy_tm/companies/single')
       if (res.status !== 200) {

@@ -66,7 +66,7 @@ function RouteComponent() {
 
   const { data, isLoading, isRefetching, isError, refetch } = useQuery({
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryKey: ['derivations', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterStoreName, filterStoreNameOperator, filterType, filterTypeOperator],
     queryFn: async () => {
       const params: any = {

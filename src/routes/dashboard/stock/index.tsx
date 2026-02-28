@@ -46,7 +46,7 @@ function RouteComponent() {
 
   const { data, isLoading, isRefetching, isError, refetch } = useQuery({
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryKey: ['stock-movements', currentPage, perPage],
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/stock-moviments', {

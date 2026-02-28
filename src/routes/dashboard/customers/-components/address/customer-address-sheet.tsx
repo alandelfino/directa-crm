@@ -37,7 +37,8 @@ export function CustomerAddressSheet({ customerId }: { customerId: number }) {
       return response.data
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     enabled: open,
   })
 

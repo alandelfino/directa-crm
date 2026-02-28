@@ -133,7 +133,7 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
 
   const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({
     queryKey: ['derivated-products', productId],
-    enabled: open,
+    enabled: !!productId && open,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,

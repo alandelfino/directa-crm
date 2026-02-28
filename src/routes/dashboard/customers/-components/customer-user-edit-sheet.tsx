@@ -5,64 +5,50 @@ import { Input } from "@/components/ui/input"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader, Plus } from "lucide-react"
+import { Loader, Edit } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
-
-export type CustomerUser = {
-  id: string
-  name: string
-  email: string
-  type: string
-  storeId?: number
-  priceTableId?: number
-  active?: boolean
-  createdAt: string
-  updatedAt: string
-  store?: {
-    id: number
-    name: string
-  }
-  priceTable?: {
-    id: number
-    name: string
-  }
-}
+import type { CustomerUser } from "./customer-user-form-sheet"
 
 const formSchema = z.object({
   name: z.string().optional(),
   email: z.string().optional(),
   storeId: z.coerce.number().min(1, 'Loja é obrigatória'),
   priceTableId: z.coerce.number().optional(),
+  active: z.boolean().default(true),
 })
 
-type UserFormSheetProps = React.ComponentProps<"form"> & {
+type UserEditSheetProps = React.ComponentProps<"form"> & {
   trigger?: React.ReactNode
   customerId: number
+  user: CustomerUser
   onSuccess: () => void
 }
 
-export function UserFormSheet({
+export function UserEditSheet({
     className,
     trigger,
     customerId,
+    user,
     onSuccess,
     ...props
-}: UserFormSheetProps) {
+}: UserEditSheetProps) {
 
     const [open, setOpen] = useState(false)
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
-            name: '',
-            email: '',
-            storeId: undefined,
-            priceTableId: undefined,
+            name: user.name || '',
+            email: user.email || '',
+            storeId: user.storeId || undefined,
+            priceTableId: user.priceTableId || undefined,
+            active: user.active ?? true,
         },
     })
 
@@ -88,23 +74,29 @@ export function UserFormSheet({
         refetchOnWindowFocus: false,
     })
 
-    // Fetch customer data to pre-fill name/email
-    useQuery({
-        queryKey: ['customer-detail', customerId],
+    // Fetch User Details to ensure fresh data
+    const { data: userDetails } = useQuery({
+        queryKey: ['customer-user-detail', customerId, user.id],
         queryFn: async () => {
-            const response = await privateInstance.get(`/tenant/customers/${customerId}`)
-            const customer = response.data
-            
-            if (customer) {
-                form.setValue('name', customer.nameOrTradeName)
-                form.setValue('email', customer.email)
-            }
-            return customer
+            const response = await privateInstance.get(`/tenant/customers/${customerId}/users/${user.id}`)
+            return response.data
         },
         enabled: open,
         refetchOnMount: true,
         refetchOnWindowFocus: false,
     })
+
+    useEffect(() => {
+        if (userDetails) {
+            form.reset({
+                name: userDetails.name,
+                email: userDetails.email,
+                storeId: userDetails.storeId,
+                priceTableId: userDetails.priceTableId,
+                active: userDetails.active
+            })
+        }
+    }, [userDetails, form])
 
     const closeSheet = () => {
         setOpen(false)
@@ -114,13 +106,14 @@ export function UserFormSheet({
     const { isPending, mutate } = useMutation({
         mutationFn: async (values: z.infer<typeof formSchema>) => {
             const payload = {
-                storeId: values.storeId,
-                priceTableId: values.priceTableId
+                active: values.active,
+                priceTableId: values.priceTableId,
+                storeId: values.storeId
             }
-            await privateInstance.post(`/tenant/customers/${customerId}/users`, payload)
+            await privateInstance.put(`/tenant/customers/${customerId}/users/${user.id}`, payload)
         },
         onSuccess: () => {
-            toast.success('Usuário criado com sucesso!')
+            toast.success('Usuário atualizado com sucesso!')
             closeSheet()
             onSuccess()
         },
@@ -140,16 +133,16 @@ export function UserFormSheet({
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
                 {trigger ? trigger : (
-                    <Button size="sm"><Plus className="size-4 mr-2" /> Novo Usuário</Button>
+                    <Button size={'sm'} variant={'outline'}> <Edit className="size-[0.85rem]" /> Editar</Button>
                 )}
             </SheetTrigger>
             <SheetContent>
                 <Form {...form}>
                     <form {...props} onSubmit={(e) => { e.stopPropagation(); form.handleSubmit(onSubmit)(e); }} className="flex flex-col h-full">
                         <SheetHeader>
-                            <SheetTitle>Novo Usuário</SheetTitle>
+                            <SheetTitle>Editar Usuário</SheetTitle>
                             <SheetDescription>
-                                Preencha os dados para criar um novo usuário.
+                                Edite os dados do usuário abaixo.
                             </SheetDescription>
                         </SheetHeader>
                         <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4">
@@ -240,6 +233,24 @@ export function UserFormSheet({
                                     )}
                                 />
                             </div>
+
+                            <FormField
+                                control={form.control}
+                                name="active"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Ativo</FormLabel>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
                         </div>
                         <div className="mt-auto border-t p-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -247,7 +258,7 @@ export function UserFormSheet({
                                     <Button variant="outline" size="sm" className="w-full">Cancelar</Button>
                                 </SheetClose>
                                 <Button type="submit" size="sm" disabled={isPending} className="w-full">
-                                    {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Cadastrar"}
+                                    {isPending ? <Loader className="animate-spin size-[0.85rem]" /> : "Salvar"}
                                 </Button>
                             </div>
                         </div>

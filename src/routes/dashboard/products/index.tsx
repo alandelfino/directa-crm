@@ -101,7 +101,7 @@ function RouteComponent() {
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryKey: ['products', currentPage, perPage, filterName, filterNameOperator, filterSku, filterSkuOperator, filterActive, filterActiveOperator, sortBy, orderBy],
     queryFn: async () => {
       const searchParams = new URLSearchParams()

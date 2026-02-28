@@ -74,7 +74,7 @@ function RouteComponent() {
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryKey: ['warranties', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator],
     queryFn: async () => {
       const params: any = {

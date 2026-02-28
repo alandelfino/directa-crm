@@ -33,7 +33,7 @@ export function ImagePickerDialog({
     queryKey: ['medias-picker', page, perPage, open],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryFn: async () => {
       const res = await privateInstance.get('/tenant/medias', {
         params: {

@@ -261,7 +261,8 @@ export function EditProductSheet({
     queryKey: ['brands'],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/brands?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar marcas')
@@ -273,7 +274,8 @@ export function EditProductSheet({
     queryKey: ['units'],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       const response = await privateInstance.get('/tenant/unit-of-measurement?limit=100')
       if (response.status !== 200) throw new Error('Erro ao carregar unidades')
@@ -286,7 +288,8 @@ export function EditProductSheet({
     queryKey: ['categories'],
     enabled: open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       const res = await privateInstance.get('/tenant/categories?page=1&limit=100')
       if (res.status !== 200) throw new Error('Erro ao carregar categorias')

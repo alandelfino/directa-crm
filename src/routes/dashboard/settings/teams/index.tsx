@@ -50,7 +50,7 @@ function RouteComponent() {
 
   const { data, isLoading, isRefetching, isError, refetch } = useQuery({
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryKey: ['teams', currentPage, perPage],
     queryFn: async () => {
       const response = await privateInstance.get<TeamsResponse>('/tenant/teams', {

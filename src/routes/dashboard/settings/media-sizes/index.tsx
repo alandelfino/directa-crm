@@ -57,7 +57,7 @@ function RouteComponent() {
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryKey: ['media-sizes', currentPage, perPage],
     queryFn: async () => {
       const response = await privateInstance.get(`/tenant/media-sizes`, {

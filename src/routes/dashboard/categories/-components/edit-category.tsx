@@ -35,7 +35,8 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
     queryKey: ['category', categoryId],
     enabled: !!categoryId && open,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    staleTime: 0,
     queryFn: async () => {
       const res = await privateInstance.get(`/tenant/categories/${categoryId}`)
       if (res.status !== 200) throw new Error('Erro ao carregar categoria')

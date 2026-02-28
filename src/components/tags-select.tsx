@@ -41,7 +41,7 @@ export function TagsSelect<T = any>({
     queryKey: queryKey ?? ['tags-select'],
     enabled: useRemote && enabled,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     queryFn: async () => {
       const result = await fetcher!()
       return result

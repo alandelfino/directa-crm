@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin } from 'lucide-react'
+import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin, User } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ import { NewCustomerSheet } from './-components/new-customer'
 import { EditCustomerSheet } from './-components/edit-customer'
 import { DeleteCustomerDialog } from './-components/delete-customer'
 import { CustomerAddressSheet } from './-components/address/customer-address-sheet'
+import { CustomerUserSheet } from './-components/customer-user-sheet'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -186,7 +187,7 @@ function RouteComponent() {
             className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
         },
         { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! px-4!' },
-        { id: 'lastNameOrCompanyName', header: 'Sobrenome / Razão', width: '200px', cell: (c) => c.lastNameOrCompanyName ?? '—', headerClassName: 'w-[200px] min-w-[200px] border-r', className: 'w-[200px] min-w-[200px] p-2! px-4!' },
+        { id: 'lastNameOrCompanyName', header: 'Sobrenome / Razão', width: '400px', cell: (c) => c.lastNameOrCompanyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r', className: 'w-[400px] min-w-[400px] p-2! px-4!' },
         { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2! px-4!' },
         { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! px-4!' },
         { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r', className: 'w-[150px] min-w-[150px] p-2! px-4!' },
@@ -434,6 +435,14 @@ function RouteComponent() {
                         ) : (
                             <Button variant={'outline'} size="sm" disabled>
                                 <MapPin className="size-[0.85rem]" /> Endereços
+                            </Button>
+                        )}
+
+                        {selected.length === 1 ? (
+                            <CustomerUserSheet customerId={selected[0]!} />
+                        ) : (
+                            <Button variant={'outline'} size="sm" disabled>
+                                <User className="size-[0.85rem]" /> Usuário
                             </Button>
                         )}
 

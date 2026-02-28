@@ -13,8 +13,8 @@ import { useEffect, useState } from "react"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const formSchema = z.object({
-  nameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
-  lastNameOrTradeName: z.string().optional(),
+  nameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
+  lastNameOrCompanyName: z.string().optional(),
   personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
   cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
   rgOrIe: z.string().optional(),
@@ -30,8 +30,8 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      nameOrCompanyName: "",
-      lastNameOrTradeName: "",
+      nameOrTradeName: "",
+      lastNameOrCompanyName: "",
       personType: "natural",
       cpfOrCnpj: "",
       rgOrIe: "",
@@ -87,8 +87,8 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
       const c = response?.data
       if (!c) throw new Error('Resposta inválida ao buscar cliente')
       form.reset({
-        nameOrCompanyName: c.nameOrCompanyName ?? "",
-        lastNameOrTradeName: c.lastNameOrTradeName ?? "",
+        nameOrTradeName: c.nameOrTradeName ?? "",
+        lastNameOrCompanyName: c.lastNameOrCompanyName ?? "",
         personType: c.personType ?? "natural",
         cpfOrCnpj: c.cpfOrCnpj ?? "",
         rgOrIe: c.rgOrIe ?? "",
@@ -189,7 +189,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
 
               {personType === 'entity' ? (
                 <>
-                  <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
+                  <FormField control={form.control} name="nameOrTradeName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome Fantasia</FormLabel>
                       <FormControl>
@@ -198,12 +198,11 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                       <FormMessage />
                     </FormItem>
                   )} />
-
-                  <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
+                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Razão Social</FormLabel>
                       <FormControl>
-                        <Input placeholder="Digite a razão social..." {...field} disabled={loading || isPending} />
+                        <Input placeholder="Razão Social" {...field} disabled={loading || isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -211,21 +210,20 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                 </>
               ) : (
                 <>
-                  <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
+                  <FormField control={form.control} name="nameOrTradeName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
-                        <Input placeholder="Digite o nome..." {...field} disabled={loading || isPending} />
+                        <Input placeholder="Nome" {...field} disabled={loading || isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
-
-                  <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
+                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sobrenome</FormLabel>
                       <FormControl>
-                        <Input placeholder="Opcional" {...field} disabled={loading || isPending} value={field.value || ''} />
+                        <Input placeholder="Sobrenome" {...field} disabled={loading || isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

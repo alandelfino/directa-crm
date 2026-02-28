@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
+import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import type { ColumnDef } from '@/components/data-table'
 import { NewCustomerSheet } from './-components/new-customer'
 import { EditCustomerSheet } from './-components/edit-customer'
 import { DeleteCustomerDialog } from './-components/delete-customer'
+import { CustomerAddressSheet } from './-components/address/customer-address-sheet'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -26,8 +27,8 @@ export const Route = createFileRoute('/dashboard/customers/')({
 
 type Customer = {
     id: number
-    nameOrCompanyName: string
-    lastNameOrTradeName: string
+    nameOrTradeName: string
+    lastNameOrCompanyName: string
     personType: 'natural' | 'entity'
     cpfOrCnpj: string
     rgOrIe: string
@@ -156,8 +157,13 @@ function RouteComponent() {
     useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
     useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])
 
-    const toggleSelectAll = () => { if (selected.length === items.length) setSelected([]); else setSelected(items.map(i => i.id)) }
-    const toggleSelect = (id: number) => { if (selected.includes(id)) setSelected(selected.filter(s => s !== id)); else setSelected([...selected, id]) }
+    const toggleSelect = (id: number) => { 
+        if (selected.includes(id)) {
+            setSelected([])
+        } else {
+            setSelected([id]) 
+        }
+    }
 
     const columns: ColumnDef<Customer>[] = [
         {
@@ -165,10 +171,7 @@ function RouteComponent() {
             width: '60px',
             header: () => (
                 <div className='flex justify-center items-center'>
-                    <Checkbox
-                        checked={items.length > 0 && selected.length === items.length}
-                        onCheckedChange={toggleSelectAll}
-                    />
+                   
                 </div>
             ),
             cell: (row) => (
@@ -182,12 +185,12 @@ function RouteComponent() {
             headerClassName: 'w-[60px] min-w-[60px] border-r',
             className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
         },
-        { id: 'nameOrCompanyName', header: 'Nome/Razão Social', width: '280px', cell: (c) => c.nameOrCompanyName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2!' },
-        { id: 'lastNameOrTradeName', header: 'Sobrenome/Fantasia', width: '200px', cell: (c) => c.lastNameOrTradeName ?? '—', headerClassName: 'w-[200px] min-w-[200px] border-r', className: 'w-[200px] min-w-[200px] p-2!' },
-        { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2!' },
-        { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2!' },
-        { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r', className: 'w-[150px] min-w-[150px] p-2!' },
-        { id: 'personType', header: 'Tipo', width: '120px', cell: (c) => ({ natural: 'Física', entity: 'Jurídica' }[c.personType] || c.personType), headerClassName: 'w-[120px] min-w-[120px] border-r', className: 'w-[120px] min-w-[120px] p-2!' },
+        { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! px-4!' },
+        { id: 'lastNameOrCompanyName', header: 'Sobrenome / Razão', width: '200px', cell: (c) => c.lastNameOrCompanyName ?? '—', headerClassName: 'w-[200px] min-w-[200px] border-r', className: 'w-[200px] min-w-[200px] p-2! px-4!' },
+        { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2! px-4!' },
+        { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! px-4!' },
+        { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r', className: 'w-[150px] min-w-[150px] p-2! px-4!' },
+        { id: 'personType', header: 'Tipo', width: '120px', cell: (c) => ({ natural: 'Física', entity: 'Jurídica' }[c.personType] || c.personType), headerClassName: 'w-[120px] min-w-[120px] border-r', className: 'w-[120px] min-w-[120px] p-2! px-4!' },
     ]
 
     return (
@@ -235,7 +238,7 @@ function RouteComponent() {
                                                     <SelectContent>
                                                         <SelectItem value="id">ID</SelectItem>
                                                         <SelectItem value="createdAt">Criado em</SelectItem>
-                                                        <SelectItem value="nameOrCompanyName">Nome/Razão Social</SelectItem>
+                                                        <SelectItem value="nameOrCompanyName">Nome / Fantasia</SelectItem>
                                                         <SelectItem value="email">Email</SelectItem>
                                                     </SelectContent>
                                                 </Select>
@@ -263,7 +266,7 @@ function RouteComponent() {
                                         </div>
                                         <div className="grid gap-3">
                                         <div className="grid gap-1.5">
-                                            <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome/Razão Social</Label>
+                                            <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome / Fantasia</Label>
                                             <div className="flex gap-2">
                                                 <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
                                                     <SelectTrigger className="w-[130px] h-9">
@@ -288,7 +291,7 @@ function RouteComponent() {
                                         </div>
 
                                         <div className="grid gap-1.5">
-                                            <Label htmlFor="lastname" className="text-xs font-medium text-muted-foreground">Sobrenome/Fantasia</Label>
+                                            <Label htmlFor="lastname" className="text-xs font-medium text-muted-foreground">Sobrenome / Razão</Label>
                                             <div className="flex gap-2">
                                                 <Select value={localFilterLastNameOperator} onValueChange={setLocalFilterLastNameOperator}>
                                                     <SelectTrigger className="w-[130px] h-9">
@@ -423,6 +426,14 @@ function RouteComponent() {
                         ) : (
                             <Button variant={'outline'} size="sm" disabled>
                                 <Trash className="size-[0.85rem]" /> Excluir
+                            </Button>
+                        )}
+
+                        {selected.length === 1 ? (
+                            <CustomerAddressSheet customerId={selected[0]!} />
+                        ) : (
+                            <Button variant={'outline'} size="sm" disabled>
+                                <MapPin className="size-[0.85rem]" /> Endereços
                             </Button>
                         )}
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
-import { User, Loader, Trash, KeyRound, Edit, RefreshCw } from 'lucide-react'
+import { User, Loader, KeyRound, Edit, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -10,46 +10,7 @@ import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { UserFormSheet as UserFormDialog, type CustomerUser } from './customer-user-form-sheet'
 
-function DeleteUserDialog({ customerId, userId, onSuccess }: { customerId: number, userId: string, onSuccess: () => void }) {
-    const { isPending: deleting, mutate: deleteUser } = useMutation({
-        mutationFn: async () => {
-          await privateInstance.delete(`/tenant/customers/${customerId}/user/${userId}`)
-        },
-        onSuccess: () => {
-          toast.success('Usuário removido com sucesso!')
-          onSuccess()
-        },
-        onError: (error: any) => {
-            const errorData = error?.response?.data
-            toast.error(errorData?.title || 'Erro ao remover usuário', {
-              description: errorData?.detail || 'Não foi possível remover o usuário.'
-            })
-        }
-      })
 
-    return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button size={'sm'} variant={'outline'}> <Trash className="size-[0.85rem]" /> Excluir</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Esta ação irá remover o acesso do usuário permanentemente.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteUser()} disabled={deleting}>
-                        {deleting && <Loader className="animate-spin size-4 mr-2" />}
-                        Confirmar
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    )
-}
 
 function RefreshPasswordDialog({ customerId, userId }: { customerId: number, userId: string }) {
     const { isPending: refreshing, mutate: refreshPassword } = useMutation({
@@ -167,7 +128,7 @@ export function CustomerUserSheet({ customerId }: { customerId: number }) {
           <User className="size-[0.85rem]" /> Usuários
         </Button>
       </SheetTrigger>
-      <SheetContent className='w-full sm:max-w-[1000px] p-0'>
+      <SheetContent className='w-full sm:max-w-[700px] p-0'>
         <SheetHeader className="px-4 py-4">
           <SheetTitle>Usuários do Cliente</SheetTitle>
           <SheetDescription>
@@ -192,13 +153,11 @@ export function CustomerUserSheet({ customerId }: { customerId: number }) {
                     <>
                         <RefreshPasswordDialog customerId={customerId} userId={selectedItem.id} />
                         <UserFormDialog customerId={customerId} user={selectedItem} onSuccess={() => { refetch(); }} />
-                        <DeleteUserDialog customerId={customerId} userId={selectedItem.id} onSuccess={() => { refetch(); setSelectedId(null); }} />
                     </>
                 ) : (
                     <>
                          <Button size={'sm'} variant={'outline'} disabled> <KeyRound className="size-[0.85rem]" /> Senha</Button>
                          <Button size={'sm'} variant={'outline'} disabled> <Edit className="size-[0.85rem]" /> Editar</Button>
-                         <Button size={'sm'} variant={'outline'} disabled> <Trash className="size-[0.85rem]" /> Excluir</Button>
                     </>
                 )}
 

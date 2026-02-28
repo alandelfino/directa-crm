@@ -3,7 +3,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, Loader } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { useEffect, useState } from "react"
@@ -11,15 +11,17 @@ import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const formSchema = z.object({
-  nameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
-  lastNameOrTradeName: z.string().optional(),
+  nameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
+  lastNameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
   personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
   cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
   rgOrIe: z.string().optional(),
   phone: z.string().min(1, { message: "Campo obrigatório" }),
   email: z.string().email({ message: "Email inválido" }).min(1, { message: "Campo obrigatório" }),
+  storeId: z.coerce.number().min(1, { message: "Loja é obrigatória" }),
 })
 
 export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props }: React.ComponentProps<"form"> & { onOpenChange?: (open: boolean) => void, onCreated?: () => void }) {
@@ -28,14 +30,27 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      nameOrCompanyName: "",
-      lastNameOrTradeName: "",
+      nameOrTradeName: "",
+      lastNameOrCompanyName: "",
       personType: "natural",
       cpfOrCnpj: "",
       rgOrIe: "",
       phone: "",
       email: "",
+      storeId: 0,
     },
+  })
+
+  const { data: stores, isLoading: isLoadingStores } = useQuery({
+    queryKey: ['stores-list-select'],
+    queryFn: async () => {
+        const response = await privateInstance.get('/tenant/stores?limit=100')
+        return response.data.items || []
+    },
+    enabled: open,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: true
   })
 
   // Assistir o tipo de pessoa para ajustar labels dinamicamente
@@ -150,17 +165,17 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
 
               {personType === 'entity' ? (
                 <>
-                  <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
+                  <FormField control={form.control} name="nameOrTradeName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome Fantasia</FormLabel>
                       <FormControl>
-                        <Input placeholder="Opcional" {...field} disabled={isPending} value={field.value || ''} />
+                        <Input placeholder="Nome Fantasia" {...field} disabled={isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
 
-                  <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
+                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Razão Social</FormLabel>
                       <FormControl>
@@ -172,7 +187,7 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                 </>
               ) : (
                 <>
-                  <FormField control={form.control} name="nameOrCompanyName" render={({ field }) => (
+                  <FormField control={form.control} name="nameOrTradeName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
@@ -182,11 +197,11 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                     </FormItem>
                   )} />
 
-                  <FormField control={form.control} name="lastNameOrTradeName" render={({ field }) => (
+                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sobrenome</FormLabel>
                       <FormControl>
-                        <Input placeholder="Opcional" {...field} disabled={isPending} value={field.value || ''} />
+                        <Input placeholder="Sobrenome" {...field} disabled={isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -254,6 +269,35 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                   </FormItem>
                 )} />
               </div>
+
+              <FormField
+                  control={form.control}
+                  name="storeId"
+                  render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Loja</FormLabel>
+                          {isLoadingStores ? (
+                              <Skeleton className="h-10 w-full" />
+                          ) : (
+                              <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                                  <FormControl>
+                                      <SelectTrigger className="w-full">
+                                          <SelectValue placeholder="Selecione..." />
+                                      </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      {stores?.map((store: any) => (
+                                          <SelectItem key={store.id} value={String(store.id)}>
+                                              {store.name}
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          )}
+                          <FormMessage />
+                      </FormItem>
+                  )}
+              />
             </div>
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">

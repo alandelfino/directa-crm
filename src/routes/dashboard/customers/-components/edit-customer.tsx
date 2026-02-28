@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 
 const formSchema = z.object({
   nameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
-  lastNameOrCompanyName: z.string().optional(),
+  lastNameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
   personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
   cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
   rgOrIe: z.string().optional(),
@@ -193,7 +193,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                     <FormItem>
                       <FormLabel>Nome Fantasia</FormLabel>
                       <FormControl>
-                        <Input placeholder="Opcional" {...field} disabled={loading || isPending} value={field.value || ''} />
+                        <Input placeholder="Nome Fantasia" {...field} disabled={loading || isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

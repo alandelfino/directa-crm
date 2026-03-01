@@ -139,13 +139,14 @@ export function DataTable<T extends { id?: number | string }>({
   }
 
   return (
-    <div className='flex flex-col w-full h-full min-h-0 overflow-y-auto overflow-x-hidden'>
+    <div className='flex flex-col w-full h-full min-h-0 overflow-y-auto overflow-x-hidden px-2 rounded '>
 
-      <div className='relative h-full'>
-        <div className={`w-full overflow-x-auto ${isDraggingTable ? 'overflow-y-hidden' : 'overflow-y-auto'}`} data-slot='datatable-scroller' ref={mainScrollerRef}>
+      <div className='relative flex-1 border rounded-lg overflow-hidden min-h-0 flex flex-col'>
+        <div className={`w-full flex-1 overflow-auto ${isDraggingTable ? 'overflow-y-hidden' : 'overflow-y-auto'}`} data-slot='datatable-scroller' ref={mainScrollerRef}>
         {enableReorder ? (
           <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]} onDragStart={() => setIsDraggingTable(true)} onDragCancel={() => setIsDraggingTable(false)} onDragEnd={(e: DragEndEvent) => { setIsDraggingTable(false); handleDragEnd(e) }} sensors={sensors}>
-          <Table className='border-b table-fixed'>
+          <div className="min-w-full inline-block align-middle">
+          <Table className='border-b table-fixed w-full'>
             <TableHeader className='sticky top-0 bg-neutral-50 z-10 border-b'>
               <TableRow className='bg-neutral-50'>
                 <TableHead className='border-r w-[50px]' />
@@ -153,7 +154,7 @@ export function DataTable<T extends { id?: number | string }>({
                   <TableHead
                     key={col.id}
                     className={`border-r ${col.headerClassName ?? ''}`}
-                    style={col.width ? { width: col.width } : undefined}
+                    style={col.width ? { width: col.width, minWidth: col.width } : undefined}
                   >
                     {typeof col.header === 'function' ? col.header(items) : col.header}
                   </TableHead>
@@ -303,16 +304,18 @@ export function DataTable<T extends { id?: number | string }>({
               )}
             </TableBody>
           </Table>
+          </div>
         </DndContext>
         ) : (
-          <Table className='border-b table-fixed'>
+          <div className="min-w-full inline-block align-middle">
+          <Table className='border-b table-fixed w-full'>
             <TableHeader className='sticky top-0 bg-neutral-50 z-10 border-b'>
               <TableRow className='bg-neutral-50'>
                 {columns.map((col) => (
                   <TableHead
                     key={col.id}
                     className={`border-r ${col.headerClassName ?? ''}`}
-                    style={col.width ? { width: col.width } : undefined}
+                    style={col.width ? { width: col.width, minWidth: col.width } : undefined}
                   >
                     {typeof col.header === 'function' ? col.header(items) : col.header}
                   </TableHead>
@@ -431,6 +434,7 @@ export function DataTable<T extends { id?: number | string }>({
               )}
             </TableBody>
           </Table>
+          </div>
         )}
         </div>
 
@@ -442,7 +446,7 @@ export function DataTable<T extends { id?: number | string }>({
       </div>
 
       {hideFooter ? null : (
-        <div className='border-t h-12 w-full p-2 flex items-center'>
+        <div className='h-12 w-full p-2 flex items-center'>
           <span className='text-sm xl:hidden'>
             {safeTotalItems > 0 ? startIndex + 1 : 0} ao {endIndex} de {safeTotalItems} iten(s).
           </span>

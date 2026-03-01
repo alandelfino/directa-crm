@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin, User } from 'lucide-react'
+import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -13,7 +13,6 @@ import { NewCustomerSheet } from './-components/new-customer'
 import { EditCustomerSheet } from './-components/edit-customer'
 import { DeleteCustomerDialog } from './-components/delete-customer'
 import { CustomerAddressSheet } from './-components/address/customer-address-sheet'
-import { CustomerUserSheet } from './-components/customer-user-sheet'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -37,6 +36,10 @@ type Customer = {
     email: string
     createdAt: string
     updatedAt: string
+    store?: {
+        id: number
+        name: string
+    }
 }
 
 type CustomersResponse = {
@@ -186,6 +189,7 @@ function RouteComponent() {
             headerClassName: 'w-[60px] min-w-[60px] border-r',
             className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
         },
+        { id: 'store', header: 'Loja', width: '200px', cell: (c) => c.store?.name ?? '—', headerClassName: 'w-[200px] min-w-[200px] border-r', className: 'w-[200px] min-w-[200px] p-2! px-4!' },
         { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! px-4!' },
         { id: 'lastNameOrCompanyName', header: 'Sobrenome / Razão', width: '400px', cell: (c) => c.lastNameOrCompanyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r', className: 'w-[400px] min-w-[400px] p-2! px-4!' },
         { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2! px-4!' },
@@ -198,7 +202,7 @@ function RouteComponent() {
         <div className='flex flex-col w-full h-full overflow-x-hidden'>
             <Topbar title="Clientes" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Clientes', href: '/dashboard/customers', isLast: true }]} />
             <div className='flex flex-col w-full h-full flex-1 overflow-hidden min-w-0'>
-                <div className='border-b flex w-full items-center p-2 gap-4 max-w-full overflow-hidden'>
+                <div className='flex w-full items-center p-2 gap-4 max-w-full overflow-hidden'>
                     <div className='flex items-center gap-4 flex-1'>
                         <Popover open={isFilterOpen} onOpenChange={(open) => {
                             if (open) {
@@ -435,14 +439,6 @@ function RouteComponent() {
                         ) : (
                             <Button variant={'outline'} size="sm" disabled>
                                 <MapPin className="size-[0.85rem]" /> Endereços
-                            </Button>
-                        )}
-
-                        {selected.length === 1 ? (
-                            <CustomerUserSheet customerId={selected[0]!} />
-                        ) : (
-                            <Button variant={'outline'} size="sm" disabled>
-                                <User className="size-[0.85rem]" /> Usuário
                             </Button>
                         )}
 

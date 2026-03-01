@@ -23,6 +23,7 @@ const formSchema = z.object({
   mobileProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia Mobile é obrigatório' }),
   mobileAppProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia App é obrigatório' }),
   active: z.boolean().default(true),
+  color: z.string().optional(),
 })
 
 export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
@@ -39,6 +40,7 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
       mobileProductMediaSizeId: 0,
       mobileAppProductMediaSizeId: 0,
       active: true,
+      color: '',
     },
   })
 
@@ -140,6 +142,19 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
                   </FormItem>
                 )} />
               </div>
+
+              <FormField control={form.control as any} name='color' render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cor da Loja</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      <Input type="color" className="w-12 p-1 h-9" {...field} />
+                      <Input placeholder="#RRGGBB" {...field} className="flex-1" />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
               <FormField control={form.control as any} name='description' render={({ field }) => (
                 <FormItem>

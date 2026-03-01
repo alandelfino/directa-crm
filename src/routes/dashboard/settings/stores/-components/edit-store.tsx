@@ -25,6 +25,7 @@ type StoreItem = {
   tabletProductMediaSizeId: number
   mobileProductMediaSizeId: number
   mobileAppProductMediaSizeId: number
+  color?: string
 }
 
 const formSchema = z.object({
@@ -36,6 +37,7 @@ const formSchema = z.object({
   mobileProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia Mobile é obrigatório' }),
   mobileAppProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia App é obrigatório' }),
   active: z.boolean().default(true),
+  color: z.string().optional(),
 })
 
 export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?: () => void }) {
@@ -54,6 +56,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
       mobileProductMediaSizeId: 0,
       mobileAppProductMediaSizeId: 0,
       active: true,
+      color: '',
     },
   })
 
@@ -93,6 +96,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
           mobileProductMediaSizeId: s.mobileProductMediaSizeId ?? 0,
           mobileAppProductMediaSizeId: s.mobileAppProductMediaSizeId ?? 0,
           active: s.active === true,
+          color: s.color ?? '',
         })
       } catch (err: any) {
         const errorData = err?.response?.data
@@ -182,6 +186,23 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                   </FormItem>
                 )} />
               </div>
+
+              <FormField control={form.control as any} name='color' render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cor da Loja</FormLabel>
+                  <FormControl>
+                    {loading ? (
+                      <Skeleton className="h-9 w-full" />
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input type="color" className="w-12 p-1 h-9" {...field} disabled={loading || isPending} />
+                        <Input placeholder="#RRGGBB" {...field} className="flex-1" disabled={loading || isPending} />
+                      </div>
+                    )}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
               <FormField control={form.control as any} name='description' render={({ field }) => (
                 <FormItem>

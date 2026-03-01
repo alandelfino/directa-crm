@@ -31,6 +31,7 @@ type StoreItem = {
   mobileAppProductMediaSizeId: number
   createdAt: string
   updatedAt: string
+  color?: string
 }
 
 type StoresResponse = {
@@ -160,6 +161,22 @@ function RouteComponent() {
       ),
       headerClassName: 'min-w-[15rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'min-w-[15rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'color',
+      header: 'Cor',
+      width: '80px',
+      cell: (s) => (
+        <div className="flex justify-center">
+          {s.color ? (
+            <div className="w-6 h-6 rounded-full border shadow-sm" style={{ backgroundColor: s.color }} title={s.color} />
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )}
+        </div>
+      ),
+      headerClassName: 'w-[80px] min-w-[80px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[80px] min-w-[80px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'active',

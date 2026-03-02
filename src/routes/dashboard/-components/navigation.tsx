@@ -1,6 +1,6 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
-import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookOpen, BookUser, Copyright, FileBadge, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, TextCursorInput, Factory } from "lucide-react";
+import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookUser, Copyright, FileBadge, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, Factory } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 
@@ -50,28 +50,8 @@ export function Navigation() {
             ]
         },
         {
-            groupName: 'Ferramentas',
-            items: [
-                {
-                    label: 'Formulários',
-                    icon: <TextCursorInput />,
-                    href: '/dashboard/forms',
-                },
-                {
-                    label: 'Catálogos',
-                    icon: <BookOpen />,
-                    href: '/dashboard/catalogs',
-                }
-            ]
-        },
-        {
             groupName: 'Base',
             items: [
-                {
-                    label: 'Contatos',
-                    icon: <BookUser />,
-                    href: '/dashboard/contacts',
-                },
                 {
                     label: 'Clientes',
                     icon: <BookUser />,

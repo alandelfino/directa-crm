@@ -30,6 +30,7 @@ import { Route as DashboardMediaIndexRouteImport } from './routes/dashboard/medi
 import { Route as DashboardDerivationsIndexRouteImport } from './routes/dashboard/derivations/index'
 import { Route as DashboardCustomersIndexRouteImport } from './routes/dashboard/customers/index'
 import { Route as DashboardCategoriesIndexRouteImport } from './routes/dashboard/categories/index'
+import { Route as DashboardCartsIndexRouteImport } from './routes/dashboard/carts/index'
 import { Route as DashboardBrandsIndexRouteImport } from './routes/dashboard/brands/index'
 import { Route as DashboardSettingsWebhooksIndexRouteImport } from './routes/dashboard/settings/webhooks/index'
 import { Route as DashboardSettingsUsersIndexRouteImport } from './routes/dashboard/settings/users/index'
@@ -151,6 +152,11 @@ const DashboardCategoriesIndexRoute =
     path: '/categories/',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
+const DashboardCartsIndexRoute = DashboardCartsIndexRouteImport.update({
+  id: '/carts/',
+  path: '/carts/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardBrandsIndexRoute = DashboardBrandsIndexRouteImport.update({
   id: '/brands/',
   path: '/brands/',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
+  '/dashboard/carts': typeof DashboardCartsIndexRoute
   '/dashboard/categories': typeof DashboardCategoriesIndexRoute
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInIndexRoute
   '/sign-up': typeof SignUpIndexRoute
   '/dashboard/brands': typeof DashboardBrandsIndexRoute
+  '/dashboard/carts': typeof DashboardCartsIndexRoute
   '/dashboard/categories': typeof DashboardCategoriesIndexRoute
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/sign-in/': typeof SignInIndexRoute
   '/sign-up/': typeof SignUpIndexRoute
   '/dashboard/brands/': typeof DashboardBrandsIndexRoute
+  '/dashboard/carts/': typeof DashboardCartsIndexRoute
   '/dashboard/categories/': typeof DashboardCategoriesIndexRoute
   '/dashboard/customers/': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations/': typeof DashboardDerivationsIndexRoute
@@ -331,6 +340,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
+    | '/dashboard/carts'
     | '/dashboard/categories'
     | '/dashboard/customers'
     | '/dashboard/derivations'
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/brands'
+    | '/dashboard/carts'
     | '/dashboard/categories'
     | '/dashboard/customers'
     | '/dashboard/derivations'
@@ -397,6 +408,7 @@ export interface FileRouteTypes {
     | '/sign-in/'
     | '/sign-up/'
     | '/dashboard/brands/'
+    | '/dashboard/carts/'
     | '/dashboard/categories/'
     | '/dashboard/customers/'
     | '/dashboard/derivations/'
@@ -580,6 +592,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCategoriesIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/carts/': {
+      id: '/dashboard/carts/'
+      path: '/carts'
+      fullPath: '/dashboard/carts'
+      preLoaderRoute: typeof DashboardCartsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/brands/': {
       id: '/dashboard/brands/'
       path: '/brands'
@@ -701,6 +720,7 @@ interface DashboardRouteRouteChildren {
   DashboardSettingsRouteRoute: typeof DashboardSettingsRouteRouteWithChildren
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardBrandsIndexRoute: typeof DashboardBrandsIndexRoute
+  DashboardCartsIndexRoute: typeof DashboardCartsIndexRoute
   DashboardCategoriesIndexRoute: typeof DashboardCategoriesIndexRoute
   DashboardCustomersIndexRoute: typeof DashboardCustomersIndexRoute
   DashboardDerivationsIndexRoute: typeof DashboardDerivationsIndexRoute
@@ -718,6 +738,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardSettingsRouteRoute: DashboardSettingsRouteRouteWithChildren,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardBrandsIndexRoute: DashboardBrandsIndexRoute,
+  DashboardCartsIndexRoute: DashboardCartsIndexRoute,
   DashboardCategoriesIndexRoute: DashboardCategoriesIndexRoute,
   DashboardCustomersIndexRoute: DashboardCustomersIndexRoute,
   DashboardDerivationsIndexRoute: DashboardDerivationsIndexRoute,

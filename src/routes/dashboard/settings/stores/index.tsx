@@ -365,7 +365,7 @@ function RouteComponent() {
       </div>
       
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
-        <div className='border-t border-l border-neutral-200 rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className=' rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={items}

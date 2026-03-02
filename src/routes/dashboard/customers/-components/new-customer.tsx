@@ -12,6 +12,8 @@ import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Info } from "lucide-react"
 
 const formSchema = z.object({
   nameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
@@ -298,6 +300,14 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                       </FormItem>
                   )}
               />
+
+              <Alert className="bg-blue-50 text-blue-900 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertTitle>Acesso à loja</AlertTitle>
+                <AlertDescription>
+                  A senha de acesso será gerada automaticamente e enviada para o email cadastrado.
+                </AlertDescription>
+              </Alert>
             </div>
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin } from 'lucide-react'
+import { Edit, RefreshCw, Trash, BookUser, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, MapPin, KeyRound } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ import { NewCustomerSheet } from './-components/new-customer'
 import { EditCustomerSheet } from './-components/edit-customer'
 import { DeleteCustomerDialog } from './-components/delete-customer'
 import { CustomerAddressSheet } from './-components/address/customer-address-sheet'
+import { RefreshPasswordDialog } from './-components/refresh-password-dialog'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -39,6 +40,7 @@ type Customer = {
     store?: {
         id: number
         name: string
+        color?: string
     }
 }
 
@@ -79,6 +81,7 @@ function RouteComponent() {
     const [localFilterEmail, setLocalFilterEmail] = useState('')
     const [localFilterEmailOperator, setLocalFilterEmailOperator] = useState('cont')
     const [isFilterOpen, setIsFilterOpen] = useState(false)
+    const [isRefreshPasswordOpen, setIsRefreshPasswordOpen] = useState(false)
 
     const activeFilterCount = (filterName ? 1 : 0) + (filterLastName ? 1 : 0) + (filterCpf ? 1 : 0) + (filterEmail ? 1 : 0)
 
@@ -189,7 +192,25 @@ function RouteComponent() {
             headerClassName: 'w-[60px] min-w-[60px] border-r',
             className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
         },
-        { id: 'store', header: 'Loja', width: '200px', cell: (c) => c.store?.name ?? '—', headerClassName: 'w-[200px] min-w-[200px] border-r', className: 'w-[200px] min-w-[200px] p-2! px-4!' },
+        { 
+            id: 'store', 
+            header: 'Loja', 
+            width: '200px', 
+            cell: (c) => (
+                <div className="flex items-center gap-2">
+                    {c.store?.color && (
+                        <div 
+                            className="size-2 rounded-full shrink-0" 
+                            style={{ backgroundColor: c.store.color }} 
+                            title={`Cor: ${c.store.color}`}
+                        />
+                    )}
+                    <span className="truncate">{c.store?.name ?? '—'}</span>
+                </div>
+            ), 
+            headerClassName: 'w-[200px] min-w-[200px] border-r', 
+            className: 'w-[200px] min-w-[200px] p-2! px-4!' 
+        },
         { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! px-4!' },
         { id: 'lastNameOrCompanyName', header: 'Sobrenome / Razão', width: '400px', cell: (c) => c.lastNameOrCompanyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r', className: 'w-[400px] min-w-[400px] p-2! px-4!' },
         { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2! px-4!' },
@@ -431,6 +452,23 @@ function RouteComponent() {
                         ) : (
                             <Button variant={'outline'} size="sm" disabled>
                                 <Trash className="size-[0.85rem]" /> Excluir
+                            </Button>
+                        )}
+
+                        {selected.length === 1 ? (
+                            <>
+                                <Button variant={'outline'} size="sm" onClick={() => setIsRefreshPasswordOpen(true)}>
+                                    <KeyRound className="size-[0.85rem]" /> Gerar nova senha
+                                </Button>
+                                <RefreshPasswordDialog 
+                                    open={isRefreshPasswordOpen} 
+                                    onOpenChange={setIsRefreshPasswordOpen} 
+                                    customerId={selected[0]!} 
+                                />
+                            </>
+                        ) : (
+                            <Button variant={'outline'} size="sm" disabled>
+                                <KeyRound className="size-[0.85rem]" /> Gerar nova senha
                             </Button>
                         )}
 

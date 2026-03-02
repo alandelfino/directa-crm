@@ -16,18 +16,22 @@ export const Route = createFileRoute('/dashboard/carts/')({
   component: RouteComponent,
 })
 
+import { Badge } from '@/components/ui/badge'
+
 type Cart = {
   id: number
   customerId: number
   storeId: number
   companyId: number
-  total: number
-  itemsCount: number
+  totalValue: number
+  totalItems: number
+  totalAdditions: number
+  totalDiscounts: number
+  status: 'open' | 'abandoned' | 'finished'
   createdAt: string
   updatedAt: string
-  // Optional expanded fields if backend provides them
-  customer?: { nameOrTradeName?: string, lastNameOrCompanyName?: string }
-  store?: { name?: string }
+  customer?: { id: number, name: string }
+  store?: { id: number, name: string }
 }
 
 function RouteComponent() {
@@ -49,25 +53,6 @@ function RouteComponent() {
       const response = await privateInstance.get('/tenant/carts', { params })
       return response.data
     }
-  })
-
-  // Fetch Lookups for display (optional optimization: fetch only needed IDs)
-  const { data: customers } = useQuery({
-    queryKey: ['customers-lookup'],
-    queryFn: async () => {
-        const response = await privateInstance.get('/tenant/customers?limit=100')
-        return response.data.items || []
-    },
-    staleTime: 1000 * 60 * 5
-  })
-
-  const { data: stores } = useQuery({
-    queryKey: ['stores-lookup'],
-    queryFn: async () => {
-        const response = await privateInstance.get('/tenant/stores?limit=100')
-        return response.data.items || []
-    },
-    staleTime: 1000 * 60 * 5
   })
 
   const [carts, setCarts] = useState<Cart[]>([])
@@ -108,31 +93,39 @@ function RouteComponent() {
     {
       id: 'customer',
       header: 'Cliente',
-      cell: (c) => {
-          const customer = customers?.find((cust: any) => cust.id === c.customerId)
-          return customer ? (customer.nameOrTradeName || customer.lastNameOrCompanyName) : `Cliente #${c.customerId}`
-      },
+      cell: (c) => c.customer?.name || `Cliente #${c.customerId}`,
       className: 'border-r'
     },
     {
       id: 'store',
       header: 'Loja',
-      cell: (c) => {
-          const store = stores?.find((s: any) => s.id === c.storeId)
-          return store ? store.name : `Loja #${c.storeId}`
-      },
+      cell: (c) => c.store?.name || `Loja #${c.storeId}`,
       className: 'border-r'
     },
     {
-      id: 'itemsCount',
-      header: 'Itens',
-      cell: (c) => c.itemsCount ?? 0,
+      id: 'status',
+      header: 'Status',
+      cell: (c) => {
+        const statusMap: Record<string, { label: string, variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+          open: { label: 'Aberto', variant: 'outline' },
+          abandoned: { label: 'Abandonado', variant: 'destructive' },
+          finished: { label: 'Finalizado', variant: 'default' }
+        }
+        const status = statusMap[c.status] || { label: c.status, variant: 'secondary' }
+        return <Badge variant={status.variant} className="text-[10px] h-5">{status.label}</Badge>
+      },
       className: 'w-[100px] border-r text-center'
     },
     {
-      id: 'total',
+      id: 'totalItems',
+      header: 'Itens',
+      cell: (c) => c.totalItems ?? 0,
+      className: 'w-[80px] border-r text-center'
+    },
+    {
+      id: 'totalValue',
       header: 'Total',
-      cell: (c) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total ?? 0),
+      cell: (c) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((c.totalValue ?? 0) / 100),
       className: 'w-[140px] border-r text-right font-medium'
     },
     {

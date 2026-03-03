@@ -24,6 +24,7 @@ const formSchema = z.object({
   phone: z.string().min(1, { message: "Campo obrigatório" }),
   email: z.string().email({ message: "Email inválido" }).min(1, { message: "Campo obrigatório" }),
   storeId: z.coerce.number().min(1, { message: "Loja é obrigatória" }),
+  priceTableId: z.coerce.number().optional(),
 })
 
 export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props }: React.ComponentProps<"form"> & { onOpenChange?: (open: boolean) => void, onCreated?: () => void }) {
@@ -40,6 +41,7 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
       phone: "",
       email: "",
       storeId: 0,
+      priceTableId: undefined,
     },
   })
 
@@ -47,6 +49,18 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
     queryKey: ['stores-list-select'],
     queryFn: async () => {
         const response = await privateInstance.get('/tenant/stores?limit=100')
+        return response.data.items || []
+    },
+    enabled: open,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: true
+  })
+
+  const { data: priceTables, isLoading: isLoadingPriceTables } = useQuery({
+    queryKey: ['price-tables-list-select'],
+    queryFn: async () => {
+        const response = await privateInstance.get('/tenant/price-tables?limit=100&active=true')
         return response.data.items || []
     },
     enabled: open,
@@ -272,34 +286,65 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                 )} />
               </div>
 
-              <FormField
-                  control={form.control}
-                  name="storeId"
-                  render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Loja</FormLabel>
-                          {isLoadingStores ? (
-                              <Skeleton className="h-10 w-full" />
-                          ) : (
-                              <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                                  <FormControl>
-                                      <SelectTrigger className="w-full">
-                                          <SelectValue placeholder="Selecione..." />
-                                      </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                      {stores?.map((store: any) => (
-                                          <SelectItem key={store.id} value={String(store.id)}>
-                                              {store.name}
-                                          </SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
-                          )}
-                          <FormMessage />
-                      </FormItem>
-                  )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                      control={form.control}
+                      name="priceTableId"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Tabela de Preço</FormLabel>
+                              {isLoadingPriceTables ? (
+                                  <Skeleton className="h-10 w-full" />
+                              ) : (
+                                  <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                                      <FormControl>
+                                          <SelectTrigger className="w-full">
+                                              <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          {priceTables?.map((table: any) => (
+                                              <SelectItem key={table.id} value={String(table.id)}>
+                                                  {table.name}
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                              )}
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+
+                  <FormField
+                      control={form.control}
+                      name="storeId"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Loja</FormLabel>
+                              {isLoadingStores ? (
+                                  <Skeleton className="h-10 w-full" />
+                              ) : (
+                                  <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                                      <FormControl>
+                                          <SelectTrigger className="w-full">
+                                              <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          {stores?.map((store: any) => (
+                                              <SelectItem key={store.id} value={String(store.id)}>
+                                                  {store.name}
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                              )}
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+              </div>
 
               <Alert className="bg-blue-50 text-blue-900 border-blue-200">
                 <Info className="h-4 w-4 text-blue-600" />

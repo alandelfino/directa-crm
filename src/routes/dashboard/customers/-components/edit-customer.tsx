@@ -22,6 +22,7 @@ const formSchema = z.object({
   phone: z.string().min(1, { message: "Campo obrigatório" }),
   email: z.string().email({ message: "Email inválido" }).min(1, { message: "Campo obrigatório" }),
   storeId: z.coerce.number().min(1, { message: "Loja é obrigatória" }),
+  priceTableId: z.coerce.number().optional(),
 })
 
 export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved, ...props }: React.ComponentProps<"form"> & { customerId: number, onOpenChange?: (open: boolean) => void, onSaved?: () => void }) {
@@ -40,6 +41,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
       phone: "",
       email: "",
       storeId: 0,
+      priceTableId: undefined,
     },
   })
 
@@ -47,6 +49,18 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
     queryKey: ['stores-list-select'],
     queryFn: async () => {
         const response = await privateInstance.get('/tenant/stores?limit=100')
+        return response.data.items || []
+    },
+    enabled: open,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: true
+  })
+
+  const { data: priceTables, isLoading: isLoadingPriceTables } = useQuery({
+    queryKey: ['price-tables-list-select'],
+    queryFn: async () => {
+        const response = await privateInstance.get('/tenant/price-tables?limit=100&active=true')
         return response.data.items || []
     },
     enabled: open,
@@ -110,6 +124,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
         phone: c.phone ?? "",
         email: c.email ?? "",
         storeId: c.storeId ?? c.store?.id ?? 0,
+        priceTableId: c.priceTableId ?? c.price_table_id ?? undefined,
       })
     } catch (error: any) {
       const errorData = error?.response?.data
@@ -308,34 +323,65 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                 )} />
               </div>
 
-              <FormField
-                  control={form.control}
-                  name="storeId"
-                  render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Loja</FormLabel>
-                          {isLoadingStores ? (
-                              <Skeleton className="h-10 w-full" />
-                          ) : (
-                              <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                                  <FormControl>
-                                      <SelectTrigger className="w-full">
-                                          <SelectValue placeholder="Selecione..." />
-                                      </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                      {stores?.map((store: any) => (
-                                          <SelectItem key={store.id} value={String(store.id)}>
-                                              {store.name}
-                                          </SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
-                          )}
-                          <FormMessage />
-                      </FormItem>
-                  )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                      control={form.control}
+                      name="priceTableId"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Tabela de Preço</FormLabel>
+                              {isLoadingPriceTables ? (
+                                  <Skeleton className="h-10 w-full" />
+                              ) : (
+                                  <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                                      <FormControl>
+                                          <SelectTrigger className="w-full">
+                                              <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          {priceTables?.map((table: any) => (
+                                              <SelectItem key={table.id} value={String(table.id)}>
+                                                  {table.name}
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                              )}
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+
+                  <FormField
+                      control={form.control}
+                      name="storeId"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Loja</FormLabel>
+                              {isLoadingStores ? (
+                                  <Skeleton className="h-10 w-full" />
+                              ) : (
+                                  <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                                      <FormControl>
+                                          <SelectTrigger className="w-full">
+                                              <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          {stores?.map((store: any) => (
+                                              <SelectItem key={store.id} value={String(store.id)}>
+                                                  {store.name}
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                              )}
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+              </div>
             </div>
             <div className="mt-auto border-t p-4">
               <div className="grid grid-cols-2 gap-4">

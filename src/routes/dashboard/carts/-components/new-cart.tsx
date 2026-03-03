@@ -124,8 +124,7 @@ export function NewCartSheet({ onCreated }: { onCreated?: () => void }) {
 
       // 2. Add Items sequentially
       for (const item of cartItems) {
-        await privateInstance.post('/tenant/carts/derivated-products', {
-          cartId,
+        await privateInstance.post(`/tenant/carts/${cartId}/derivated-products`, {
           derivatedProductId: item.derivatedProductId,
           amount: item.amount
         })

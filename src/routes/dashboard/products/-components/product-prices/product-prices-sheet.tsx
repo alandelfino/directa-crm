@@ -23,7 +23,7 @@ type ProductPriceItem = {
   derivationName: string
   sku: string
   price: number
-  salePrice: number
+  oldPrice: number
   updatedAt: string
   // Helper fields
   priceTableId: number
@@ -37,7 +37,7 @@ function EditablePriceCell({
   className
 }: { 
   row: ProductPriceItem, 
-  field: 'price' | 'salePrice',
+  field: 'price' | 'oldPrice',
   onSaved: (value: number) => void,
   className?: string
 }) {
@@ -58,7 +58,7 @@ function EditablePriceCell({
       
       const payload = {
         price: field === 'price' ? priceCents : row.price,
-        salePrice: field === 'salePrice' ? priceCents : (row.salePrice ?? 0)
+        oldPrice: field === 'oldPrice' ? priceCents : (row.oldPrice ?? 0)
       }
 
       await privateInstance.put(`/tenant/product-prices/${row.id}`, payload)
@@ -96,14 +96,17 @@ function EditablePriceCell({
   }
 
   const discountPercentage = useMemo(() => {
-    if (field === 'salePrice' && row.price && row.salePrice && row.price > 0) {
-      const discount = ((row.price - row.salePrice) / row.price) * 100
+    // Discount logic typically applies when salePrice < price. 
+    // Here oldPrice is "Preço antigo" (like MSRP or original price) and price is "Preço de venda".
+    // So if price < oldPrice, there is a discount.
+    if (field === 'price' && row.oldPrice && row.price && row.oldPrice > row.price) {
+      const discount = ((row.oldPrice - row.price) / row.oldPrice) * 100
       if (discount > 0) {
         return Math.round(discount)
       }
     }
     return null
-  }, [field, row.price, row.salePrice])
+  }, [field, row.price, row.oldPrice])
 
   if (isEditing) {
     return (
@@ -161,7 +164,7 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [selectedPriceTableId, setSelectedPriceTableId] = useState<string>('')
 
-  const updatePriceInCache = (id: number, field: 'price' | 'salePrice', value: number) => {
+  const updatePriceInCache = (id: number, field: 'price' | 'oldPrice', value: number) => {
     queryClient.setQueryData(['product-prices', productId, selectedPriceTableId], (oldData: any) => {
       if (!oldData) return oldData
       
@@ -239,7 +242,7 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
       derivationName: i.derivationName,
       sku: i.sku,
       price: Number(i.price),
-      salePrice: i.salePrice ? Number(i.salePrice) : 0,
+      oldPrice: i.oldPrice ? Number(i.oldPrice) : 0,
       updatedAt: i.updatedAt,
       priceTable: i.priceTable || null,
       priceTableId: (i.priceTableId || i.price_table_id) ? Number(i.priceTableId || i.price_table_id) : (selectedPriceTableId !== 'all' ? Number(selectedPriceTableId) : 0)
@@ -318,13 +321,14 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
       className: 'w-[240px] min-w-[240px] !px-4',
     },
     {
-      id: 'price',
-      header: 'Preço',
+      id: 'oldPrice',
+      header: 'Preço Antigo',
       cell: (i) => (
         <EditablePriceCell 
           row={i}
-          field="price"
-          onSaved={(val) => updatePriceInCache(i.id, 'price', val)} 
+          field="oldPrice"
+          className="text-muted-foreground line-through"
+          onSaved={(val) => updatePriceInCache(i.id, 'oldPrice', val)} 
         />
       ),
       width: '150px',
@@ -332,14 +336,13 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
       className: 'w-[150px] min-w-[150px] !px-4',
     },
     {
-      id: 'salePrice',
-      header: 'Preço Promocional',
+      id: 'price',
+      header: 'Preço de Venda',
       cell: (i) => (
         <EditablePriceCell 
           row={i}
-          field="salePrice"
-          className="text-muted-foreground"
-          onSaved={(val) => updatePriceInCache(i.id, 'salePrice', val)} 
+          field="price"
+          onSaved={(val) => updatePriceInCache(i.id, 'price', val)} 
         />
       ),
       width: '150px',

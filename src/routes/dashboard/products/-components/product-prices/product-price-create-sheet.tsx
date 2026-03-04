@@ -17,10 +17,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 const formSchema = z.object({
   price_table_id: z.string().min(1, { message: 'Selecione uma tabela de preço' }),
   price: z.string().min(1, { message: 'Informe o preço' }),
-  sale_price: z.string().min(1, { message: 'Informe o preço promocional' })
+  old_price: z.string().min(1, { message: 'Informe o preço antigo' })
 }).superRefine((data, ctx) => {
   const price = parseInt(data.price.replace(/\D/g, '')) || 0
-  const salePrice = parseInt(data.sale_price.replace(/\D/g, '')) || 0
+  const oldPrice = parseInt(data.old_price.replace(/\D/g, '')) || 0
 
   if (price < 0) {
     ctx.addIssue({
@@ -30,19 +30,19 @@ const formSchema = z.object({
     })
   }
 
-  if (salePrice < 0) {
+  if (oldPrice < 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'O preço promocional deve ser maior ou igual a zero',
-      path: ['sale_price']
+      message: 'O preço antigo deve ser maior ou igual a zero',
+      path: ['old_price']
     })
   }
 
-  if (salePrice > price) {
+  if (price > oldPrice && oldPrice > 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'O preço promocional deve ser menor ou igual ao preço',
-      path: ['sale_price']
+      message: 'O preço de venda não deve ser maior que o preço antigo',
+      path: ['price']
     })
   }
 })
@@ -55,7 +55,7 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
     defaultValues: { 
       price_table_id: '',
       price: 'R$ 0,00',
-      sale_price: 'R$ 0,00'
+      old_price: 'R$ 0,00'
     },
   })
 
@@ -77,13 +77,13 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt(values.price.replace(/\D/g, ''))
-      const salePriceCents = parseInt(values.sale_price.replace(/\D/g, ''))
+      const oldPriceCents = parseInt(values.old_price.replace(/\D/g, ''))
 
       const payload = {
         productId: productId,
         priceTableId: Number(values.price_table_id),
         price: priceCents,
-        salePrice: salePriceCents
+        oldPrice: oldPriceCents
       }
       const response = await privateInstance.post('/tenant/product-prices', payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao adicionar preço')
@@ -92,7 +92,7 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
     onSuccess: () => {
       toast.success('Preços adicionados com sucesso!')
       setOpen(false)
-      form.reset({ price_table_id: '', price: 'R$ 0,00', sale_price: 'R$ 0,00' })
+      form.reset({ price_table_id: '', price: 'R$ 0,00', old_price: 'R$ 0,00' })
       onCreated?.()
     },
     onError: (error: any) => {
@@ -149,10 +149,10 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
                 <div className='grid grid-cols-2 gap-4'>
                   <FormField
                     control={form.control}
-                    name="price"
+                    name="old_price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preço Base</FormLabel>
+                        <FormLabel>Preço Antigo</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}
@@ -166,10 +166,10 @@ export function ProductPriceCreateSheet({ productId, onCreated }: { productId: n
 
                   <FormField
                     control={form.control}
-                    name="sale_price"
+                    name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preço Promocional Base</FormLabel>
+                        <FormLabel>Preço de Venda</FormLabel>
                         <FormControl>
                           <Input 
                             {...field}

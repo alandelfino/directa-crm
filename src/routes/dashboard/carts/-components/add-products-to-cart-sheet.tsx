@@ -9,13 +9,15 @@ import { SelectProductSearch } from '@/components/select-product-search'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+// import { Skeleton } from "@/components/ui/skeleton"
 
-type Derivation = {
-  id: number
-  name?: string
-  sku?: string
-  productId: number
-}
+// type Derivation = {
+//   id: number
+//   name: string
+//   sku: string
+//   image?: string
+//   prices?: { price: number, salePrice: number }[]
+// }
 
 type CartItem = {
   derivatedProductId: number
@@ -24,13 +26,15 @@ type CartItem = {
   amount: number
 }
 
-interface AddProductsToCartSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onAddItems: (items: CartItem[]) => void
-}
-
-export function AddProductsToCartSheet({ open, onOpenChange, onAddItems }: AddProductsToCartSheetProps) {
+export function AddProductsToCartSheet({ 
+  open, 
+  onOpenChange, 
+  onAddItems 
+}: { 
+  open: boolean, 
+  onOpenChange: (open: boolean) => void,
+  onAddItems: (items: { derivatedProductId: number, amount: number }[]) => void
+}) {
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null)
   const [itemsToAdd, setItemsToAdd] = useState<Record<number, number>>({}) // derivatedProductId -> amount
 
@@ -92,6 +96,7 @@ export function AddProductsToCartSheet({ open, onOpenChange, onAddItems }: AddPr
     // Reset state
     setSelectedProduct(null)
     setItemsToAdd({})
+    // We don't close here anymore, let the parent handle closing or we close after parent confirms
     onOpenChange(false)
   }
 
@@ -101,7 +106,7 @@ export function AddProductsToCartSheet({ open, onOpenChange, onAddItems }: AddPr
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-2xl w-full flex flex-col h-full p-0 gap-0">
         <div className="p-6 border-b bg-background z-10">
-          <SheetHeader>
+          <SheetHeader className="gap-0 p-0">
             <SheetTitle>Adicionar Produtos</SheetTitle>
             <SheetDescription>Busque um produto e selecione as quantidades das variações.</SheetDescription>
           </SheetHeader>

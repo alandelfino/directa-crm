@@ -16,8 +16,8 @@ import { maskMoneyInput } from '@/lib/utils'
 const formSchema = z.object({
   update_price: z.boolean().default(false),
   price: z.string().optional(),
-  update_sale_price: z.boolean().default(false),
-  sale_price: z.string().optional(),
+  update_old_price: z.boolean().default(false),
+  old_price: z.string().optional(),
 }).refine((data) => {
   if (data.update_price && (!data.price || data.price.trim() === '')) {
     return false
@@ -27,21 +27,21 @@ const formSchema = z.object({
   message: 'Preço é obrigatório quando selecionado',
   path: ['price'],
 }).refine((data) => {
-  if (data.update_price && data.update_sale_price) {
+  if (data.update_price && data.update_old_price) {
     const price = parseInt((data.price || '').replace(/\D/g, '')) || 0
-    const salePrice = parseInt((data.sale_price || '').replace(/\D/g, '')) || 0
-    return salePrice <= price
+    const oldPrice = parseInt((data.old_price || '').replace(/\D/g, '')) || 0
+    return price <= oldPrice
   }
   return true
 }, {
-  message: 'O preço promocional não pode ser maior que o preço',
-  path: ['sale_price'],
+  message: 'O preço de venda não pode ser maior que o preço antigo',
+  path: ['price'],
 })
 
 type PriceItem = {
   id: number
   price: number
-  salePrice: number
+  oldPrice: number
 }
 
 export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }: { selectedItems: PriceItem[], onUpdated?: () => void, trigger?: React.ReactNode }) {
@@ -55,8 +55,8 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
     defaultValues: { 
       update_price: false,
       price: 'R$ 0,00', 
-      update_sale_price: false,
-      sale_price: 'R$ 0,00' 
+      update_old_price: false,
+      old_price: 'R$ 0,00' 
     },
   })
 
@@ -65,8 +65,8 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
       form.reset({ 
         update_price: false,
         price: 'R$ 0,00', 
-        update_sale_price: false,
-        sale_price: 'R$ 0,00' 
+        update_old_price: false,
+        old_price: 'R$ 0,00' 
       })
       setProcessedCount(0)
       setProgress(0)
@@ -77,7 +77,7 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const priceCents = parseInt((values.price || '').replace(/\D/g, ''))
-      const salePriceCents = values.sale_price ? parseInt(values.sale_price.replace(/\D/g, '')) : 0
+      const oldPriceCents = values.old_price ? parseInt(values.old_price.replace(/\D/g, '')) : 0
       
       const itemsToUpdate = [...selectedItems]
       const total = itemsToUpdate.length
@@ -93,7 +93,7 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
         // Construct payload: preserve existing values if not updating
         const payload = {
           price: values.update_price ? priceCents : item.price,
-          salePrice: values.update_sale_price ? salePriceCents : (item.salePrice ?? 0)
+          oldPrice: values.update_old_price ? oldPriceCents : (item.oldPrice ?? 0)
         }
         
         try {
@@ -130,7 +130,7 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
   }
 
   const updatePrice = form.watch('update_price')
-  const updateSalePrice = form.watch('update_sale_price')
+  const updateOldPrice = form.watch('update_old_price')
 
   return (
     <Sheet open={open} onOpenChange={(o) => {
@@ -222,7 +222,7 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
                     <div className="space-y-2 border p-3 rounded-md">
                       <FormField
                         control={form.control}
-                        name="update_price"
+                        name="update_old_price"
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                             <FormControl>
@@ -233,17 +233,17 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>
-                                Atualizar Preço
+                                Atualizar Preço Antigo
                               </FormLabel>
                             </div>
                           </FormItem>
                         )}
                       />
-                      
-                      {updatePrice && (
+
+                      {updateOldPrice && (
                         <FormField
                           control={form.control}
-                          name="price"
+                          name="old_price"
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
@@ -265,7 +265,7 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
                     <div className="space-y-2 border p-3 rounded-md">
                       <FormField
                         control={form.control}
-                        name="update_sale_price"
+                        name="update_price"
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                             <FormControl>
@@ -276,17 +276,17 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>
-                                Atualizar Preço Promocional
+                                Atualizar Preço de Venda
                               </FormLabel>
                             </div>
                           </FormItem>
                         )}
                       />
-
-                      {updateSalePrice && (
+                      
+                      {updatePrice && (
                         <FormField
                           control={form.control}
-                          name="sale_price"
+                          name="price"
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
@@ -321,7 +321,7 @@ export function ProductPriceMassEditSheet({ selectedItems, onUpdated, trigger }:
                   type="button" 
                   onClick={form.handleSubmit(async (v) => await mutateAsync(v))} 
                   className='w-full'
-                  disabled={isPending || (!updatePrice && !updateSalePrice)}
+                  disabled={isPending || (!updatePrice && !updateOldPrice)}
                 >
                   {isPending ? 'Atualizando...' : 'Salvar Alterações'}
                 </Button>

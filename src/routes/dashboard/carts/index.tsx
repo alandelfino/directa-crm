@@ -187,7 +187,11 @@ function RouteComponent() {
                             <EmptyDescription>Crie um novo carrinho para começar.</EmptyDescription>
                         </EmptyHeader>
                         <EmptyContent>
-                            <NewCartSheet onCreated={() => refetch()} />
+                            <NewCartSheet onCreated={(id) => {
+                                refetch()
+                                setSelectedCarts([id])
+                                setIsEditSheetOpen(true)
+                            }} />
                         </EmptyContent>
                     </Empty>
                 }

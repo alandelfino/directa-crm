@@ -56,12 +56,26 @@ const getToken = () => {
 
 const baseURL = import.meta.env.VITE_API_URL || ""
 
+const handleNetworkError = (error: any) => {
+    if (error.code === 'ERR_NETWORK' || (error.message && error.message.includes('Network Error'))) {
+        if (window.location.pathname !== '/server-error') {
+            window.location.href = '/server-error'
+        }
+    }
+    return Promise.reject(error)
+}
+
 const publicInstance = axios.create({
     baseURL,
     headers: {
         "Content-Type": "application/json",
     },
 })
+
+publicInstance.interceptors.response.use(
+    (response) => response,
+    handleNetworkError
+)
 
 const loginInstance = axios.create({
     baseURL,
@@ -90,7 +104,7 @@ loginInstance.interceptors.response.use((response) => {
         }
     }
     return response
-})
+}, handleNetworkError)
 
 const privateInstance = axios.create({
     baseURL,
@@ -114,6 +128,13 @@ privateInstance.interceptors.request.use((config) => {
 privateInstance.interceptors.response.use(
     (response) => response,
     (error) => {
+        if (error.code === 'ERR_NETWORK' || (error.message && error.message.includes('Network Error'))) {
+            if (window.location.pathname !== '/server-error') {
+                window.location.href = '/server-error'
+            }
+            return Promise.reject(error)
+        }
+
         const status = error?.response?.status
         if (status === 401) {
             // Redireciona para a tela de login ao detectar sessão inválida

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ServerErrorRouteImport } from './routes/server-error'
 import { Route as UserRouteRouteImport } from './routes/user/route'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -43,6 +44,11 @@ import { Route as DashboardSettingsIntegrationsIndexRouteImport } from './routes
 import { Route as DashboardSettingsBillingsIndexRouteImport } from './routes/dashboard/settings/billings/index'
 import { Route as DashboardSettingsAccountIndexRouteImport } from './routes/dashboard/settings/account/index'
 
+const ServerErrorRoute = ServerErrorRouteImport.update({
+  id: '/server-error',
+  path: '/server-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UserRouteRoute = UserRouteRouteImport.update({
   id: '/user',
   path: '/user',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/user': typeof UserRouteRoute
+  '/server-error': typeof ServerErrorRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/company-not-found': typeof CompanyNotFoundIndexRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/user': typeof UserRouteRoute
+  '/server-error': typeof ServerErrorRoute
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/company-not-found': typeof CompanyNotFoundIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/user': typeof UserRouteRoute
+  '/server-error': typeof ServerErrorRoute
   '/dashboard/settings': typeof DashboardSettingsRouteRouteWithChildren
   '/email-confirmation/$token': typeof EmailConfirmationTokenRoute
   '/company-not-found/': typeof CompanyNotFoundIndexRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/user'
+    | '/server-error'
     | '/dashboard/settings'
     | '/email-confirmation/$token'
     | '/company-not-found'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/user'
+    | '/server-error'
     | '/email-confirmation/$token'
     | '/company-not-found'
     | '/dashboard'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/user'
+    | '/server-error'
     | '/dashboard/settings'
     | '/email-confirmation/$token'
     | '/company-not-found/'
@@ -437,6 +449,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   UserRouteRoute: typeof UserRouteRoute
+  ServerErrorRoute: typeof ServerErrorRoute
   EmailConfirmationTokenRoute: typeof EmailConfirmationTokenRoute
   CompanyNotFoundIndexRoute: typeof CompanyNotFoundIndexRoute
   SignInIndexRoute: typeof SignInIndexRoute
@@ -445,6 +458,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/server-error': {
+      id: '/server-error'
+      path: '/server-error'
+      fullPath: '/server-error'
+      preLoaderRoute: typeof ServerErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/user': {
       id: '/user'
       path: '/user'
@@ -760,6 +780,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   UserRouteRoute: UserRouteRoute,
+  ServerErrorRoute: ServerErrorRoute,
   EmailConfirmationTokenRoute: EmailConfirmationTokenRoute,
   CompanyNotFoundIndexRoute: CompanyNotFoundIndexRoute,
   SignInIndexRoute: SignInIndexRoute,

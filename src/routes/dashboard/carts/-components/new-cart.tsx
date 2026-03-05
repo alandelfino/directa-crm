@@ -15,7 +15,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const formSchema = z.object({
   customerId: z.coerce.number().min(1, { message: "Cliente é obrigatório" }),
-  storeId: z.coerce.number().min(1, { message: "Loja é obrigatória" }),
 })
 
 export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }) {
@@ -26,7 +25,6 @@ export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       customerId: 0,
-      storeId: 0,
     },
   })
 
@@ -39,17 +37,6 @@ export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }
     },
     enabled: open,
     staleTime: 1000 * 60 * 5, 
-  })
-
-  // Fetch Stores
-  const { data: stores, isLoading: isLoadingStores } = useQuery({
-    queryKey: ['stores-list-select'],
-    queryFn: async () => {
-        const response = await privateInstance.get('/tenant/stores?limit=100')
-        return response.data.items || []
-    },
-    enabled: open,
-    staleTime: 1000 * 60 * 5,
   })
 
   const { isPending, mutateAsync } = useMutation({
@@ -118,35 +105,6 @@ export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }
                                     {customers?.map((customer: any) => (
                                         <SelectItem key={customer.id} value={String(customer.id)}>
                                             {customer.nameOrTradeName || customer.lastNameOrCompanyName || `Cliente #${customer.id}`}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='storeId'
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel className="text-xs">Loja</FormLabel>
-                        {isLoadingStores ? (
-                            <Skeleton className="h-9 w-full" />
-                        ) : (
-                            <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                                <FormControl>
-                                    <SelectTrigger className="h-9 w-full">
-                                        <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {stores?.map((store: any) => (
-                                        <SelectItem key={store.id} value={String(store.id)}>
-                                            {store.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

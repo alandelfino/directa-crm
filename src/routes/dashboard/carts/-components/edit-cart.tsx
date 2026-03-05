@@ -21,6 +21,7 @@ type DerivatedProduct = {
   productId: number
   cartId: number
   totalValue: number
+  derivatedProductId: number
 }
 
 type ProductGroup = {
@@ -31,6 +32,11 @@ type ProductGroup = {
   totalItems: number
   totalValue: number
   derivatedProducts: DerivatedProduct[]
+}
+
+type CartResponse = {
+  items: ProductGroup[]
+  total: number
 }
 
 type Cart = {
@@ -56,7 +62,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const queryClient = useQueryClient()
 
   // Fetch Cart Details (Store, Status, etc.)
-  const { data: cart, isLoading: isLoadingCart } = useQuery({
+  const { data: cart, isLoading: isLoadingCart, isRefetching: isRefetchingCart } = useQuery({
     queryKey: ['cart', cartId],
     queryFn: async () => {
       const response = await privateInstance.get(`/tenant/carts/${cartId}`)
@@ -93,13 +99,61 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
 
   // Update item amount mutation
   const { mutate: updateItem, isPending: isUpdatingItem } = useMutation({
-    mutationFn: async ({ derivatedProductId, amount }: { derivatedProductId: number, amount: number }) => {
-      await privateInstance.put(`/tenant/carts/${cartId}/derivated-products/${derivatedProductId}`, {
+    mutationFn: async ({ cartDerivatedProductId, amount }: { cartDerivatedProductId: number, amount: number }) => {
+      const response = await privateInstance.put(`/tenant/carts/${cartId}/derivated-products/${cartDerivatedProductId}`, {
         amount
       })
+      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', cartId] })
+    onSuccess: (updatedItem) => {
+      // Update the main cart query (which contains the products list)
+      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
+        if (!oldData) return oldData
+
+        const newGroups = (oldData.products || []).map((group: ProductGroup) => {
+          // Check if the updated item belongs to this group
+          // Note: Using updatedItem.id (relationship ID) to match item.id
+          const itemIndex = group.derivatedProducts.findIndex((p: DerivatedProduct) => Number(p.id) === Number(updatedItem.id))
+          
+          if (itemIndex === -1) return group
+
+          // Update the specific item in the group
+          const newDerivatedProducts = [...group.derivatedProducts]
+          
+          // Calculate new total value locally since API doesn't return it in the update response
+          const currentItem = newDerivatedProducts[itemIndex]
+          const newAmount = Number(updatedItem.amount)
+          const newTotalValue = newAmount * currentItem.price
+
+          newDerivatedProducts[itemIndex] = {
+            ...currentItem,
+            amount: newAmount,
+            totalValue: newTotalValue
+          }
+
+          // Recalculate group totals
+          const groupTotalItems = newDerivatedProducts.reduce((acc, curr) => acc + curr.amount, 0)
+          const groupTotalValue = newDerivatedProducts.reduce((acc, curr) => acc + curr.totalValue, 0)
+
+          return {
+            ...group,
+            derivatedProducts: newDerivatedProducts,
+            totalItems: groupTotalItems,
+            totalValue: groupTotalValue
+          }
+        })
+
+        // Recalculate cart totals from the updated groups
+        const newTotalItems = newGroups.reduce((acc, group) => acc + group.totalItems, 0)
+        const newTotalValue = newGroups.reduce((acc, group) => acc + group.totalValue, 0)
+
+        return {
+          ...oldData,
+          products: newGroups,
+          totalItems: newTotalItems,
+          totalValue: newTotalValue
+        }
+      })
     },
     onError: () => {
       toast.error('Erro ao atualizar item.')
@@ -108,12 +162,48 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
 
   // Delete item mutation
   const { mutate: deleteItem, isPending: isDeletingItem } = useMutation({
-    mutationFn: async (derivatedProductId: number) => {
-      await privateInstance.delete(`/tenant/carts/${cartId}/derivated-products/${derivatedProductId}`)
+    mutationFn: async (cartDerivatedProductId: number) => {
+      await privateInstance.put(`/tenant/carts/${cartId}/derivated-products/${cartDerivatedProductId}`, {
+        amount: 0
+      })
+      return cartDerivatedProductId
     },
-    onSuccess: () => {
+    onSuccess: (deletedId) => {
       toast.success('Item removido.')
-      queryClient.invalidateQueries({ queryKey: ['cart', cartId] })
+      
+      // Optimistically update the cart by removing the item
+      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
+        if (!oldData) return oldData
+
+        const newGroups = (oldData.products || []).map((group: ProductGroup) => {
+          // Filter out the deleted item
+          const newDerivatedProducts = group.derivatedProducts.filter(p => Number(p.id) !== Number(deletedId))
+          
+          if (newDerivatedProducts.length === group.derivatedProducts.length) return group
+
+          // Recalculate group totals
+          const groupTotalItems = newDerivatedProducts.reduce((acc, curr) => acc + curr.amount, 0)
+          const groupTotalValue = newDerivatedProducts.reduce((acc, curr) => acc + curr.totalValue, 0)
+
+          return {
+            ...group,
+            derivatedProducts: newDerivatedProducts,
+            totalItems: groupTotalItems,
+            totalValue: groupTotalValue
+          }
+        }).filter(group => group.derivatedProducts.length > 0) // Remove empty groups if any
+
+        // Recalculate cart totals
+        const newTotalItems = newGroups.reduce((acc, group) => acc + group.totalItems, 0)
+        const newTotalValue = newGroups.reduce((acc, group) => acc + group.totalValue, 0)
+
+        return {
+          ...oldData,
+          products: newGroups,
+          totalItems: newTotalItems,
+          totalValue: newTotalValue
+        }
+      })
     },
     onError: () => {
       toast.error('Erro ao remover item.')
@@ -161,13 +251,59 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
           </div>
 
           {isLoadingCart || isAddingItems || isUpdatingItem || isDeletingItem ? (
-            <div className="p-6 space-y-6">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-40 w-full" />
+            <div className="flex flex-col h-full flex-1 overflow-hidden">
+              <div className="px-6 pt-4 border-b">
+                <div className="grid w-full grid-cols-2 gap-2">
+                   <Skeleton className="h-9 w-full rounded-md" />
+                   <Skeleton className="h-9 w-full rounded-md" />
+                </div>
+              </div>
+
+              <div className="flex-1 p-6 space-y-4 overflow-hidden">
+                 <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-8 w-24" />
+                 </div>
+                 
+                 <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="border rounded-lg p-3 space-y-3">
+                         <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                               <Skeleton className="h-8 w-8 rounded" />
+                               <div className="space-y-1">
+                                  <Skeleton className="h-4 w-40" />
+                                  <Skeleton className="h-3 w-20" />
+                               </div>
+                            </div>
+                            <Skeleton className="h-4 w-4 rounded-full" />
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="border-t p-4 space-y-4 bg-background z-10">
+                 <div className="space-y-2">
+                    <div className="flex justify-between">
+                       <Skeleton className="h-4 w-16" />
+                       <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                       <Skeleton className="h-6 w-12" />
+                       <Skeleton className="h-6 w-24" />
+                    </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                 </div>
+              </div>
             </div>
           ) : (
             <Tabs defaultValue="items" className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 pt-4 border-b">
+              <div className="px-6 pt-4">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="items">Itens do Carrinho</TabsTrigger>
                   <TabsTrigger value="details">Detalhes</TabsTrigger>
@@ -185,9 +321,28 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                     </div>
 
                     {(cart?.products || []).length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
-                            Carrinho vazio.
-                        </div>
+                        isLoadingCart || isRefetchingCart || isAddingItems ? (
+                            <div className="space-y-4">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                  <div key={i} className="border rounded-lg p-3 space-y-3">
+                                     <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                           <Skeleton className="h-8 w-8 rounded" />
+                                           <div className="space-y-1">
+                                              <Skeleton className="h-4 w-40" />
+                                              <Skeleton className="h-3 w-20" />
+                                           </div>
+                                        </div>
+                                        <Skeleton className="h-4 w-4 rounded-full" />
+                                     </div>
+                                  </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                                Carrinho vazio.
+                            </div>
+                        )
                     ) : (
                         <div className="space-y-4">
                             {cart?.products.map((product) => {
@@ -243,7 +398,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                                           variant="ghost"
                                           size="icon"
                                           className="h-8 w-8 rounded-none rounded-l-md hover:bg-muted"
-                                          onClick={() => updateItem({ derivatedProductId: item.id, amount: Math.max(0, item.amount - 1) })}
+                                          onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: Math.max(0, item.amount - 1) })}
                                           disabled={item.amount <= 1}
                                         >
                                           <Minus className="h-3 w-3" />
@@ -255,7 +410,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                                           variant="ghost"
                                           size="icon"
                                           className="h-8 w-8 rounded-none rounded-r-md hover:bg-muted"
-                                          onClick={() => updateItem({ derivatedProductId: item.id, amount: item.amount + 1 })}
+                                          onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: item.amount + 1 })}
                                         >
                                           <Plus className="h-3 w-3" />
                                         </Button>
@@ -274,11 +429,11 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                        onClick={() => deleteItem(item.id)}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
+                                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                         onClick={() => deleteItem(item.id)}
+                                       >
+                                         <Trash2 className="h-4 w-4" />
+                                       </Button>
                                     )}
                                   </div>
                                 </div>

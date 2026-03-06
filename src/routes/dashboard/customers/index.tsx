@@ -29,7 +29,7 @@ export const Route = createFileRoute('/dashboard/customers/')({
 type Customer = {
     id: number
     nameOrTradeName: string
-    lastNameOrCompanyName: string
+    companyName: string
     personType: 'natural' | 'entity'
     cpfOrCnpj: string
     rgOrIe: string
@@ -62,8 +62,8 @@ function RouteComponent() {
     const [orderBy, setOrderBy] = useState('desc')
     const [filterName, setFilterName] = useState('')
     const [filterNameOperator, setFilterNameOperator] = useState('cont')
-    const [filterLastName, setFilterLastName] = useState('')
-    const [filterLastNameOperator, setFilterLastNameOperator] = useState('cont')
+    const [filterCompanyName, setFilterCompanyName] = useState('')
+    const [filterCompanyNameOperator, setFilterCompanyNameOperator] = useState('cont')
     const [filterCpf, setFilterCpf] = useState('')
     const [filterCpfOperator, setFilterCpfOperator] = useState('cont')
     const [filterEmail, setFilterEmail] = useState('')
@@ -74,8 +74,8 @@ function RouteComponent() {
     const [localOrderBy, setLocalOrderBy] = useState('desc')
     const [localFilterName, setLocalFilterName] = useState('')
     const [localFilterNameOperator, setLocalFilterNameOperator] = useState('cont')
-    const [localFilterLastName, setLocalFilterLastName] = useState('')
-    const [localFilterLastNameOperator, setLocalFilterLastNameOperator] = useState('cont')
+    const [localFilterCompanyName, setLocalFilterCompanyName] = useState('')
+    const [localFilterCompanyNameOperator, setLocalFilterCompanyNameOperator] = useState('cont')
     const [localFilterCpf, setLocalFilterCpf] = useState('')
     const [localFilterCpfOperator, setLocalFilterCpfOperator] = useState('cont')
     const [localFilterEmail, setLocalFilterEmail] = useState('')
@@ -83,12 +83,12 @@ function RouteComponent() {
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const [isRefreshPasswordOpen, setIsRefreshPasswordOpen] = useState(false)
 
-    const activeFilterCount = (filterName ? 1 : 0) + (filterLastName ? 1 : 0) + (filterCpf ? 1 : 0) + (filterEmail ? 1 : 0)
+    const activeFilterCount = (filterName ? 1 : 0) + (filterCompanyName ? 1 : 0) + (filterCpf ? 1 : 0) + (filterEmail ? 1 : 0)
 
     const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
         refetchOnWindowFocus: false,
         refetchOnMount: true,
-        queryKey: ['customers', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterLastName, filterLastNameOperator, filterCpf, filterCpfOperator, filterEmail, filterEmailOperator],
+        queryKey: ['customers', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterCompanyName, filterCompanyNameOperator, filterCpf, filterCpfOperator, filterEmail, filterEmailOperator],
         queryFn: async () => {
             const searchParams = new URLSearchParams()
             searchParams.append('page', currentPage.toString())
@@ -97,15 +97,15 @@ function RouteComponent() {
             searchParams.append('orderBy', orderBy)
 
             if (filterName) {
-                searchParams.append('nameOrCompanyName', JSON.stringify({
+                searchParams.append('nameOrTradeName', JSON.stringify({
                     operator: filterNameOperator,
                     value: filterName
                 }))
             }
-            if (filterLastName) {
-                searchParams.append('lastNameOrTradeName', JSON.stringify({
-                    operator: filterLastNameOperator,
-                    value: filterLastName
+            if (filterCompanyName) {
+                searchParams.append('companyName', JSON.stringify({
+                    operator: filterCompanyNameOperator,
+                    value: filterCompanyName
                 }))
             }
             if (filterCpf) {
@@ -160,7 +160,7 @@ function RouteComponent() {
         }
     }, [isError, error])
 
-    useEffect(() => { setSelected([]) }, [currentPage, perPage, sortBy, orderBy, filterName, filterLastName, filterCpf, filterEmail])
+    useEffect(() => { setSelected([]) }, [currentPage, perPage, sortBy, orderBy, filterName, filterCompanyName, filterCpf, filterEmail])
     useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
     useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])
 
@@ -212,7 +212,7 @@ function RouteComponent() {
             className: 'w-[200px] min-w-[200px] p-2! px-4!' 
         },
         { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! px-4!' },
-        { id: 'lastNameOrCompanyName', header: 'Sobrenome / Razão', width: '400px', cell: (c) => c.lastNameOrCompanyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r', className: 'w-[400px] min-w-[400px] p-2! px-4!' },
+        { id: 'companyName', header: 'Razão Social', width: '400px', cell: (c) => c.companyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r', className: 'w-[400px] min-w-[400px] p-2! px-4!' },
         { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2! px-4!' },
         { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! px-4!' },
         { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r', className: 'w-[150px] min-w-[150px] p-2! px-4!' },
@@ -231,8 +231,8 @@ function RouteComponent() {
                                 setLocalOrderBy(orderBy)
                                 setLocalFilterName(filterName)
                                 setLocalFilterNameOperator(filterNameOperator)
-                                setLocalFilterLastName(filterLastName)
-                                setLocalFilterLastNameOperator(filterLastNameOperator)
+                                setLocalFilterCompanyName(filterCompanyName)
+                                setLocalFilterCompanyNameOperator(filterCompanyNameOperator)
                                 setLocalFilterCpf(filterCpf)
                                 setLocalFilterCpfOperator(filterCpfOperator)
                                 setLocalFilterEmail(filterEmail)
@@ -317,9 +317,9 @@ function RouteComponent() {
                                         </div>
 
                                         <div className="grid gap-1.5">
-                                            <Label htmlFor="lastname" className="text-xs font-medium text-muted-foreground">Sobrenome / Razão</Label>
+                                            <Label htmlFor="companyName" className="text-xs font-medium text-muted-foreground">Razão Social</Label>
                                             <div className="flex gap-2">
-                                                <Select value={localFilterLastNameOperator} onValueChange={setLocalFilterLastNameOperator}>
+                                                <Select value={localFilterCompanyNameOperator} onValueChange={setLocalFilterCompanyNameOperator}>
                                                     <SelectTrigger className="w-[130px] h-9">
                                                         <SelectValue placeholder="Op." />
                                                     </SelectTrigger>
@@ -332,11 +332,11 @@ function RouteComponent() {
                                                     </SelectContent>
                                                 </Select>
                                                 <Input
-                                                    id="lastname"
-                                                    value={localFilterLastName}
-                                                    onChange={(e) => setLocalFilterLastName(e.target.value)}
+                                                    id="companyName"
+                                                    value={localFilterCompanyName}
+                                                    onChange={(e) => setLocalFilterCompanyName(e.target.value)}
                                                     className="h-9 flex-1"
-                                                    placeholder="Filtrar por sobrenome..."
+                                                    placeholder="Filtrar por razão social..."
                                                 />
                                             </div>
                                         </div>
@@ -399,8 +399,8 @@ function RouteComponent() {
                                         setLocalOrderBy('desc')
                                         setLocalFilterName('')
                                         setLocalFilterNameOperator('cont')
-                                        setLocalFilterLastName('')
-                                        setLocalFilterLastNameOperator('cont')
+                                        setLocalFilterCompanyName('')
+                                        setLocalFilterCompanyNameOperator('cont')
                                         setLocalFilterCpf('')
                                         setLocalFilterCpfOperator('cont')
                                         setLocalFilterEmail('')
@@ -410,8 +410,8 @@ function RouteComponent() {
                                         setOrderBy('desc')
                                         setFilterName('')
                                         setFilterNameOperator('cont')
-                                        setFilterLastName('')
-                                        setFilterLastNameOperator('cont')
+                                        setFilterCompanyName('')
+                                        setFilterCompanyNameOperator('cont')
                                         setFilterCpf('')
                                         setFilterCpfOperator('cont')
                                         setFilterEmail('')
@@ -426,8 +426,8 @@ function RouteComponent() {
                                         setOrderBy(localOrderBy)
                                         setFilterName(localFilterName)
                                         setFilterNameOperator(localFilterNameOperator)
-                                        setFilterLastName(localFilterLastName)
-                                        setFilterLastNameOperator(localFilterLastNameOperator)
+                                        setFilterCompanyName(localFilterCompanyName)
+                                        setFilterCompanyNameOperator(localFilterCompanyNameOperator)
                                         setFilterCpf(localFilterCpf)
                                         setFilterCpfOperator(localFilterCpfOperator)
                                         setFilterEmail(localFilterEmail)

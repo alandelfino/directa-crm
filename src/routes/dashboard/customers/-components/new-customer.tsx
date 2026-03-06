@@ -17,7 +17,7 @@ import { Info } from "lucide-react"
 
 const formSchema = z.object({
   nameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
-  lastNameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
+  companyName: z.string().optional(),
   personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
   cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
   rgOrIe: z.string().optional(),
@@ -34,7 +34,7 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       nameOrTradeName: "",
-      lastNameOrCompanyName: "",
+      companyName: "",
       personType: "natural",
       cpfOrCnpj: "",
       rgOrIe: "",
@@ -117,7 +117,14 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
   }
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.post(`/tenant/customers`, values),
+    mutationFn: (values: z.infer<typeof formSchema>) => {
+      // Remover companyName se for pessoa física
+      const payload = { ...values }
+      if (payload.personType === 'natural') {
+        delete payload.companyName
+      }
+      return privateInstance.post(`/tenant/customers`, payload)
+    },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
         toast.success('Cliente criado com sucesso!')
@@ -191,11 +198,11 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                     </FormItem>
                   )} />
 
-                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
+                  <FormField control={form.control} name="companyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Razão Social</FormLabel>
                       <FormControl>
-                        <Input placeholder="Digite a razão social..." {...field} disabled={isPending} />
+                        <Input placeholder="Digite a razão social..." {...field} disabled={isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -205,19 +212,9 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
                 <>
                   <FormField control={form.control} name="nameOrTradeName" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome</FormLabel>
+                      <FormLabel>Nome Completo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Digite o nome..." {...field} disabled={isPending} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-
-                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sobrenome</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Sobrenome" {...field} disabled={isPending} value={field.value || ''} />
+                        <Input placeholder="Digite o nome completo..." {...field} disabled={isPending} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

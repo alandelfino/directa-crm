@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 const formSchema = z.object({
   nameOrTradeName: z.string().min(1, { message: "Campo obrigatório" }),
-  lastNameOrCompanyName: z.string().min(1, { message: "Campo obrigatório" }),
+  companyName: z.string().optional(),
   personType: z.enum(["natural","entity"] as const, { message: "Campo obrigatório" }),
   cpfOrCnpj: z.string().min(1, { message: "Campo obrigatório" }),
   rgOrIe: z.string().optional(),
@@ -34,7 +34,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       nameOrTradeName: "",
-      lastNameOrCompanyName: "",
+      companyName: "",
       personType: "natural",
       cpfOrCnpj: "",
       rgOrIe: "",
@@ -117,7 +117,7 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
       if (!c) throw new Error('Resposta inválida ao buscar cliente')
       form.reset({
         nameOrTradeName: c.nameOrTradeName ?? "",
-        lastNameOrCompanyName: c.lastNameOrCompanyName ?? "",
+        companyName: c.companyName ?? "",
         personType: c.personType ?? "natural",
         cpfOrCnpj: c.cpfOrCnpj ?? "",
         rgOrIe: c.rgOrIe ?? "",
@@ -150,7 +150,14 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
   }, [personType])
 
   const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/customers/${customerId}`, values),
+    mutationFn: (values: z.infer<typeof formSchema>) => {
+      // Remover companyName se for pessoa física
+      const payload = { ...values }
+      if (payload.personType === 'natural') {
+        delete payload.companyName
+      }
+      return privateInstance.put(`/tenant/customers/${customerId}`, payload)
+    },
     onSuccess: (response) => {
       if (response.status === 200) {
         toast.success('Cliente atualizado com sucesso!')
@@ -229,7 +236,8 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
+
+                  <FormField control={form.control} name="companyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Razão Social</FormLabel>
                       <FormControl>
@@ -243,18 +251,9 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
                 <>
                   <FormField control={form.control} name="nameOrTradeName" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome</FormLabel>
+                      <FormLabel>Nome Completo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome" {...field} disabled={loading || isPending} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="lastNameOrCompanyName" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sobrenome</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Sobrenome" {...field} disabled={loading || isPending} value={field.value || ''} />
+                        <Input placeholder="Nome Completo" {...field} disabled={loading || isPending} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -2,16 +2,15 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Loader, Plus, Info } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { useState } from "react"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { CustomerSelectInput } from "@/components/ui/customer-select-input"
 
 const formSchema = z.object({
   customerId: z.coerce.number().min(1, { message: "Cliente é obrigatório" }),
@@ -38,17 +37,6 @@ export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: num
     defaultValues: {
       customerId: 0,
     },
-  })
-
-  // Fetch Customers
-  const { data: customers, isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['customers-list-select'],
-    queryFn: async () => {
-        const response = await privateInstance.get('/tenant/customers?limit=100')
-        return response.data.items || []
-    },
-    enabled: open,
-    staleTime: 1000 * 60 * 5, 
   })
 
   const { isPending, mutateAsync } = useMutation({
@@ -105,24 +93,13 @@ export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: num
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormLabel className="text-xs">Cliente</FormLabel>
-                        {isLoadingCustomers ? (
-                            <Skeleton className="h-9 w-full" />
-                        ) : (
-                            <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                                <FormControl>
-                                    <SelectTrigger className="h-9 w-full">
-                                        <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {customers?.map((customer: any) => (
-                                        <SelectItem key={customer.id} value={String(customer.id)}>
-                                            {customer.nameOrTradeName || customer.lastNameOrCompanyName || `Cliente #${customer.id}`}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
+                        <FormControl>
+                            <CustomerSelectInput 
+                                value={field.value ? Number(field.value) : undefined}
+                                onChange={(id) => field.onChange(id)}
+                                disabled={isPending}
+                            />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

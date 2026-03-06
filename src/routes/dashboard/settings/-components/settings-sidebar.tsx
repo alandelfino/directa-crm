@@ -10,6 +10,7 @@ export function SettingsSidebar() {
     { label: 'Tabelas de Preço', href: '/dashboard/settings/price-tables' },
     { label: 'Tamanhos de mídias', href: '/dashboard/settings/media-sizes' },
     { label: 'Lojas', href: '/dashboard/settings/stores' },
+    { label: 'Transportadoras', href: '/dashboard/settings/carrier-integrations' },
     { separator: true },
     { label: 'Perfis', href: '/dashboard/settings/profiles' },
     { label: 'Equipes', href: '/dashboard/settings/teams' },

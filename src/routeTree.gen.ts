@@ -41,6 +41,7 @@ import { Route as DashboardSettingsProfilesIndexRouteImport } from './routes/das
 import { Route as DashboardSettingsPriceTablesIndexRouteImport } from './routes/dashboard/settings/price-tables/index'
 import { Route as DashboardSettingsMediaSizesIndexRouteImport } from './routes/dashboard/settings/media-sizes/index'
 import { Route as DashboardSettingsIntegrationsIndexRouteImport } from './routes/dashboard/settings/integrations/index'
+import { Route as DashboardSettingsCarrierIntegrationsIndexRouteImport } from './routes/dashboard/settings/carrier-integrations/index'
 import { Route as DashboardSettingsBillingsIndexRouteImport } from './routes/dashboard/settings/billings/index'
 import { Route as DashboardSettingsAccountIndexRouteImport } from './routes/dashboard/settings/account/index'
 
@@ -216,6 +217,12 @@ const DashboardSettingsIntegrationsIndexRoute =
     path: '/integrations/',
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
+const DashboardSettingsCarrierIntegrationsIndexRoute =
+  DashboardSettingsCarrierIntegrationsIndexRouteImport.update({
+    id: '/carrier-integrations/',
+    path: '/carrier-integrations/',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 const DashboardSettingsBillingsIndexRoute =
   DashboardSettingsBillingsIndexRouteImport.update({
     id: '/billings/',
@@ -256,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/warranties': typeof DashboardWarrantiesIndexRoute
   '/dashboard/settings/account': typeof DashboardSettingsAccountIndexRoute
   '/dashboard/settings/billings': typeof DashboardSettingsBillingsIndexRoute
+  '/dashboard/settings/carrier-integrations': typeof DashboardSettingsCarrierIntegrationsIndexRoute
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/price-tables': typeof DashboardSettingsPriceTablesIndexRoute
@@ -290,6 +298,7 @@ export interface FileRoutesByTo {
   '/dashboard/warranties': typeof DashboardWarrantiesIndexRoute
   '/dashboard/settings/account': typeof DashboardSettingsAccountIndexRoute
   '/dashboard/settings/billings': typeof DashboardSettingsBillingsIndexRoute
+  '/dashboard/settings/carrier-integrations': typeof DashboardSettingsCarrierIntegrationsIndexRoute
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/price-tables': typeof DashboardSettingsPriceTablesIndexRoute
@@ -327,6 +336,7 @@ export interface FileRoutesById {
   '/dashboard/warranties/': typeof DashboardWarrantiesIndexRoute
   '/dashboard/settings/account/': typeof DashboardSettingsAccountIndexRoute
   '/dashboard/settings/billings/': typeof DashboardSettingsBillingsIndexRoute
+  '/dashboard/settings/carrier-integrations/': typeof DashboardSettingsCarrierIntegrationsIndexRoute
   '/dashboard/settings/integrations/': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes/': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/price-tables/': typeof DashboardSettingsPriceTablesIndexRoute
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
     | '/dashboard/warranties'
     | '/dashboard/settings/account'
     | '/dashboard/settings/billings'
+    | '/dashboard/settings/carrier-integrations'
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/price-tables'
@@ -399,6 +410,7 @@ export interface FileRouteTypes {
     | '/dashboard/warranties'
     | '/dashboard/settings/account'
     | '/dashboard/settings/billings'
+    | '/dashboard/settings/carrier-integrations'
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/price-tables'
@@ -435,6 +447,7 @@ export interface FileRouteTypes {
     | '/dashboard/warranties/'
     | '/dashboard/settings/account/'
     | '/dashboard/settings/billings/'
+    | '/dashboard/settings/carrier-integrations/'
     | '/dashboard/settings/integrations/'
     | '/dashboard/settings/media-sizes/'
     | '/dashboard/settings/price-tables/'
@@ -682,6 +695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsIntegrationsIndexRouteImport
       parentRoute: typeof DashboardSettingsRouteRoute
     }
+    '/dashboard/settings/carrier-integrations/': {
+      id: '/dashboard/settings/carrier-integrations/'
+      path: '/carrier-integrations'
+      fullPath: '/dashboard/settings/carrier-integrations'
+      preLoaderRoute: typeof DashboardSettingsCarrierIntegrationsIndexRouteImport
+      parentRoute: typeof DashboardSettingsRouteRoute
+    }
     '/dashboard/settings/billings/': {
       id: '/dashboard/settings/billings/'
       path: '/billings'
@@ -703,6 +723,7 @@ interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsIndexRoute: typeof DashboardSettingsIndexRoute
   DashboardSettingsAccountIndexRoute: typeof DashboardSettingsAccountIndexRoute
   DashboardSettingsBillingsIndexRoute: typeof DashboardSettingsBillingsIndexRoute
+  DashboardSettingsCarrierIntegrationsIndexRoute: typeof DashboardSettingsCarrierIntegrationsIndexRoute
   DashboardSettingsIntegrationsIndexRoute: typeof DashboardSettingsIntegrationsIndexRoute
   DashboardSettingsMediaSizesIndexRoute: typeof DashboardSettingsMediaSizesIndexRoute
   DashboardSettingsPriceTablesIndexRoute: typeof DashboardSettingsPriceTablesIndexRoute
@@ -718,6 +739,8 @@ const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
     DashboardSettingsIndexRoute: DashboardSettingsIndexRoute,
     DashboardSettingsAccountIndexRoute: DashboardSettingsAccountIndexRoute,
     DashboardSettingsBillingsIndexRoute: DashboardSettingsBillingsIndexRoute,
+    DashboardSettingsCarrierIntegrationsIndexRoute:
+      DashboardSettingsCarrierIntegrationsIndexRoute,
     DashboardSettingsIntegrationsIndexRoute:
       DashboardSettingsIntegrationsIndexRoute,
     DashboardSettingsMediaSizesIndexRoute:

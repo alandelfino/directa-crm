@@ -1,16 +1,27 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RefreshCw, ShoppingCart, Package } from 'lucide-react'
+import { RefreshCw, ShoppingCart, Package, Trash } from 'lucide-react'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewCartSheet } from './-components/new-cart'
 import { EditCartSheet } from './-components/edit-cart'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/dashboard/carts/')({
   component: RouteComponent,
@@ -41,6 +52,8 @@ function RouteComponent() {
   const [selectedCarts, setSelectedCarts] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [cartToDelete, setCartToDelete] = useState<number | null>(null)
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     refetchOnWindowFocus: false,
@@ -57,6 +70,28 @@ function RouteComponent() {
   })
 
   const [carts, setCarts] = useState<Cart[]>([])
+
+  const { mutateAsync: deleteCart, isPending: isDeleting } = useMutation({
+    mutationFn: async (id: number) => {
+      await privateInstance.delete(`/tenant/carts/${id}`)
+    },
+    onSuccess: () => {
+      toast.success('Carrinho excluído com sucesso')
+      refetch()
+      setSelectedCarts([])
+      setIsDeleteDialogOpen(false)
+      setCartToDelete(null)
+    },
+    onError: () => {
+      toast.error('Erro ao excluir carrinho')
+    }
+  })
+
+  const handleDelete = async () => {
+    if (cartToDelete) {
+      await deleteCart(cartToDelete)
+    }
+  }
 
   const toggleSelect = (id: number) => {
     if (selectedCarts.includes(id)) {
@@ -133,8 +168,8 @@ function RouteComponent() {
       id: 'createdAt',
       header: 'Criado em',
       cell: (c) => new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      className: 'w-[180px]'
-    },
+      className: 'w-[180px] border-r'
+    }
   ]
 
   useEffect(() => {
@@ -154,15 +189,21 @@ function RouteComponent() {
             <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
           </Button>
           <div className='flex items-center gap-2'>
-            {selectedCarts.length === 1 ? (
-              <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)}>
-                <Package className="size-[0.85rem]" /> Produtos
-              </Button>
-            ) : (
-              <Button variant='outline' size='sm' disabled>
-                <Package className="size-[0.85rem]" /> Produtos
-              </Button>
-            )}
+            <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)} disabled={selectedCarts.length !== 1}>
+              <Package className="size-[0.85rem]" /> Produtos
+            </Button>
+            <Button 
+              variant='outline' 
+              size='sm' 
+              className={`text-destructive hover:text-destructive ${selectedCarts.length !== 1 ? 'opacity-50 pointer-events-none' : ''}`}
+              onClick={() => {
+                setCartToDelete(selectedCarts[0])
+                setIsDeleteDialogOpen(true)
+              }}
+              disabled={selectedCarts.length !== 1}
+            >
+              <Trash className="size-[0.85rem]" /> Excluir
+            </Button>
           </div>
           <NewCartSheet 
             onCreated={() => {
@@ -179,7 +220,7 @@ function RouteComponent() {
           <DataTable
             columns={columns}
             data={carts}
-            loading={isLoading}
+            loading={isLoading || isRefetching}
             page={currentPage}
             totalItems={totalItems}
             perPage={perPage}
@@ -217,6 +258,30 @@ function RouteComponent() {
           }} 
         />
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Carrinho</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este carrinho? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault()
+                handleDelete()
+              }}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

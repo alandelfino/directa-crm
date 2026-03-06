@@ -1,21 +1,40 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { WifiOff, RefreshCw, ServerCrash } from "lucide-react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
+import { privateInstance } from "@/lib/auth"
 
 export const Route = createFileRoute('/server-error')({
   component: ServerErrorPage,
 })
 
 function ServerErrorPage() {
-  const navigate = useNavigate()
+  const [isChecking, setIsChecking] = useState(false)
+
+  const checkConnection = async () => {
+    setIsChecking(true)
+    try {
+      // Tenta fazer uma requisição simples para verificar conectividade
+      await privateInstance.get('/tenant/check-token')
+      // Se tiver sucesso, volta para o dashboard
+      window.location.href = '/'
+    } catch (error) {
+      // Se falhar, continua na página de erro
+      setIsChecking(false)
+    }
+  }
+
+  useEffect(() => {
+    checkConnection()
+  }, [])
 
   const handleRetry = () => {
     // Tenta voltar para a página anterior ou para o dashboard
     if (window.history.length > 1) {
       window.history.back()
     } else {
-      window.location.href = '/'
+      window.location.href = '/sign-in'
     }
   }
 
@@ -42,10 +61,15 @@ function ServerErrorPage() {
             <Button 
               className="w-full gap-2 font-semibold" 
               size="lg" 
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                checkConnection()
+                // Fallback para reload completo se a verificação via API falhar mas a internet tiver voltado
+                setTimeout(() => window.location.reload(), 1000)
+              }}
+              disabled={isChecking}
             >
-              <RefreshCw className="h-4 w-4" />
-              Tentar Novamente
+              <RefreshCw className={`h-4 w-4 ${isChecking ? 'animate-spin' : ''}`} />
+              {isChecking ? 'Verificando...' : 'Tentar Novamente'}
             </Button>
             <Button 
               variant="ghost" 

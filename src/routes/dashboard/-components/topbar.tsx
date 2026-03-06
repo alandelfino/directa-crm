@@ -2,12 +2,12 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TopbarUser } from "./topbar-user";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ShoppingCart } from "lucide-react";
+import { AlertCircle, ShoppingCart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/auth";
+import { auth, privateInstance } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
 
 export type BreadcrumbItem = {
     label: string
@@ -15,89 +15,52 @@ export type BreadcrumbItem = {
     isLast: boolean
 }
 
-type CartSummary = {
-    id: string
-    customerName: string
-    itemsCount: number
-    totalFormatted: string
+type CartsMini = {
+    totalItems: number
+    totalValue: number
 }
 
 function TopbarCarts() {
-    const carts: CartSummary[] = [
-        { id: "1", customerName: "Loja Central LTDA", itemsCount: 5, totalFormatted: "R$ 1.250,00" },
-        { id: "2", customerName: "Mercado São João", itemsCount: 3, totalFormatted: "R$ 780,90" },
-        { id: "3", customerName: "Distribuidora Nova Era", itemsCount: 12, totalFormatted: "R$ 3.540,00" },
-    ]
-
-    const totalCarts = carts.length
+    const { data: miniCart, isLoading } = useQuery({
+        queryKey: ['carts-mini'],
+        queryFn: async () => {
+            const response = await privateInstance.get('/tenant/carts/mini')
+            return response.data as CartsMini
+        }
+    })
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant="ghost"
-                    className="h-11 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center gap-2 px-3 shadow-[0_0_0_1px_rgba(15,23,42,0.02)]"
-                >
-                    <div className="flex items-center justify-center rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 h-7 w-7">
-                        <ShoppingCart className="size-4 text-neutral-700 dark:text-neutral-100" />
-                    </div>
-                    <div className="hidden md:flex flex-col text-left">
-                        <span className="text-[11px] uppercase tracking-wide text-neutral-800 dark:text-neutral-400">
-                            Meus carrinhos
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                            2 ativos: R$ 5.653,00
-                        </span>
-                    </div>
-                    <div className="md:hidden flex flex-col text-left">
-                        <span className="text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                            Meus carrinhos
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                            2 ativos: R$ 5.653,00
-                        </span>
-                    </div>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-                className="w-80 rounded-xl p-1.5"
-                align="end"
-                sideOffset={8}
-            >
-                <DropdownMenuLabel className="flex items-center justify-between px-2 pb-1 pt-1.5">
-                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-100">
-                        Meus carrinhos
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                        {totalCarts}
-                    </span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {carts.map((cart) => (
-                    <DropdownMenuItem
-                        key={cart.id}
-                        className="flex flex-col items-start gap-1.5 py-2.5 px-2"
-                    >
-                        <div className="flex w-full items-center justify-between gap-2">
-                            <span className="text-sm font-medium text-neutral-900 dark:text-neutral-50 truncate max-w-[220px]">
-                                {cart.customerName}
-                            </span>
-                            <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
-                                {cart.totalFormatted}
-                            </span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                            {cart.itemsCount} item(s)
-                        </span>
-                    </DropdownMenuItem>
-                ))}
-                {carts.length === 0 && (
-                    <DropdownMenuItem disabled className="text-xs text-muted-foreground py-3">
-                        Nenhum carrinho criado
-                    </DropdownMenuItem>
+        <div
+            className="h-11 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center gap-2 px-3 shadow-[0_0_0_1px_rgba(15,23,42,0.02)] cursor-default min-w-[180px]"
+        >
+            <div className="flex items-center justify-center rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 h-7 w-7 shrink-0">
+                {isLoading ? (
+                    <Loader2 className="size-3.5 text-neutral-400 animate-spin" />
+                ) : (
+                    <ShoppingCart className="size-4 text-neutral-700 dark:text-neutral-100" />
                 )}
-            </DropdownMenuContent>
-        </DropdownMenu>
+            </div>
+            <div className="hidden md:flex flex-col text-left">
+                <span className="text-[11px] uppercase tracking-wide text-neutral-800 dark:text-neutral-400">
+                    Meus carrinhos
+                </span>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                    {isLoading ? (
+                        <span className="animate-pulse">Carregando...</span>
+                    ) : (
+                        `${miniCart?.totalItems || 0} itens: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((miniCart?.totalValue || 0) / 100)}`
+                    )}
+                </span>
+            </div>
+            <div className="md:hidden flex flex-col text-left">
+                <span className="text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    Meus carrinhos
+                </span>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                   {isLoading ? '...' : `${miniCart?.totalItems || 0} itens`}
+                </span>
+            </div>
+        </div>
     )
 }
 

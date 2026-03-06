@@ -1,7 +1,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,7 @@ type Cart = {
 }
 
 function RouteComponent() {
+  const queryClient = useQueryClient()
   const [currentPage, setCurrentPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [selectedCarts, setSelectedCarts] = useState<number[]>([])
@@ -74,10 +75,10 @@ function RouteComponent() {
       ),
       cell: (cart) => (
         <div className='flex items-center justify-center'>
-            <Checkbox
-                checked={selectedCarts.includes(cart.id)}
-                onCheckedChange={() => toggleSelect(cart.id)}
-            />
+          <Checkbox
+            checked={selectedCarts.includes(cart.id)}
+            onCheckedChange={() => toggleSelect(cart.id)}
+          />
         </div>
       ),
       headerClassName: 'w-[60px] border-r',
@@ -140,67 +141,81 @@ function RouteComponent() {
     if (!data) return
     setCarts(data.items || [])
     setTotalItems(data.total || 0)
-  }, [data])
+    queryClient.invalidateQueries({ queryKey: ['carts-mini'] })
+  }, [data, queryClient])
 
   return (
     <div className='flex flex-col w-full h-full'>
       <Topbar title="Carrinhos" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Carrinhos', href: '/dashboard/carts', isLast: true }]} />
 
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='border-b flex w-full items-center p-2 gap-4'>
-            <div className='flex items-center gap-2 flex-1'>
-                {selectedCarts.length === 1 ? (
-                    <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)}>
-                        <Package className="size-[0.85rem]" /> Produtos
-                    </Button>
-                ) : (
-                    <Button variant='outline' size='sm' disabled>
-                        <Package className="size-[0.85rem]" /> Produtos
-                    </Button>
-                )}
-            </div>
-            <Button variant='outline' size='sm' onClick={() => refetch()} disabled={isLoading || isRefetching}>
-                <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
-                Atualizar
-            </Button>
-            <NewCartSheet onCreated={() => refetch()} />
+        <div className='flex w-full items-center p-2 gap-4 justify-end'>
+          <Button variant='ghost' size='sm' onClick={() => refetch()} disabled={isLoading || isRefetching}>
+            <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
+          </Button>
+          <div className='flex items-center gap-2'>
+            {selectedCarts.length === 1 ? (
+              <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)}>
+                <Package className="size-[0.85rem]" /> Produtos
+              </Button>
+            ) : (
+              <Button variant='outline' size='sm' disabled>
+                <Package className="size-[0.85rem]" /> Produtos
+              </Button>
+            )}
+          </div>
+          <NewCartSheet 
+            onCreated={() => {
+              refetch()
+              setIsEditSheetOpen(false) 
+            }} 
+            onOpenChange={(open) => {
+               if (!open) refetch()
+            }}
+          />
         </div>
 
         <div className='flex-1 overflow-hidden'>
-             <DataTable
-                columns={columns}
-                data={carts}
-                loading={isLoading}
-                page={currentPage}
-                totalItems={totalItems}
-                perPage={perPage}
-                onChange={(vals) => {
-                    if (vals.page) setCurrentPage(vals.page)
-                    if (vals.perPage) setPerPage(vals.perPage)
-                }}
-                onRowClick={(row) => toggleSelect(row.id)}
-                emptySlot={
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia><ShoppingCart className="size-10" /></EmptyMedia>
-                            <EmptyTitle>Nenhum carrinho encontrado</EmptyTitle>
-                            <EmptyDescription>Crie um novo carrinho para começar.</EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <NewCartSheet onCreated={(id) => {
-                                refetch()
-                                setSelectedCarts([id])
-                                setIsEditSheetOpen(true)
-                            }} />
-                        </EmptyContent>
-                    </Empty>
-                }
-            />
+          <DataTable
+            columns={columns}
+            data={carts}
+            loading={isLoading}
+            page={currentPage}
+            totalItems={totalItems}
+            perPage={perPage}
+            onChange={(vals) => {
+              if (vals.page) setCurrentPage(vals.page)
+              if (vals.perPage) setPerPage(vals.perPage)
+            }}
+            onRowClick={(row) => toggleSelect(row.id)}
+            emptySlot={
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia><ShoppingCart className="size-10" /></EmptyMedia>
+                  <EmptyTitle>Nenhum carrinho encontrado</EmptyTitle>
+                  <EmptyDescription>Crie um novo carrinho para começar.</EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <NewCartSheet onCreated={(id) => {
+                    refetch()
+                    setSelectedCarts([id])
+                    setIsEditSheetOpen(true)
+                  }} />
+                </EmptyContent>
+              </Empty>
+            }
+          />
         </div>
       </div>
 
       {selectedCarts.length === 1 && isEditSheetOpen && (
-          <EditCartSheet cartId={selectedCarts[0]} onOpenChange={(open) => setIsEditSheetOpen(open)} />
+        <EditCartSheet 
+          cartId={selectedCarts[0]} 
+          onOpenChange={(open) => {
+            setIsEditSheetOpen(open)
+            if (!open) refetch()
+          }} 
+        />
       )}
     </div>
   )

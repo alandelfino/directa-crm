@@ -17,10 +17,22 @@ const formSchema = z.object({
   customerId: z.coerce.number().min(1, { message: "Cliente é obrigatório" }),
 })
 
-export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }) {
+export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: number) => void, onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+    onOpenChange?.(newOpen)
+    if (!newOpen && onCreated) {
+        // Se fechar sem criar, talvez queiramos dar refresh? 
+        // Mas o onCreated é chamado apenas no sucesso da criação.
+        // O refetch da lista pai já é chamado no onCreated.
+        // Se quisermos refetch ao fechar mesmo sem criar (ex: cancelou), precisaríamos de outra prop.
+        // Por enquanto, mantemos o comportamento atual focado em onCreated.
+    }
+  }
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
@@ -51,6 +63,7 @@ export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }
       form.reset()
       setOpen(false)
       queryClient.invalidateQueries({ queryKey: ['carts'] })
+      queryClient.invalidateQueries({ queryKey: ['carts-mini'] })
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
@@ -65,7 +78,7 @@ export function NewCartSheet({ onCreated }: { onCreated?: (id: number) => void }
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button size={'sm'}>
           <Plus className="size-[0.85rem]" /> Novo Carrinho

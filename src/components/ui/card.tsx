@@ -34,6 +34,16 @@ function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
   )
 }
 
+function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <p
+      data-slot="card-description"
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div data-slot="card-content" className={cn("p-6 pt-0", className)} {...props} />
@@ -44,4 +54,4 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div data-slot="card-footer" className={cn("flex items-center p-6 pt-0", className)} {...props} />
   )}
 
-export { Card, CardHeader, CardTitle, CardContent, CardFooter }
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }

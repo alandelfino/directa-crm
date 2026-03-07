@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
-import { MapPin, RefreshCw, Edit, Trash } from 'lucide-react'
+import { MapPin, RefreshCw, Edit, Trash, Star } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { privateInstance } from '@/lib/auth'
 import { CustomerAddressCreateDialog } from './customer-address-create-dialog'
 import { CustomerAddressEditDialog } from './customer-address-edit-dialog'
 import { CustomerAddressDeleteDialog } from './customer-address-delete-dialog'
+import { CustomerAddressSetDefaultDialog } from './customer-address-set-default-dialog'
 
 type AddressItem = {
   id: number
@@ -21,6 +22,7 @@ type AddressItem = {
   zipCode: string
   country: string
   complement?: string
+  isDefault: boolean
   createdAt: string
   updatedAt: string
 }
@@ -78,6 +80,18 @@ export function CustomerAddressSheet({ customerId }: { customerId: number }) {
       width: '150px',
       headerClassName: 'min-w-[150px] border-r',
       className: 'min-w-[150px] !px-4',
+    },
+    {
+      id: 'isDefault',
+      header: 'Padrão',
+      cell: (i) => (
+        <div className='flex justify-center'>
+            {i.isDefault && <Star className="size-4 fill-yellow-400 text-yellow-400" />}
+        </div>
+      ),
+      width: '60px',
+      headerClassName: 'w-[60px] min-w-[60px] border-r',
+      className: 'w-[60px] min-w-[60px] !px-4',
     },
     {
       id: 'street',
@@ -142,6 +156,11 @@ export function CustomerAddressSheet({ customerId }: { customerId: number }) {
             
             {selectedItem ? (
               <>
+                <CustomerAddressSetDefaultDialog 
+                    customerId={customerId} 
+                    addressId={selectedItem.id} 
+                    onUpdated={() => { refetch(); setSelectedId(null); }} 
+                />
                 <CustomerAddressEditDialog 
                     customerId={customerId} 
                     address={selectedItem} 
@@ -155,6 +174,7 @@ export function CustomerAddressSheet({ customerId }: { customerId: number }) {
               </>
             ) : (
               <>
+                <Button size={'sm'} variant={'outline'} disabled> <Star className="size-[0.85rem] mr-2" /> Definir como padrão</Button>
                 <Button size={'sm'} variant={'outline'} disabled> <Edit className="size-[0.85rem]" /> Editar</Button>
                 <Button size={'sm'} variant={'outline'} disabled> <Trash className="size-[0.85rem]" /> Excluir</Button>
               </>

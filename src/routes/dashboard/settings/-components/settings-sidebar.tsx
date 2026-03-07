@@ -23,12 +23,12 @@ export function SettingsSidebar() {
   return (
     <aside className='w-42 pr-2 shrink-0  p-4'>
       <nav className='flex flex-col gap-1'>
-        {items.map((item) => {
+        {items.map((item, index) => {
           const active = router.location.pathname.startsWith(item?.href ?? '')
           return (
-            item.separator ? <div className='h-px my-2 w-full' /> : (
-              <Button asChild variant={'link'} className='flex justify-start font-normal text-foreground-muted'>
-                <Link key={item.href} to={item.href} className={`block rounded-md px-3 py-2 text-sm transition-colors ${active ? 'text-primary underline underline-offset-4' : 'text-muted-foreground underline-offset-4 hover:underline hover:text-primary'}`}>{item.label}</Link>
+            item.separator ? <div key={`sep-${index}`} className='h-px my-2 w-full' /> : (
+              <Button key={item.href} asChild variant={'link'} className='flex justify-start font-normal text-foreground-muted'>
+                <Link to={item.href} className={`block rounded-md px-3 py-2 text-sm transition-colors ${active ? 'text-primary underline underline-offset-4' : 'text-muted-foreground underline-offset-4 hover:underline hover:text-primary'}`}>{item.label}</Link>
               </Button>
             )
           )

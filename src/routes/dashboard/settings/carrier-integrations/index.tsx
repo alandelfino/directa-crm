@@ -5,11 +5,12 @@ import { privateInstance } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RefreshCw, Edit, Trash, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Funnel } from 'lucide-react'
+import { RefreshCw, Edit, Trash, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Funnel, Settings } from 'lucide-react'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewCarrierIntegrationSheet } from './-components/new-carrier-integration'
 import { EditCarrierIntegrationSheet } from './-components/edit-carrier-integration'
 import { DeleteCarrierIntegrationDialog } from './-components/delete-carrier-integration'
+import { CarrierIntegrationServicesSheet } from './-components/carrier-integration-services'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -37,10 +38,10 @@ function RouteComponent() {
   const [perPage, setPerPage] = useState(20)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   
   const [editId, setEditId] = useState<number | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [servicesId, setServicesId] = useState<number | null>(null)
 
   // Filtros e Ordenação (Estado Aplicado)
   const [sortBy, setSortBy] = useState('createdAt')
@@ -80,7 +81,6 @@ function RouteComponent() {
   useEffect(() => {
     if (data) {
       setTotalItems(data.total || 0)
-      setTotalPages(data.totalPages || 1)
     }
   }, [data])
 
@@ -299,6 +299,15 @@ function RouteComponent() {
             >
               <Trash className="size-[0.85rem] mr-2" /> Excluir
             </Button>
+            
+            <Button 
+                variant='outline' 
+                size='sm' 
+                onClick={() => setServicesId(selectedItems[0])} 
+                disabled={selectedItems.length !== 1}
+            >
+              <Settings className="size-[0.85rem] mr-2" /> Serviços
+            </Button>
 
             <Button 
                 variant='outline' 
@@ -354,6 +363,13 @@ function RouteComponent() {
         <DeleteCarrierIntegrationDialog 
             id={deleteId} 
             onOpenChange={(open) => !open && setDeleteId(null)} 
+        />
+      )}
+
+      {servicesId && (
+        <CarrierIntegrationServicesSheet 
+            carrierIntegrationId={servicesId}
+            onOpenChange={(open) => !open && setServicesId(null)}
         />
       )}
     </div>

@@ -19,6 +19,7 @@ const formSchema = z.object({
   minWeight: z.string().min(1, 'Peso mínimo é obrigatório'),
   maxWeight: z.string().min(1, 'Peso máximo é obrigatório'),
   price: z.string().min(1, 'Preço é obrigatório'),
+  deadline: z.coerce.number().min(0, 'Prazo é obrigatório'),
 })
 
 interface NewCarrierIntegrationPostalCodeRangeSheetProps {
@@ -40,6 +41,7 @@ export function NewCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationId
       minWeight: '',
       maxWeight: '',
       price: '',
+      deadline: 0,
     },
   })
 
@@ -64,7 +66,8 @@ export function NewCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationId
         maxPostalCode,
         minWeight,
         maxWeight,
-        price
+        price,
+        deadline: Number(values.deadline)
       })
     },
     onSuccess: () => {
@@ -211,31 +214,53 @@ export function NewCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationId
                     />
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Preço (R$)</FormLabel>
-                        <FormControl>
-                            <NumericFormat
-                                customInput={Input}
-                                placeholder="0,00"
-                                decimalSeparator=","
-                                thousandSeparator="."
-                                decimalScale={2}
-                                fixedDecimalScale
-                                prefix="R$ "
-                                value={field.value}
-                                onValueChange={(values) => {
-                                    field.onChange(values.value)
-                                }}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Preço (R$)</FormLabel>
+                            <FormControl>
+                                <NumericFormat
+                                    customInput={Input}
+                                    placeholder="0,00"
+                                    decimalSeparator=","
+                                    thousandSeparator="."
+                                    decimalScale={2}
+                                    fixedDecimalScale
+                                    prefix="R$ "
+                                    value={field.value}
+                                    onValueChange={(values) => {
+                                        field.onChange(values.value)
+                                    }}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="deadline"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Prazo de Entrega (dias)</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="number" 
+                                    placeholder="Ex: 5" 
+                                    {...field}
+                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                    value={field.value || ''} 
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
             </div>
 
             <div className='mt-auto border-t p-4'>

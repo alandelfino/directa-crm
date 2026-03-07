@@ -20,6 +20,7 @@ const formSchema = z.object({
   minWeight: z.string().min(1, 'Peso mínimo é obrigatório'),
   maxWeight: z.string().min(1, 'Peso máximo é obrigatório'),
   price: z.string().min(1, 'Preço é obrigatório'),
+  deadline: z.coerce.number().min(0, 'Prazo é obrigatório'),
 })
 
 interface EditCarrierIntegrationPostalCodeRangeSheetProps {
@@ -94,6 +95,7 @@ export function EditCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationI
       minWeight: '',
       maxWeight: '',
       price: '',
+      deadline: 0,
     },
   })
 
@@ -113,6 +115,7 @@ export function EditCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationI
                     minWeight: String(range.minWeight / 1000),
                     maxWeight: String(range.maxWeight / 1000),
                     price: String(range.price / 100),
+                    deadline: range.deadline,
                 })
             }
         } catch (error) {
@@ -146,7 +149,8 @@ export function EditCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationI
         maxPostalCode,
         minWeight,
         maxWeight,
-        price
+        price,
+        deadline: Number(values.deadline)
       })
     },
     onSuccess: () => {
@@ -290,6 +294,7 @@ export function EditCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationI
                         />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="price"
@@ -315,6 +320,27 @@ export function EditCarrierIntegrationPostalCodeRangeSheet({ carrierIntegrationI
                         </FormItem>
                         )}
                     />
+
+                    <FormField
+                        control={form.control}
+                        name="deadline"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Prazo de Entrega (dias)</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="number" 
+                                    placeholder="Ex: 5" 
+                                    {...field}
+                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                    value={field.value || ''} 
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
                 </div>
 
                 <div className='mt-auto border-t p-4'>

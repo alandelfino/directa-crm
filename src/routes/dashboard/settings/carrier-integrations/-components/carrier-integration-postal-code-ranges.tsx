@@ -20,6 +20,7 @@ type CarrierIntegrationPostalCodeRange = {
   minWeight: number
   maxWeight: number
   price: number
+  deadline: number
   createdAt: string
   updatedAt: string
 }
@@ -115,6 +116,17 @@ export function CarrierIntegrationPostalCodeRangesSheet({ carrierIntegrationId, 
         ),
         headerClassName: 'min-w-[120px] border-r',
         className: 'min-w-[120px] !px-4',
+    },
+    {
+        id: 'deadline',
+        header: 'Prazo',
+        cell: (i) => (
+          <span className='block truncate min-w-0 text-muted-foreground text-center'>
+            {i.deadline} {i.deadline === 1 ? 'dia' : 'dias'}
+          </span>
+        ),
+        headerClassName: 'min-w-[80px] border-r text-center',
+        className: 'min-w-[80px] !px-4 text-center',
     },
     {
         id: 'price',

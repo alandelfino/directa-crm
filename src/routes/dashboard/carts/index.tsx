@@ -190,7 +190,7 @@ function RouteComponent() {
           </Button>
           <div className='flex items-center gap-2'>
             <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)} disabled={selectedCarts.length !== 1}>
-              <Package className="size-[0.85rem]" /> Produtos
+              <Package className="size-[0.85rem]" /> Editar
             </Button>
             <Button 
               variant='outline' 

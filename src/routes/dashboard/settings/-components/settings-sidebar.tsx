@@ -10,18 +10,19 @@ export function SettingsSidebar() {
     { label: 'Tabelas de Preço', href: '/dashboard/settings/price-tables' },
     { label: 'Tamanhos de mídias', href: '/dashboard/settings/media-sizes' },
     { label: 'Lojas', href: '/dashboard/settings/stores' },
-    { label: 'Transportadoras', href: '/dashboard/settings/carrier-integrations' },
     { separator: true },
     { label: 'Perfis', href: '/dashboard/settings/profiles' },
     { label: 'Equipes', href: '/dashboard/settings/teams' },
     { label: 'Usuários', href: '/dashboard/settings/users' },
-
+    
     { separator: true },
     { label: 'Integrações', href: '/dashboard/settings/integrations' },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks' },
+    { label: 'Integrações de Transportadoras', href: '/dashboard/settings/carrier-integrations' },
+    { label: 'Integrações de Pagamento', href: '/dashboard/settings/payment-integrations' },
   ]
   return (
-    <aside className='w-42 pr-2 shrink-0  p-4'>
+    <aside className='min-w-42 w-fit pr-2 shrink-0  p-4'>
       <nav className='flex flex-col gap-1'>
         {items.map((item, index) => {
           const active = router.location.pathname.startsWith(item?.href ?? '')
@@ -37,5 +38,4 @@ export function SettingsSidebar() {
     </aside>
   )
 }
-
 

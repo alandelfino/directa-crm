@@ -41,10 +41,14 @@ type ProductGroup = {
 }
 
 type ShippingQuote = {
+  id?: number
+  cartId?: number
+  serviceId?: number
   carrierName: string
   serviceName: string
   price: number
   deadline: number
+  isSelected?: boolean
 }
 
 type Cart = {
@@ -68,7 +72,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const [open, setOpen] = useState(true)
   const [addProductOpen, setAddProductOpen] = useState(false)
   const [openProducts, setOpenProducts] = useState<string[]>([])
-  const [selectedShippingQuoteIndex, setSelectedShippingQuoteIndex] = useState<number | null>(null)
+  const [selectedShippingQuoteId, setSelectedShippingQuoteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
   const normalizeCart = (raw: any): Cart => {
@@ -127,10 +131,22 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       }
     })
 
+    const shippingQuote: ShippingQuote[] = (Array.isArray(raw?.shippingQuote) ? raw.shippingQuote : []).map((q: any) => ({
+      id: typeof q?.id === 'number' ? q.id : (typeof q?.shippingQuoteId === 'number' ? q.shippingQuoteId : undefined),
+      cartId: typeof q?.cartId === 'number' ? q.cartId : undefined,
+      serviceId: typeof q?.serviceId === 'number' ? q.serviceId : undefined,
+      carrierName: String(q?.carrierName ?? ''),
+      serviceName: String(q?.serviceName ?? ''),
+      price: Number(q?.price ?? 0),
+      deadline: Number(q?.deadline ?? 0),
+      isSelected: Boolean(q?.isSelected),
+    }))
+
     return {
       ...raw,
       id: Number(raw?.id ?? cartId),
       products,
+      shippingQuote,
     }
   }
 
@@ -145,12 +161,68 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   })
 
   useEffect(() => {
-    if (selectedShippingQuoteIndex === null) return
-    const len = cart?.shippingQuote?.length || 0
-    if (selectedShippingQuoteIndex < 0 || selectedShippingQuoteIndex >= len) {
-      setSelectedShippingQuoteIndex(null)
+    const quotes = cart?.shippingQuote || []
+    const serverSelected = quotes.find((q) => q.isSelected)
+    const serverSelectedId = typeof serverSelected?.id === 'number' ? serverSelected.id : null
+
+    if (serverSelectedId !== null) {
+      if (selectedShippingQuoteId !== serverSelectedId) setSelectedShippingQuoteId(serverSelectedId)
+      return
     }
-  }, [cart?.shippingQuote?.length, selectedShippingQuoteIndex])
+
+    if (selectedShippingQuoteId !== null) {
+      const exists = quotes.some((q) => typeof q.id === 'number' && q.id === selectedShippingQuoteId)
+      if (!exists) setSelectedShippingQuoteId(null)
+    }
+  }, [cart?.shippingQuote, selectedShippingQuoteId])
+
+  const { mutateAsync: selectShippingQuote, isPending: isSelectingShippingQuote } = useMutation({
+    mutationFn: async (shippingQuoteId: number) => {
+      const response = await privateInstance.put(`/tenant/carts/${cartId}/shipping-quote/${shippingQuoteId}/select`)
+      return response.data
+    },
+    onMutate: async (shippingQuoteId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['cart', cartId] })
+
+      const previousCart = queryClient.getQueryData(['cart', cartId])
+      const previousSelectedId = selectedShippingQuoteId
+
+      setSelectedShippingQuoteId(shippingQuoteId)
+      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
+        if (!oldData) return oldData
+        const nextQuotes = (oldData.shippingQuote || []).map((q) => ({
+          ...q,
+          isSelected: typeof q.id === 'number' && q.id === shippingQuoteId,
+        }))
+        return { ...oldData, shippingQuote: nextQuotes }
+      })
+
+      return { previousCart, previousSelectedId }
+    },
+    onError: (error: any, _shippingQuoteId: number, context: any) => {
+      if (context?.previousCart) queryClient.setQueryData(['cart', cartId], context.previousCart)
+      setSelectedShippingQuoteId(context?.previousSelectedId ?? null)
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao selecionar frete', {
+        description: errorData?.detail || 'Não foi possível selecionar a cotação de frete.'
+      })
+    },
+    onSuccess: (data: any) => {
+      const selectedId = typeof data?.id === 'number' ? data.id : null
+      if (selectedId !== null) setSelectedShippingQuoteId(selectedId)
+      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
+        if (!oldData) return oldData
+        const nextQuotes = (oldData.shippingQuote || []).map((q) => ({
+          ...q,
+          isSelected: typeof q.id === 'number' && (selectedId !== null ? q.id === selectedId : q.isSelected),
+        }))
+        return { ...oldData, shippingQuote: nextQuotes }
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart', cartId] })
+    }
+  })
 
   // Add items mutation
   const { mutateAsync: addItems, isPending: isAddingItems } = useMutation({
@@ -306,7 +378,9 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   }
 
   const isReadOnly = cart?.status !== 'open'
-  const selectedShippingQuote = selectedShippingQuoteIndex === null ? null : cart?.shippingQuote?.[selectedShippingQuoteIndex] ?? null
+  const selectedShippingQuote =
+    (selectedShippingQuoteId === null ? null : cart?.shippingQuote?.find((q) => typeof q.id === 'number' && q.id === selectedShippingQuoteId) ?? null) ||
+    (cart?.shippingQuote?.find((q) => q.isSelected) ?? null)
   const selectedShippingPrice = selectedShippingQuote?.price ?? 0
 
   return (
@@ -544,13 +618,22 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                 ) : (
                   <div className="space-y-3">
                     {(cart?.shippingQuote || []).map((quote, idx) => {
-                      const isSelected = selectedShippingQuoteIndex === idx
+                      const quoteId = typeof quote.id === 'number' ? quote.id : null
+                      const isSelected = quoteId !== null ? selectedShippingQuoteId === quoteId : Boolean(quote.isSelected)
                       return (
                         <button
-                          key={`${quote.carrierName}-${quote.serviceName}-${idx}`}
+                          key={quoteId !== null ? `shipping-quote-${quoteId}` : `${quote.carrierName}-${quote.serviceName}-${idx}`}
                           type="button"
-                          className={`w-full text-left border rounded-lg p-4 transition-colors ${isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'}`}
-                          onClick={() => setSelectedShippingQuoteIndex((prev) => prev === idx ? null : idx)}
+                          disabled={isReadOnly || isSelectingShippingQuote}
+                          className={`w-full text-left border rounded-lg p-4 transition-colors ${isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'} ${(isReadOnly || isSelectingShippingQuote) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          onClick={async () => {
+                            if (isSelected) return
+                            if (quoteId === null) {
+                              toast.error('Cotação inválida', { description: 'Não foi possível identificar o ID da cotação.' })
+                              return
+                            }
+                            await selectShippingQuote(quoteId)
+                          }}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3">
@@ -579,7 +662,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((quote.price || 0) / 100)}
                               </div>
                               <div className="text-[10px] text-muted-foreground mt-0.5">
-                                Clique para {isSelected ? 'desmarcar' : 'selecionar'}
+                                Clique para selecionar
                               </div>
                             </div>
                           </div>

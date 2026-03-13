@@ -21,12 +21,15 @@ export const Route = createFileRoute('/dashboard/media/')({
 export type MediaItem = {
   id: number
   name: string
-  fileName: string
-  uuid: string
-  size: number
-  mime: string
-  key: string
-  url: string
+  fileName: string | null
+  uuid: string | null
+  size: number | null
+  mime: string | null
+  key: string | null
+  url: string | null
+  type: 'file' | 'directory'
+  to: 'product' | 'logo' | 'banner'
+  parentId: number | null
   createdAt: string
   updatedAt: string
 }

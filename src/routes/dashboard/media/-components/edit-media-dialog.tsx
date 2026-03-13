@@ -2,6 +2,7 @@ import { Dialog, DialogClose, DialogContent, DialogFooter } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Images, Loader } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,16 +12,19 @@ import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import type { MediaItem } from '../index'
 
-const schema = z.object({ name: z.string().min(1, { message: 'Nome é obrigatório' }) })
+const schema = z.object({
+  name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  to: z.enum(['product', 'logo', 'banner']),
+})
 
 export function EditMediaDialog({ media, onClose, onSaved }: { media: MediaItem | null, onClose?: () => void, onSaved?: () => void }) {
   const open = !!media
   const [saving, setSaving] = useState(false)
-  const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { name: '' } })
+  const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) as any, defaultValues: { name: '', to: 'product' } })
 
   useEffect(() => {
     if (!media) return
-    form.reset({ name: media.name ?? '' })
+    form.reset({ name: media.name ?? '', to: media.to ?? 'product' })
   }, [media])
 
   const submit = async (values: z.infer<typeof schema>) => {
@@ -58,6 +62,24 @@ export function EditMediaDialog({ media, onClose, onSaved }: { media: MediaItem 
             </div>
             <Form {...form}>
               <form onSubmit={form.handleSubmit((v) => submit(v))} className='flex flex-col gap-4'>
+                <FormField control={form.control as any} name='to' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Destino</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange} disabled>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="product">Produto</SelectItem>
+                          <SelectItem value="logo">Logo</SelectItem>
+                          <SelectItem value="banner">Banner</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
                 <FormField control={form.control} name='name' render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nome</FormLabel>

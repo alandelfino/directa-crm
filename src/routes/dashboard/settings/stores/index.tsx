@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { EditStoreSheet } from './-components/edit-store'
 import { NewStoreSheet } from './-components/new-store'
 import { DeleteStore } from './-components/delete-store'
+import { EditStoreSettingsSheet } from './-components/edit-store-settings'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
@@ -357,6 +358,14 @@ function RouteComponent() {
             <Button variant='ghost' onClick={() => { setSelected([]); refetch() }} disabled={isLoading || isRefetching}>
               {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
             </Button>
+
+            {selected.length === 1 ? (
+              <EditStoreSettingsSheet storeId={selected[0]} onSaved={() => { refetch() }} />
+            ) : (
+              <Button variant={'outline'} size="sm" disabled>
+                Configurações
+              </Button>
+            )}
 
             {selected.length === 1 ? (
               <DeleteStore storeId={selected[0]} onDeleted={() => { setSelected([]); refetch(); }} />

@@ -20,6 +20,10 @@ type StoreItem = {
   name: string
   description: string
   priceTableId: number
+  storeTheme?: {
+    id: number
+    name: string
+  }
   active: boolean
   desktopProductMediaSizeId: number
   tabletProductMediaSizeId: number
@@ -32,6 +36,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome da loja é obrigatório' }),
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   priceTableId: z.coerce.number().min(1, { message: 'Tabela de preço é obrigatória' }),
+  storeThemeId: z.coerce.number().min(1, { message: 'Tema da loja é obrigatório' }),
   desktopProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia Desktop é obrigatório' }),
   tabletProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia Tablet é obrigatório' }),
   mobileProductMediaSizeId: z.coerce.number().min(1, { message: 'Tamanho de mídia Mobile é obrigatório' }),
@@ -51,6 +56,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
       name: '',
       description: '',
       priceTableId: 0,
+      storeThemeId: 0,
       desktopProductMediaSizeId: 0,
       tabletProductMediaSizeId: 0,
       mobileProductMediaSizeId: 0,
@@ -80,6 +86,19 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
     enabled: open
   })
 
+  const { data: storeThemes } = useQuery({
+    queryKey: ['store-themes-list-select'],
+    staleTime: 0,
+    refetchOnMount: true,
+    queryFn: async () => {
+      const response = await privateInstance.get('/tenant/store-themes', {
+        params: { page: 1, limit: 100, sortBy: 'name', orderBy: 'asc' }
+      })
+      return response.data?.items || []
+    },
+    enabled: open
+  })
+
   useEffect(() => {
     async function run() {
       try {
@@ -91,6 +110,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
           name: s.name ?? '',
           description: s.description ?? '',
           priceTableId: s.priceTableId ?? 0,
+          storeThemeId: s.storeTheme?.id ?? 0,
           desktopProductMediaSizeId: s.desktopProductMediaSizeId ?? 0,
           tabletProductMediaSizeId: s.tabletProductMediaSizeId ?? 0,
           mobileProductMediaSizeId: s.mobileProductMediaSizeId ?? 0,
@@ -187,22 +207,47 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                 )} />
               </div>
 
-              <FormField control={form.control as any} name='color' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cor da Loja</FormLabel>
-                  <FormControl>
-                    {loading ? (
-                      <Skeleton className="h-9 w-full" />
-                    ) : (
-                      <div className="flex gap-2">
-                        <Input type="color" className="w-12 p-1 h-9" {...field} disabled={loading || isPending} />
-                        <Input placeholder="#RRGGBB" {...field} className="flex-1" disabled={loading || isPending} />
-                      </div>
-                    )}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control as any} name='storeThemeId' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tema da Loja</FormLabel>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                          <SelectTrigger disabled={loading || isPending} className="w-full">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {storeThemes?.map((t: any) => (
+                              <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control as any} name='color' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cor da Loja</FormLabel>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <div className="flex gap-2">
+                          <Input type="color" className="w-12 p-1 h-9" {...field} disabled={loading || isPending} />
+                          <Input placeholder="#RRGGBB" {...field} className="flex-1" disabled={loading || isPending} />
+                        </div>
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
 
               <FormField control={form.control as any} name='description' render={({ field }) => (
                 <FormItem>

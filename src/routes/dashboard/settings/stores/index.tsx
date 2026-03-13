@@ -23,6 +23,10 @@ type StoreItem = {
   name: string
   description: string
   priceTableId: number
+  storeTheme?: {
+    id: number
+    name: string
+  }
   active: boolean
   companyId: number
   desktopProductMediaSizeId: number
@@ -177,6 +181,15 @@ function RouteComponent() {
       ),
       headerClassName: 'w-[80px] min-w-[80px] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[80px] min-w-[80px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'theme',
+      header: 'Tema',
+      cell: (s) => (
+        <span className="text-sm">{s.storeTheme?.name ?? '—'}</span>
+      ),
+      headerClassName: 'min-w-[14rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[14rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'active',

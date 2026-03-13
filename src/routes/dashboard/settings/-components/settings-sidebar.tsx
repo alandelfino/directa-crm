@@ -10,6 +10,8 @@ export function SettingsSidebar() {
     { label: 'Tabelas de Preço', href: '/dashboard/settings/price-tables' },
     { label: 'Tamanhos de mídias', href: '/dashboard/settings/media-sizes' },
     { label: 'Lojas', href: '/dashboard/settings/stores' },
+    { label: 'Menus da loja', href: '/dashboard/settings/menus' },
+
     { separator: true },
     { label: 'Perfis', href: '/dashboard/settings/profiles' },
     { label: 'Equipes', href: '/dashboard/settings/teams' },
@@ -28,9 +30,15 @@ export function SettingsSidebar() {
           const active = router.location.pathname.startsWith(item?.href ?? '')
           return (
             item.separator ? <div key={`sep-${index}`} className='h-px my-2 w-full' /> : (
-              <Button key={item.href} asChild variant={'link'} className='flex justify-start font-normal text-foreground-muted'>
-                <Link to={item.href} className={`block rounded-md px-3 py-2 text-sm transition-colors ${active ? 'text-primary underline underline-offset-4' : 'text-muted-foreground underline-offset-4 hover:underline hover:text-primary'}`}>{item.label}</Link>
-              </Button>
+              !item.href ? (
+                <Button key={`disabled-${index}`} variant={'link'} className='flex justify-start font-normal text-foreground-muted' disabled>
+                  <span className='block rounded-md px-3 py-2 text-sm text-muted-foreground'>{item.label}</span>
+                </Button>
+              ) : (
+                <Button key={item.href} asChild variant={'link'} className='flex justify-start font-normal text-foreground-muted'>
+                  <Link to={item.href} className={`block rounded-md px-3 py-2 text-sm transition-colors ${active ? 'text-primary underline underline-offset-4' : 'text-muted-foreground underline-offset-4 hover:underline hover:text-primary'}`}>{item.label}</Link>
+                </Button>
+              )
             )
           )
         })}
@@ -38,4 +46,3 @@ export function SettingsSidebar() {
     </aside>
   )
 }
-

@@ -12,7 +12,7 @@ type QueueItem = {
   id: string
   file: File
   name: string
-  to: 'product' | 'logo' | 'banner'
+  to: 'product' | 'logo' | 'banner' | 'icon'
   status: 'pending' | 'uploading' | 'done' | 'error'
   progress: number
   error?: string
@@ -30,7 +30,7 @@ export function MultiUploadSheet() {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const uploadingRef = useRef(false)
   const queryClient = useQueryClient()
-  const [uploadTo, setUploadTo] = useState<'product' | 'logo' | 'banner'>('product')
+  const [uploadTo, setUploadTo] = useState<'product' | 'logo' | 'banner' | 'icon'>('product')
 
   const allProcessed = useMemo(() => queue.length > 0 && queue.every((q) => q.status === 'done' || q.status === 'error'), [queue])
   const isUploading = useMemo(() => queue.some((q) => q.status === 'pending' || q.status === 'uploading'), [queue])
@@ -146,6 +146,7 @@ export function MultiUploadSheet() {
                     <SelectItem value="product">Produto</SelectItem>
                     <SelectItem value="logo">Logo</SelectItem>
                     <SelectItem value="banner">Banner</SelectItem>
+                    <SelectItem value="icon">Ícone</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome da loja é obrigatório' }),
+  alias: z.string().min(1, { message: 'Pseudônimo é obrigatório' }).regex(/^[A-Za-z0-9-]+$/, { message: 'Use apenas letras, números e hífen (-)' }),
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   priceTableId: z.coerce.number().min(1, { message: 'Tabela de preço é obrigatória' }),
   storeThemeId: z.coerce.number().min(1, { message: 'Tema da loja é obrigatório' }),
@@ -34,6 +35,7 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: '',
+      alias: '',
       description: '',
       priceTableId: 0,
       storeThemeId: 0,
@@ -126,6 +128,20 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
                       <Input placeholder='Nome da loja' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control as any} name='alias' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pseudônimo</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='ex: minha-loja-1'
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value.replace(/[^A-Za-z0-9-]/g, ''))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

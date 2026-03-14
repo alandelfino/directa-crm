@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 type StoreItem = {
   id: number
   name: string
+  alias: string
   description: string
   priceTableId: number
   storeTheme?: {
@@ -34,6 +35,7 @@ type StoreItem = {
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome da loja é obrigatório' }),
+  alias: z.string().min(1, { message: 'Pseudônimo é obrigatório' }).regex(/^[A-Za-z0-9-]+$/, { message: 'Use apenas letras, números e hífen (-)' }),
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   priceTableId: z.coerce.number().min(1, { message: 'Tabela de preço é obrigatória' }),
   storeThemeId: z.coerce.number().min(1, { message: 'Tema da loja é obrigatório' }),
@@ -54,6 +56,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: '',
+      alias: '',
       description: '',
       priceTableId: 0,
       storeThemeId: 0,
@@ -108,6 +111,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
         const s = response.data as StoreItem
         form.reset({
           name: s.name ?? '',
+          alias: s.alias ?? '',
           description: s.description ?? '',
           priceTableId: s.priceTableId ?? 0,
           storeThemeId: s.storeTheme?.id ?? 0,
@@ -177,6 +181,25 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
                         <Skeleton className="h-9 w-full" />
                       ) : (
                         <Input placeholder='Nome da loja' {...field} disabled={loading || isPending} />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control as any} name='alias' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pseudônimo</FormLabel>
+                    <FormControl>
+                      {loading ? (
+                        <Skeleton className="h-9 w-full" />
+                      ) : (
+                        <Input
+                          placeholder='ex: minha-loja-1'
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value.replace(/[^A-Za-z0-9-]/g, ''))}
+                          disabled={loading || isPending}
+                        />
                       )}
                     </FormControl>
                     <FormMessage />

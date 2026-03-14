@@ -8,7 +8,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { privateInstance } from '@/lib/auth'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader, Settings } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { MediaSelectorDialog } from '@/routes/dashboard/media/-components/media-selector-dialog'
 import type { MediaItem } from '@/routes/dashboard/media'
@@ -79,6 +79,9 @@ export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, 
     },
   })
 
+  const logoMediaId = useWatch({ control: form.control as any, name: 'logoMediaId' })
+  const iconMediaId = useWatch({ control: form.control as any, name: 'iconMediaId' })
+
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['store-settings', storeId],
     refetchOnWindowFocus: false,
@@ -113,8 +116,17 @@ export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, 
     setSelectedIconMedia(null)
   }, [data, open])
 
-  const logoPreviewUrl = useMemo(() => selectedLogoMedia?.url ?? data?.logoMedia?.url ?? null, [selectedLogoMedia, data])
-  const iconPreviewUrl = useMemo(() => selectedIconMedia?.url ?? data?.iconMedia?.url ?? null, [selectedIconMedia, data])
+  const logoPreviewUrl = useMemo(() => {
+    if (selectedLogoMedia?.url) return selectedLogoMedia.url
+    if (!logoMediaId) return null
+    return data?.logoMedia?.url ?? null
+  }, [selectedLogoMedia, data, logoMediaId])
+
+  const iconPreviewUrl = useMemo(() => {
+    if (selectedIconMedia?.url) return selectedIconMedia.url
+    if (!iconMediaId) return null
+    return data?.iconMedia?.url ?? null
+  }, [selectedIconMedia, data, iconMediaId])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
@@ -202,6 +214,7 @@ export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, 
 
                       <MediaSelectorDialog
                         multiple={false}
+                        toFilter="logo"
                         onSelect={(medias) => {
                           const m = medias[0] ?? null
                           setSelectedLogoMedia(m)
@@ -246,6 +259,7 @@ export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, 
 
                       <MediaSelectorDialog
                         multiple={false}
+                        toFilter="icon"
                         onSelect={(medias) => {
                           const m = medias[0] ?? null
                           setSelectedIconMedia(m)

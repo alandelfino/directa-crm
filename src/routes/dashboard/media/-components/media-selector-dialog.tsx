@@ -20,10 +20,11 @@ type MediaSelectorDialogProps = {
   onOpenChange?: (open: boolean) => void
   onSelect?: (medias: MediaItem[]) => void
   multiple?: boolean
+  toFilter?: string
   trigger?: React.ReactNode
 }
 
-export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setControlledOpen, onSelect, multiple = false, trigger }: MediaSelectorDialogProps) {
+export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setControlledOpen, onSelect, multiple = false, toFilter, trigger }: MediaSelectorDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen ?? internalOpen
   const setOpen = (value: boolean) => {
@@ -39,18 +40,24 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   const { data, isLoading, isRefetching, refetch, isPending } = useQuery({
-    queryKey: ['medias', page, perPage],
+    queryKey: ['medias', page, perPage, toFilter],
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     enabled: open,
     queryFn: async () => {
+      const params: any = {
+        page,
+        limit: Math.min(100, perPage),
+        sortBy: 'createdAt',
+        orderBy: 'desc'
+      }
+
+      if (toFilter) {
+        params.to = JSON.stringify({ operator: 'eq', value: toFilter })
+      }
+
       const res = await privateInstance.get(`/tenant/medias`, {
-        params: {
-          page,
-          limit: Math.min(100, perPage),
-          sortBy: 'createdAt',
-          orderBy: 'desc'
-        }
+        params
       })
       if (res.status !== 200) throw new Error('Erro ao carregar mídias')
       return res.data

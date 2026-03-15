@@ -11,6 +11,7 @@ import { EditStoreSheet } from './-components/edit-store'
 import { NewStoreSheet } from './-components/new-store'
 import { DeleteStore } from './-components/delete-store'
 import { EditStoreSettingsSheet } from './-components/edit-store-settings'
+import { StoreThemeFieldsSheet } from './-components/store-theme-fields-sheet'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
@@ -317,6 +318,17 @@ function RouteComponent() {
           <Button variant='ghost' onClick={() => { setSelected([]); refetch() }} disabled={isLoading || isRefetching}>
             {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
           </Button>
+
+          {selected.length === 1 ? (
+            <StoreThemeFieldsSheet
+              storeId={selected[0]}
+              storeName={items.find((i) => i.id === selected[0])?.name}
+            />
+          ) : (
+            <Button variant={'outline'} size="sm" disabled>
+              Ajustes do tema
+            </Button>
+          )}
 
           {selected.length === 1 ? (
             <EditStoreSettingsSheet storeId={selected[0]} onSaved={() => { refetch() }} />

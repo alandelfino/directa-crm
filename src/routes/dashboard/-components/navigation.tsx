@@ -1,6 +1,6 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Link } from "@tanstack/react-router";
-import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookUser, Copyright, FileBadge, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, Factory, ShoppingCart } from "lucide-react";
+import { BadgeDollarSign, BanknoteArrowDown, BetweenHorizonalStart, BookUser, Copyright, FileBadge, FileText, GitFork, Images, Kanban, ListChecks, Package, Ruler, Settings, Factory, ShoppingCart } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 
@@ -96,6 +96,11 @@ export function Navigation() {
                     label: 'Midias',
                     icon: <Images />,
                     href: '/dashboard/media',
+                },
+                {
+                    label: 'Páginas',
+                    icon: <FileText />,
+                    href: '/dashboard/pages',
                 },
                 {
                     label: 'Unidades de medida',

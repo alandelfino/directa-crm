@@ -27,6 +27,7 @@ import { Route as DashboardSettingsIndexRouteImport } from './routes/dashboard/s
 import { Route as DashboardProfileIndexRouteImport } from './routes/dashboard/profile/index'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
 import { Route as DashboardPipelineIndexRouteImport } from './routes/dashboard/pipeline/index'
+import { Route as DashboardPagesIndexRouteImport } from './routes/dashboard/pages/index'
 import { Route as DashboardMediaIndexRouteImport } from './routes/dashboard/media/index'
 import { Route as DashboardDerivationsIndexRouteImport } from './routes/dashboard/derivations/index'
 import { Route as DashboardCustomersIndexRouteImport } from './routes/dashboard/customers/index'
@@ -137,6 +138,11 @@ const DashboardProductsIndexRoute = DashboardProductsIndexRouteImport.update({
 const DashboardPipelineIndexRoute = DashboardPipelineIndexRouteImport.update({
   id: '/pipeline/',
   path: '/pipeline/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardPagesIndexRoute = DashboardPagesIndexRouteImport.update({
+  id: '/pages/',
+  path: '/pages/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardMediaIndexRoute = DashboardMediaIndexRouteImport.update({
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
   '/dashboard/media': typeof DashboardMediaIndexRoute
+  '/dashboard/pages': typeof DashboardPagesIndexRoute
   '/dashboard/pipeline': typeof DashboardPipelineIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/profile': typeof DashboardProfileIndexRoute
@@ -304,6 +311,7 @@ export interface FileRoutesByTo {
   '/dashboard/customers': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations': typeof DashboardDerivationsIndexRoute
   '/dashboard/media': typeof DashboardMediaIndexRoute
+  '/dashboard/pages': typeof DashboardPagesIndexRoute
   '/dashboard/pipeline': typeof DashboardPipelineIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/profile': typeof DashboardProfileIndexRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/dashboard/customers/': typeof DashboardCustomersIndexRoute
   '/dashboard/derivations/': typeof DashboardDerivationsIndexRoute
   '/dashboard/media/': typeof DashboardMediaIndexRoute
+  '/dashboard/pages/': typeof DashboardPagesIndexRoute
   '/dashboard/pipeline/': typeof DashboardPipelineIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/dashboard/profile/': typeof DashboardProfileIndexRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/dashboard/customers'
     | '/dashboard/derivations'
     | '/dashboard/media'
+    | '/dashboard/pages'
     | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/profile'
@@ -422,6 +432,7 @@ export interface FileRouteTypes {
     | '/dashboard/customers'
     | '/dashboard/derivations'
     | '/dashboard/media'
+    | '/dashboard/pages'
     | '/dashboard/pipeline'
     | '/dashboard/products'
     | '/dashboard/profile'
@@ -461,6 +472,7 @@ export interface FileRouteTypes {
     | '/dashboard/customers/'
     | '/dashboard/derivations/'
     | '/dashboard/media/'
+    | '/dashboard/pages/'
     | '/dashboard/pipeline/'
     | '/dashboard/products/'
     | '/dashboard/profile/'
@@ -621,6 +633,13 @@ declare module '@tanstack/react-router' {
       path: '/pipeline'
       fullPath: '/dashboard/pipeline'
       preLoaderRoute: typeof DashboardPipelineIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/pages/': {
+      id: '/dashboard/pages/'
+      path: '/pages'
+      fullPath: '/dashboard/pages'
+      preLoaderRoute: typeof DashboardPagesIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/media/': {
@@ -813,6 +832,7 @@ interface DashboardRouteRouteChildren {
   DashboardCustomersIndexRoute: typeof DashboardCustomersIndexRoute
   DashboardDerivationsIndexRoute: typeof DashboardDerivationsIndexRoute
   DashboardMediaIndexRoute: typeof DashboardMediaIndexRoute
+  DashboardPagesIndexRoute: typeof DashboardPagesIndexRoute
   DashboardPipelineIndexRoute: typeof DashboardPipelineIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
   DashboardProfileIndexRoute: typeof DashboardProfileIndexRoute
@@ -831,6 +851,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardCustomersIndexRoute: DashboardCustomersIndexRoute,
   DashboardDerivationsIndexRoute: DashboardDerivationsIndexRoute,
   DashboardMediaIndexRoute: DashboardMediaIndexRoute,
+  DashboardPagesIndexRoute: DashboardPagesIndexRoute,
   DashboardPipelineIndexRoute: DashboardPipelineIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,
   DashboardProfileIndexRoute: DashboardProfileIndexRoute,

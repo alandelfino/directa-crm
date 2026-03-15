@@ -126,22 +126,6 @@ function RouteComponent() {
     }
   }, [totalPages, currentPage])
 
-  const fmtDate = (v?: string) => {
-    if (!v) return '-'
-    try {
-      const d = new Date(v)
-      return new Intl.DateTimeFormat('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(d)
-    } catch {
-      return v
-    }
-  }
-
   const columns: ColumnDef<StoreItem>[] = useMemo(() => [
     {
       id: 'select',
@@ -154,18 +138,6 @@ function RouteComponent() {
       ),
       headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
-    },
-    {
-      id: 'name',
-      header: 'Nome',
-      cell: (s) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{s.name ?? '—'}</span>
-          {s.description && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{s.description}</span>}
-        </div>
-      ),
-      headerClassName: 'min-w-[15rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'min-w-[15rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'color',
@@ -184,13 +156,26 @@ function RouteComponent() {
       className: 'w-[80px] min-w-[80px] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'name',
+      header: 'Nome',
+      cell: (s) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{s.name ?? '—'}</span>
+          {s.description && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{s.description}</span>}
+        </div>
+      ),
+      headerClassName: 'min-w-[15rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[15rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'theme',
       header: 'Tema',
+      width: 'fit',
       cell: (s) => (
         <span className="text-sm">{s.storeTheme?.name ?? '—'}</span>
       ),
-      headerClassName: 'min-w-[14rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'min-w-[14rem] border-r border-neutral-200 !px-4 py-3'
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5 min-w-fit w-fit max-w-fit',
+      className: 'border-r border-neutral-200 !px-4 py-3 min-w-fit w-fit max-w-fit'
     },
     {
       id: 'active',
@@ -203,33 +188,7 @@ function RouteComponent() {
       ),
       headerClassName: 'w-[100px] min-w-[100px] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[100px] min-w-[100px] border-r border-neutral-200 !px-4 py-3'
-    },
-    {
-      id: 'created_at',
-      header: 'Criado em',
-      width: '12.5rem',
-      cell: (s) => {
-        const d = fmtDate(s.createdAt)
-        return (
-          <span className='text-sm text-muted-foreground'>{d || '-'}</span>
-        )
-      },
-      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
-    },
-    {
-      id: 'updated_at',
-      header: 'Atualizado em',
-      width: '12.5rem',
-      cell: (s) => {
-        const d = fmtDate(s.updatedAt)
-        return (
-          <span className='text-sm text-muted-foreground'>{d || '-'}</span>
-        )
-      },
-      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
-    },
+    }
   ], [selected])
 
   return (
@@ -239,153 +198,153 @@ function RouteComponent() {
           <h2 className='text-lg font-semibold'>Lojas</h2>
           <p className='text-sm text-muted-foreground'>Gerencie as lojas da conta.</p>
         </div>
-          <div className='flex items-center gap-2'>
-            <Popover open={isFilterOpen} onOpenChange={(open) => {
-              if (open) {
-                setLocalSortBy(sortBy)
-                setLocalOrderBy(orderBy)
-                setLocalFilterName(filterName)
-                setLocalFilterNameOperator(filterNameOperator)
-              }
-              setIsFilterOpen(open)
-            }}>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" disabled={isLoading || isRefetching}>
-                  <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
-                  {activeFilterCount > 0 && (
-                    <span className="absolute top-2 right-2 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="end">
-                <div className="flex flex-col gap-5">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                        <ArrowUpDown className="h-4 w-4 text-primary" />
-                      </div>
-                      <h4 className="font-semibold leading-none">Ordenação</h4>
+        <div className='flex items-center gap-2'>
+          <Popover open={isFilterOpen} onOpenChange={(open) => {
+            if (open) {
+              setLocalSortBy(sortBy)
+              setLocalOrderBy(orderBy)
+              setLocalFilterName(filterName)
+              setLocalFilterNameOperator(filterNameOperator)
+            }
+            setIsFilterOpen(open)
+          }}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" disabled={isLoading || isRefetching}>
+                <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
+                {activeFilterCount > 0 && (
+                  <span className="absolute top-2 right-2 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[340px] p-5" align="end">
+              <div className="flex flex-col gap-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                      <ArrowUpDown className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="flex gap-2 w-full">
-                      <div className="flex-1">
-                        <Select value={localSortBy} onValueChange={setLocalSortBy}>
-                          <SelectTrigger className="h-9 w-full">
-                            <SelectValue placeholder="Campo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="id">ID</SelectItem>
-                            <SelectItem value="createdAt">Criado em</SelectItem>
-                            <SelectItem value="updatedAt">Atualizado em</SelectItem>
-                            <SelectItem value="name">Nome</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 shrink-0"
-                        onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
-                        title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
-                      >
-                        {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
-                      </Button>
-                    </div>
+                    <h4 className="font-semibold leading-none">Ordenação</h4>
                   </div>
-
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                        <Funnel className="h-4 w-4 text-primary" />
-                      </div>
-                      <h4 className="font-semibold leading-none">Filtros</h4>
+                  <div className="flex gap-2 w-full">
+                    <div className="flex-1">
+                      <Select value={localSortBy} onValueChange={setLocalSortBy}>
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder="Campo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="id">ID</SelectItem>
+                          <SelectItem value="createdAt">Criado em</SelectItem>
+                          <SelectItem value="updatedAt">Atualizado em</SelectItem>
+                          <SelectItem value="name">Nome</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="grid gap-3">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome</Label>
-                        <div className="flex gap-2">
-                          <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
-                            <SelectTrigger className="w-[130px] h-9">
-                              <SelectValue placeholder="Op." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cont">Contém</SelectItem>
-                              <SelectItem value="eq">Igual</SelectItem>
-                              <SelectItem value="ne">Diferente</SelectItem>
-                              <SelectItem value="sw">Começa com</SelectItem>
-                              <SelectItem value="ew">Termina com</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            id="name"
-                            value={localFilterName}
-                            onChange={(e) => setLocalFilterName(e.target.value)}
-                            className="h-9 flex-1"
-                            placeholder="Filtrar por nome..."
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
-                      setLocalSortBy('createdAt')
-                      setLocalOrderBy('desc')
-                      setLocalFilterName('')
-                      setLocalFilterNameOperator('cont')
-                    }}>
-                      Limpar
-                    </Button>
-                    <Button size="default" className="flex-1" onClick={() => {
-                      setSortBy(localSortBy)
-                      setOrderBy(localOrderBy)
-                      setFilterName(localFilterName)
-                      setFilterNameOperator(localFilterNameOperator)
-                      setIsFilterOpen(false)
-                    }}>
-                      Aplicar
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                    >
+                      {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
 
-            <Button variant='ghost' onClick={() => { setSelected([]); refetch() }} disabled={isLoading || isRefetching}>
-              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                      <Funnel className="h-4 w-4 text-primary" />
+                    </div>
+                    <h4 className="font-semibold leading-none">Filtros</h4>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome</Label>
+                      <div className="flex gap-2">
+                        <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                          <SelectTrigger className="w-[130px] h-9">
+                            <SelectValue placeholder="Op." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cont">Contém</SelectItem>
+                            <SelectItem value="eq">Igual</SelectItem>
+                            <SelectItem value="ne">Diferente</SelectItem>
+                            <SelectItem value="sw">Começa com</SelectItem>
+                            <SelectItem value="ew">Termina com</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="name"
+                          value={localFilterName}
+                          onChange={(e) => setLocalFilterName(e.target.value)}
+                          className="h-9 flex-1"
+                          placeholder="Filtrar por nome..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                    setLocalSortBy('createdAt')
+                    setLocalOrderBy('desc')
+                    setLocalFilterName('')
+                    setLocalFilterNameOperator('cont')
+                  }}>
+                    Limpar
+                  </Button>
+                  <Button size="default" className="flex-1" onClick={() => {
+                    setSortBy(localSortBy)
+                    setOrderBy(localOrderBy)
+                    setFilterName(localFilterName)
+                    setFilterNameOperator(localFilterNameOperator)
+                    setIsFilterOpen(false)
+                  }}>
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Button variant='ghost' onClick={() => { setSelected([]); refetch() }} disabled={isLoading || isRefetching}>
+            {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
+          </Button>
+
+          {selected.length === 1 ? (
+            <EditStoreSettingsSheet storeId={selected[0]} onSaved={() => { refetch() }} />
+          ) : (
+            <Button variant={'outline'} size="sm" disabled>
+              Configurações
             </Button>
+          )}
 
-            {selected.length === 1 ? (
-              <EditStoreSettingsSheet storeId={selected[0]} onSaved={() => { refetch() }} />
-            ) : (
-              <Button variant={'outline'} size="sm" disabled>
-                Configurações
-              </Button>
-            )}
+          {selected.length === 1 ? (
+            <DeleteStore storeId={selected[0]} onDeleted={() => { setSelected([]); refetch(); }} />
+          ) : (
+            <Button variant={'outline'} size="sm" disabled>
+              <Trash className="size-[0.85rem]" /> Excluir
+            </Button>
+          )}
 
-            {selected.length === 1 ? (
-              <DeleteStore storeId={selected[0]} onDeleted={() => { setSelected([]); refetch(); }} />
-            ) : (
-              <Button variant={'outline'} size="sm" disabled>
-                <Trash className="size-[0.85rem]" /> Excluir
-              </Button>
-            )}
-
-            {selected.length === 1 ? (
-              <EditStoreSheet storeId={selected[0]} onSaved={() => { setSelected([]); refetch(); }} />
-            ) : (
-              <Button variant={'outline'} size="sm" disabled>
-                <EditStoreIcon className="size-[0.85rem]" /> Editar
-              </Button>
-            )}
-            <NewStoreSheet onCreated={() => refetch()} />
-          </div>
+          {selected.length === 1 ? (
+            <EditStoreSheet storeId={selected[0]} onSaved={() => { setSelected([]); refetch(); }} />
+          ) : (
+            <Button variant={'outline'} size="sm" disabled>
+              <EditStoreIcon className="size-[0.85rem]" /> Editar
+            </Button>
+          )}
+          <NewStoreSheet onCreated={() => refetch()} />
+        </div>
       </div>
-      
+
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
         <div className=' rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
@@ -406,8 +365,8 @@ function RouteComponent() {
                   </EmptyMedia>
                   <EmptyTitle>Nenhuma loja encontrada</EmptyTitle>
                   <EmptyDescription>
-                    {activeFilterCount > 0 
-                      ? "Nenhuma loja corresponde aos filtros selecionados." 
+                    {activeFilterCount > 0
+                      ? "Nenhuma loja corresponde aos filtros selecionados."
                       : "Comece criando sua primeira loja para gerenciar."}
                   </EmptyDescription>
                 </EmptyHeader>

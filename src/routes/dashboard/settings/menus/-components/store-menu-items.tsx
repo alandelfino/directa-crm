@@ -1,22 +1,40 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { RefreshCw, ListTree } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DataTable, type ColumnDef } from '@/components/data-table'
 import { privateInstance } from '@/lib/auth'
 import { Badge } from '@/components/ui/badge'
 import { StoreMenuItemCreateDialog } from './store-menu-item-create-dialog'
 import { StoreMenuItemEditDialog } from './store-menu-item-edit-dialog'
 import { StoreMenuItemDeleteDialog } from './store-menu-item-delete-dialog'
-import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconGripVertical, IconTrash } from '@tabler/icons-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DragCancelEvent,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { toast } from 'sonner'
 
 type StoreMenuItem = {
   id: number
   name: string
   active: boolean
   parentId: number | null
+  path: string
+  order: number
   storeMenu: { id: number; name: string }
   store: { id: number; name: string }
   createdAt: string
@@ -37,9 +55,106 @@ type FlatMenuItem = {
   depth: number
 }
 
+function SortableMenuRow({
+  row,
+  selected,
+  onSelect,
+  onRowClick,
+  childrenCount,
+  indent,
+  fmtDate,
+  disabled,
+}: {
+  row: FlatMenuItem
+  selected: boolean
+  onSelect: () => void
+  onRowClick: () => void
+  childrenCount: number
+  indent: number
+  fmtDate: (v?: string) => string
+  disabled: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.id,
+    disabled,
+  })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const hasChildren = childrenCount > 0
+  const guides = Array.from({ length: row.depth }, (_, i) => {
+    const left = (i + 1) * indent - 1
+    return (
+      <span
+        key={i}
+        className="absolute inset-y-0 -z-10"
+        style={{ left: `${left}px`, width: '1px', background: 'hsl(var(--border))' }}
+      />
+    )
+  })
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className={`cursor-pointer ${isDragging ? 'opacity-60' : ''}`}
+      onClick={disabled ? undefined : onRowClick}
+    >
+      <TableCell className="w-[60px] border-r !p-0 !px-2">
+        <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
+          <Checkbox checked={selected} onCheckedChange={disabled ? undefined : onSelect} />
+        </div>
+      </TableCell>
+
+      <TableCell className="w-[38px] border-r !p-0 !px-1">
+        <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground disabled:opacity-50"
+            disabled={disabled}
+            {...attributes}
+            {...listeners}
+          >
+            <IconGripVertical size={18} />
+          </button>
+        </div>
+      </TableCell>
+
+      <TableCell className="min-w-[22rem] border-r border-neutral-200 !px-4 py-3">
+        <div className="relative overflow-hidden">
+          {guides}
+          <div style={{ paddingLeft: `${row.depth * indent}px` }} className={hasChildren ? 'font-semibold flex items-center gap-2' : 'flex items-center gap-2'}>
+            <span className={hasChildren ? '' : 'text-neutral-700'}>{row.item.name ?? 'Item'}</span>
+          </div>
+        </div>
+      </TableCell>
+
+      <TableCell className="w-[110px] min-w-[110px] border-r border-neutral-200 !px-4 py-3">
+        <Badge variant={row.item.active ? 'default' : 'secondary'} className="text-xs">
+          {row.item.active ? 'Ativo' : 'Inativo'}
+        </Badge>
+      </TableCell>
+
+      <TableCell className="w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3">
+        <span className="text-sm text-muted-foreground">{fmtDate(row.item.createdAt) || '-'}</span>
+      </TableCell>
+
+      <TableCell className="w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3">
+        <span className="text-sm text-muted-foreground">{fmtDate(row.item.updatedAt) || '-'}</span>
+      </TableCell>
+    </TableRow>
+  )
+}
+
 export function StoreMenuItemsSheet({ storeMenuId, storeMenuName }: { storeMenuId: number, storeMenuName?: string }) {
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [ordered, setOrdered] = useState<FlatMenuItem[]>([])
+  const [reorderingId, setReorderingId] = useState<number | null>(null)
+  const [activeGroup, setActiveGroup] = useState<{ parentKey: number; depth: number } | null>(null)
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['store-menu-items', storeMenuId],
@@ -65,6 +180,8 @@ export function StoreMenuItemsSheet({ storeMenuId, storeMenuName }: { storeMenuI
       name: String(i.name ?? ''),
       active: Boolean(i.active ?? true),
       parentId: i.parentId == null ? null : Number(i.parentId),
+      path: String(i.path ?? ''),
+      order: Number(i.order ?? 0),
       storeMenu: {
         id: Number(i.storeMenu?.id ?? storeMenuId),
         name: String(i.storeMenu?.name ?? ''),
@@ -102,6 +219,32 @@ export function StoreMenuItemsSheet({ storeMenuId, storeMenuName }: { storeMenuI
       } else {
         roots.push(i.id)
       }
+    }
+
+    const compareIds = (a: number, b: number) => {
+      const ia = byId.get(a)
+      const ib = byId.get(b)
+      if (!ia || !ib) return a - b
+
+      const ao = Number.isFinite(ia.order) ? ia.order : Number.MAX_SAFE_INTEGER
+      const bo = Number.isFinite(ib.order) ? ib.order : Number.MAX_SAFE_INTEGER
+      if (ao !== bo) return ao - bo
+
+      const ap = ia.path ?? ''
+      const bp = ib.path ?? ''
+      if (ap !== bp) return ap.localeCompare(bp, 'pt-BR', { numeric: true, sensitivity: 'base' })
+
+      const an = ia.name ?? ''
+      const bn = ib.name ?? ''
+      if (an !== bn) return an.localeCompare(bn, 'pt-BR', { numeric: true, sensitivity: 'base' })
+
+      return ia.id - ib.id
+    }
+
+    roots.sort(compareIds)
+    for (const [parent, children] of childrenMap.entries()) {
+      if (children.length > 1) children.sort(compareIds)
+      childrenMap.set(parent, children)
     }
 
     const countMap = new Map<number, number>()
@@ -144,75 +287,123 @@ export function StoreMenuItemsSheet({ storeMenuId, storeMenuName }: { storeMenuI
 
   const indent = 22
 
-  const columns: ColumnDef<FlatMenuItem>[] = [
-    {
-      id: 'select',
-      width: '60px',
-      header: () => (<div className="flex justify-center items-center" />),
-      cell: (row) => (
-        <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
-          <Checkbox checked={selectedId === row.item.id} onCheckedChange={() => setSelectedId(selectedId === row.item.id ? null : row.item.id)} />
-        </div>
-      ),
-      headerClassName: 'w-[60px] border-r !px-2',
-      className: 'font-medium border-r !p-0 !px-2'
-    },
-    {
-      id: 'name',
-      header: 'Nome',
-      cell: (row) => {
-        const hasChildren = (childrenCountMap.get(row.item.id) ?? 0) > 0
-        const guides = Array.from({ length: row.depth }, (_, i) => {
-          const left = (i + 1) * indent - 1
-          return (
-            <span
-              key={i}
-              className="absolute inset-y-0 -z-10"
-              style={{ left: `${left}px`, width: '1px', background: 'hsl(var(--border))' }}
-            />
-          )
-        })
-        return (
-          <div className="relative overflow-hidden">
-            {guides}
-            <div style={{ paddingLeft: `${row.depth * indent}px` }} className={hasChildren ? 'font-semibold flex items-center gap-2' : 'flex items-center gap-2'}>
-              <span className={hasChildren ? '' : 'text-neutral-700'}>{row.item.name ?? 'Item'}</span>
-            </div>
-          </div>
-        )
-      },
-      headerClassName: 'min-w-[22rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'min-w-[22rem] border-r border-neutral-200 !px-4 py-3'
-    },
-    {
-      id: 'active',
-      header: 'Status',
-      width: '110px',
-      cell: (row) => (
-        <Badge variant={row.item.active ? 'default' : 'secondary'} className="text-xs">
-          {row.item.active ? 'Ativo' : 'Inativo'}
-        </Badge>
-      ),
-      headerClassName: 'w-[110px] min-w-[110px] border-r border-neutral-200 px-4 py-2.5',
-      className: 'w-[110px] min-w-[110px] border-r border-neutral-200 !px-4 py-3'
-    },
-    {
-      id: 'createdAt',
-      header: 'Criado em',
-      width: '12.5rem',
-      cell: (row) => <span className='text-sm text-muted-foreground'>{fmtDate(row.item.createdAt) || '-'}</span>,
-      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
-    },
-    {
-      id: 'updatedAt',
-      header: 'Atualizado em',
-      width: '12.5rem',
-      cell: (row) => <span className='text-sm text-muted-foreground'>{fmtDate(row.item.updatedAt) || '-'}</span>,
-      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
-    },
-  ]
+  const orderedKey = useMemo(() => flattened.map((f) => `${f.id}:${f.item.order}:${f.item.parentId ?? 0}`).join('|'), [flattened])
+  useEffect(() => {
+    if (!open) return
+    setOrdered(flattened)
+  }, [open, orderedKey])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const groupById = useMemo(() => {
+    const map = new Map<number, { parentKey: number; depth: number }>()
+    for (const r of ordered) {
+      map.set(r.id, { parentKey: r.item.parentId == null ? 0 : r.item.parentId, depth: r.depth })
+    }
+    return map
+  }, [ordered])
+
+  const collisionDetection: CollisionDetection = useMemo(() => {
+    return (args) => {
+      if (!activeGroup) return closestCenter(args)
+      const filtered = args.droppableContainers.filter((c) => {
+        const g = groupById.get(Number(c.id))
+        return !!g && g.parentKey === activeGroup.parentKey && g.depth === activeGroup.depth
+      })
+      return closestCenter({ ...args, droppableContainers: filtered })
+    }
+  }, [activeGroup, groupById])
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const id = Number(event.active.id)
+    const g = groupById.get(id) ?? null
+    setActiveGroup(g)
+  }
+
+  const handleDragCancel = (_event: DragCancelEvent) => {
+    setActiveGroup(null)
+  }
+
+  const buildBlockMap = (rows: FlatMenuItem[]) => {
+    const map = new Map<number, { start: number; end: number; parentKey: number; depth: number }>()
+    for (let i = 0; i < rows.length; i++) {
+      const cur = rows[i]
+      const parentKey = cur.item.parentId == null ? 0 : cur.item.parentId
+      let end = i + 1
+      for (let j = i + 1; j < rows.length; j++) {
+        if (rows[j].depth <= cur.depth) break
+        end = j + 1
+      }
+      map.set(cur.id, { start: i, end, parentKey, depth: cur.depth })
+    }
+    return map
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveGroup(null)
+    const { active, over } = event
+    if (!over) return
+    const activeId = Number(active.id)
+    const overId = Number(over.id)
+    if (!Number.isFinite(activeId) || !Number.isFinite(overId) || activeId === overId) return
+    if (reorderingId != null) return
+
+    const previous = ordered
+    const blocks = buildBlockMap(previous)
+    const a = blocks.get(activeId)
+    const b = blocks.get(overId)
+    if (!a || !b) return
+
+    if (a.parentKey !== b.parentKey || a.depth !== b.depth) {
+      toast.error('Só é possível reordenar itens no mesmo nível e com o mesmo pai.')
+      return
+    }
+
+    const activeBlock = previous.slice(a.start, a.end)
+    const remaining = [...previous.slice(0, a.start), ...previous.slice(a.end)]
+
+    const removedSize = a.end - a.start
+    const movingDown = a.start < b.start
+    const overStartAdjusted = movingDown ? b.start - removedSize : b.start
+    const overEndAdjusted = movingDown ? b.end - removedSize : b.end
+    const insertBaseIndex = movingDown ? overEndAdjusted : overStartAdjusted
+    const insertIndex = Math.max(0, Math.min(insertBaseIndex, remaining.length))
+    const next = [...remaining.slice(0, insertIndex), ...activeBlock, ...remaining.slice(insertIndex)]
+
+    setOrdered(next)
+
+    const depth = a.depth
+    const parentKey = a.parentKey
+    const siblingsAtDepth: number[] = []
+    for (const r of next) {
+      const rk = r.item.parentId == null ? 0 : r.item.parentId
+      if (rk === parentKey && r.depth === depth) siblingsAtDepth.push(r.id)
+    }
+    const newSiblingIndex = siblingsAtDepth.indexOf(activeId)
+    if (newSiblingIndex < 0) return
+
+    try {
+      setReorderingId(activeId)
+      await privateInstance.put(`/tenant/store-menus/${storeMenuId}/items/${activeId}/order`, {
+        order: newSiblingIndex + 1,
+      })
+      await refetch()
+      toast.success('Ordem atualizada com sucesso')
+    } catch (error: any) {
+      setOrdered(previous)
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao atualizar ordem', {
+        description: errorData?.detail || 'Não foi possível atualizar a ordem.'
+      })
+    } finally {
+      setReorderingId(null)
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) { setSelectedId(null); refetch() } }}>
@@ -259,15 +450,47 @@ export function StoreMenuItemsSheet({ storeMenuId, storeMenuName }: { storeMenuI
             <StoreMenuItemCreateDialog storeMenuId={storeMenuId} parentOptions={items} onCreated={() => { refetch() }} />
           </div>
 
-          <div className='mt-2 mb-0 flex-1 flex flex-col overflow-hidden border-t'>
-            <DataTable<FlatMenuItem>
-              columns={columns}
-              data={flattened}
-              loading={isLoading || isRefetching}
-              hideFooter={true}
-              onRowClick={(row) => setSelectedId(row.item.id)}
-              rowClassName="cursor-pointer"
-            />
+          <div className='mt-2 mb-0 flex-1 flex flex-col min-h-0 overflow-hidden border-t'>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={collisionDetection}
+              modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]}
+              onDragStart={handleDragStart}
+              onDragCancel={handleDragCancel}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={ordered.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                <div className="w-full flex-1 min-h-0 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60px] border-r !px-2" />
+                        <TableHead className="w-[38px] border-r !px-2" />
+                        <TableHead className="min-w-[22rem] border-r border-neutral-200 px-4 py-2.5">Nome</TableHead>
+                        <TableHead className="w-[110px] min-w-[110px] border-r border-neutral-200 px-4 py-2.5">Status</TableHead>
+                        <TableHead className="w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5">Criado em</TableHead>
+                        <TableHead className="w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5">Atualizado em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ordered.map((row) => (
+                        <SortableMenuRow
+                          key={row.id}
+                          row={row}
+                          selected={selectedId === row.item.id}
+                          onSelect={() => setSelectedId(selectedId === row.item.id ? null : row.item.id)}
+                          onRowClick={() => setSelectedId(row.item.id)}
+                          childrenCount={childrenCountMap.get(row.item.id) ?? 0}
+                          indent={indent}
+                          fmtDate={fmtDate}
+                          disabled={isLoading || isRefetching || reorderingId != null}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
 

@@ -20,6 +20,7 @@ type StoreMenuItemOption = {
 
 const schema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  path: z.string().min(1, { message: 'Path é obrigatório' }),
   active: z.boolean(),
   parentId: z.coerce.number().optional(),
 })
@@ -39,6 +40,7 @@ export function StoreMenuItemCreateDialog({
     resolver: zodResolver(schema) as any,
     defaultValues: {
       name: '',
+      path: '',
       active: true,
       parentId: undefined,
     },
@@ -48,6 +50,7 @@ export function StoreMenuItemCreateDialog({
     mutationFn: async (values: z.infer<typeof schema>) => {
       const payload: any = {
         name: values.name,
+        path: values.path,
         active: values.active,
       }
       if (values.parentId && values.parentId > 0) payload.parentId = values.parentId
@@ -57,7 +60,7 @@ export function StoreMenuItemCreateDialog({
     },
     onSuccess: () => {
       toast.success('Item cadastrado com sucesso!')
-      form.reset({ name: '', active: true, parentId: undefined })
+      form.reset({ name: '', path: '', active: true, parentId: undefined })
       setOpen(false)
       onCreated?.()
     },
@@ -76,7 +79,7 @@ export function StoreMenuItemCreateDialog({
   return (
     <Sheet open={open} onOpenChange={(o) => {
       setOpen(o)
-      if (!o) form.reset({ name: '', active: true, parentId: undefined })
+      if (!o) form.reset({ name: '', path: '', active: true, parentId: undefined })
     }}>
       <SheetTrigger asChild>
         <Button size={'sm'}>
@@ -98,6 +101,25 @@ export function StoreMenuItemCreateDialog({
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
                       <Input type='text' placeholder='Ex.: Home / Produtos / Contato' {...field} disabled={creating} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control as any} name='path' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Path</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        placeholder='Ex.: /home /produtos /contato'
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value ?? ''}
+                        onBlur={field.onBlur}
+                        onChange={(e) => field.onChange(e.target.value.replace(/\s+/g, ''))}
+                        disabled={creating}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

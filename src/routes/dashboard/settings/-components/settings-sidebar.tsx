@@ -24,7 +24,7 @@ export function SettingsSidebar() {
     { label: 'Integrações de Pagamento', href: '/dashboard/settings/payment-integrations' },
   ]
   return (
-    <aside className='min-w-42 w-fit pr-2 shrink-0  p-4'>
+    <aside className='min-w-42 w-fit pr-2 shrink-0  p-4 h-full overflow-y-auto'>
       <nav className='flex flex-col gap-1'>
         {items.map((item, index) => {
           const active = router.location.pathname.startsWith(item?.href ?? '')

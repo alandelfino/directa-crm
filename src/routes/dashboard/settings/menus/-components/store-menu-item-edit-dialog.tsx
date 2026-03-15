@@ -17,6 +17,7 @@ import { IconEdit } from '@tabler/icons-react'
 type StoreMenuItemDetail = {
   id: number
   name: string
+  path: string
   active: boolean
   parentId: number | null
 }
@@ -28,6 +29,7 @@ type StoreMenuItemOption = {
 
 const schema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  path: z.string().min(1, { message: 'Path é obrigatório' }),
   active: z.boolean(),
   parentId: z.coerce.number().optional(),
 })
@@ -50,6 +52,7 @@ export function StoreMenuItemEditDialog({
     resolver: zodResolver(schema) as any,
     defaultValues: {
       name: '',
+      path: '',
       active: true,
       parentId: undefined,
     },
@@ -65,11 +68,13 @@ export function StoreMenuItemEditDialog({
         const item: StoreMenuItemDetail = {
           id: Number(d.id),
           name: String(d.name ?? ''),
+          path: String(d.path ?? ''),
           active: Boolean(d.active ?? true),
           parentId: d.parentId == null ? null : Number(d.parentId),
         }
         form.reset({
           name: item.name,
+          path: item.path,
           active: item.active,
           parentId: item.parentId && item.parentId > 0 ? item.parentId : undefined,
         })
@@ -95,6 +100,7 @@ export function StoreMenuItemEditDialog({
     mutationFn: async (values: z.infer<typeof schema>) => {
       const payload: any = {
         name: values.name,
+        path: values.path,
         active: values.active,
       }
       if (values.parentId && values.parentId > 0) payload.parentId = values.parentId
@@ -119,7 +125,7 @@ export function StoreMenuItemEditDialog({
   return (
     <Sheet open={open} onOpenChange={(o) => {
       setOpen(o)
-      if (!o) form.reset({ name: '', active: true, parentId: undefined })
+      if (!o) form.reset({ name: '', path: '', active: true, parentId: undefined })
     }}>
       <SheetTrigger asChild>
         <Button size={'sm'} variant={'outline'}><IconEdit className="size-[0.85rem]" /> Editar</Button>
@@ -139,6 +145,25 @@ export function StoreMenuItemEditDialog({
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
                       <Input type='text' placeholder='Ex.: Home / Produtos / Contato' {...field} disabled={loading || updating} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control as any} name='path' render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Path</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        placeholder='Ex.: /endereco-da-pagina'
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value ?? ''}
+                        onBlur={field.onBlur}
+                        onChange={(e) => field.onChange(e.target.value.replace(/\s+/g, ''))}
+                        disabled={loading || updating}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

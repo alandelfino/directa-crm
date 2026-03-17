@@ -17,16 +17,18 @@ import { NewPageSheet } from './-components/new-page'
 import { EditPageSheet } from './-components/edit-page'
 import { DeletePageDialog } from './-components/delete-page'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { PageContentSheet } from './-components/page-content-sheet'
 
 type PageType = 'landingpage' | 'search' | 'product' | 'cart' | 'checkout' | 'login' | 'register' | 'my_account'
 
 type PageItem = {
   id: number
-  name: string
+  title: string
   path: string
   active: boolean
-  storeId: number
+  store: { id: number; name: string }
   type: PageType
+  content: any | null
   createdAt: string
   updatedAt: string
 }
@@ -64,8 +66,8 @@ function RouteComponent() {
 
   const [sortBy, setSortBy] = useState('createdAt')
   const [orderBy, setOrderBy] = useState('desc')
-  const [filterName, setFilterName] = useState('')
-  const [filterNameOperator, setFilterNameOperator] = useState('cont')
+  const [filterTitle, setFilterTitle] = useState('')
+  const [filterTitleOperator, setFilterTitleOperator] = useState('cont')
   const [filterPath, setFilterPath] = useState('')
   const [filterPathOperator, setFilterPathOperator] = useState('cont')
   const [filterActive, setFilterActive] = useState<'all' | 'true' | 'false'>('all')
@@ -74,8 +76,8 @@ function RouteComponent() {
 
   const [localSortBy, setLocalSortBy] = useState('createdAt')
   const [localOrderBy, setLocalOrderBy] = useState('desc')
-  const [localFilterName, setLocalFilterName] = useState('')
-  const [localFilterNameOperator, setLocalFilterNameOperator] = useState('cont')
+  const [localFilterTitle, setLocalFilterTitle] = useState('')
+  const [localFilterTitleOperator, setLocalFilterTitleOperator] = useState('cont')
   const [localFilterPath, setLocalFilterPath] = useState('')
   const [localFilterPathOperator, setLocalFilterPathOperator] = useState('cont')
   const [localFilterActive, setLocalFilterActive] = useState<'all' | 'true' | 'false'>('all')
@@ -84,7 +86,7 @@ function RouteComponent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   const activeFilterCount =
-    (filterName ? 1 : 0) +
+    (filterTitle ? 1 : 0) +
     (filterPath ? 1 : 0) +
     (filterActive !== 'all' ? 1 : 0) +
     (filterStoreId !== 'all' ? 1 : 0) +
@@ -104,7 +106,7 @@ function RouteComponent() {
   })
 
   const { data, isLoading, isRefetching, isError, error, refetch } = useQuery({
-    queryKey: ['pages', currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterPath, filterPathOperator, filterActive, filterStoreId, filterType],
+    queryKey: ['pages', currentPage, perPage, sortBy, orderBy, filterTitle, filterTitleOperator, filterPath, filterPathOperator, filterActive, filterStoreId, filterType],
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     queryFn: async () => {
@@ -115,7 +117,7 @@ function RouteComponent() {
         orderBy,
       }
 
-      if (filterName) params.name = JSON.stringify({ operator: filterNameOperator, value: filterName })
+      if (filterTitle) params.title = JSON.stringify({ operator: filterTitleOperator, value: filterTitle })
       if (filterPath) params.path = JSON.stringify({ operator: filterPathOperator, value: filterPath })
       if (filterActive !== 'all') params.active = JSON.stringify({ operator: 'eq', value: filterActive === 'true' })
       if (filterStoreId !== 'all') params.storeId = JSON.stringify({ operator: 'eq', value: Number(filterStoreId) })
@@ -149,11 +151,13 @@ function RouteComponent() {
 
   useEffect(() => {
     setSelected([])
-  }, [currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator, filterPath, filterPathOperator, filterActive, filterStoreId, filterType])
+  }, [currentPage, perPage, sortBy, orderBy, filterTitle, filterTitleOperator, filterPath, filterPathOperator, filterActive, filterStoreId, filterType])
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages)
   }, [totalPages, currentPage])
+
+  const selectedPage = useMemo(() => items.find((i) => selected.includes(i.id)) ?? null, [items, selected])
 
   const columns: ColumnDef<PageItem>[] = useMemo(() => [
     {
@@ -173,7 +177,7 @@ function RouteComponent() {
       header: 'Página',
       cell: (p) => (
         <div className="flex flex-col min-w-0">
-          <span className="font-medium truncate">{p.name ?? '—'}</span>
+          <span className="font-medium truncate">{p.title ?? '—'}</span>
           <span className="text-xs text-muted-foreground truncate">{p.path ?? '—'}</span>
         </div>
       ),
@@ -195,7 +199,7 @@ function RouteComponent() {
       header: 'Loja',
       width: '120px',
       cell: (p) => (
-        <span className="text-sm">#{p.storeId}</span>
+        <span className="text-sm truncate" title={p.store?.name ?? ''}>{p.store?.name ?? `#${p.store?.id ?? '—'}`}</span>
       ),
       headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3',
@@ -226,8 +230,8 @@ function RouteComponent() {
             if (open) {
               setLocalSortBy(sortBy)
               setLocalOrderBy(orderBy)
-              setLocalFilterName(filterName)
-              setLocalFilterNameOperator(filterNameOperator)
+              setLocalFilterTitle(filterTitle)
+              setLocalFilterTitleOperator(filterTitleOperator)
               setLocalFilterPath(filterPath)
               setLocalFilterPathOperator(filterPathOperator)
               setLocalFilterActive(filterActive)
@@ -266,7 +270,7 @@ function RouteComponent() {
                           <SelectItem value="id">ID</SelectItem>
                           <SelectItem value="createdAt">Criado em</SelectItem>
                           <SelectItem value="updatedAt">Atualizado em</SelectItem>
-                          <SelectItem value="name">Nome</SelectItem>
+                          <SelectItem value="title">Título</SelectItem>
                           <SelectItem value="path">Path</SelectItem>
                           <SelectItem value="active">Status</SelectItem>
                           <SelectItem value="storeId">Loja</SelectItem>
@@ -298,9 +302,9 @@ function RouteComponent() {
 
                   <div className="grid gap-3">
                     <div className="grid gap-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">Nome</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">Título</Label>
                       <div className="flex gap-2">
-                        <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                        <Select value={localFilterTitleOperator} onValueChange={setLocalFilterTitleOperator}>
                           <SelectTrigger className="w-[130px] h-9">
                             <SelectValue placeholder="Op." />
                           </SelectTrigger>
@@ -312,7 +316,7 @@ function RouteComponent() {
                             <SelectItem value="ew">Termina com</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Input value={localFilterName} onChange={(e) => setLocalFilterName(e.target.value)} className="h-9 flex-1" placeholder="Filtrar..." />
+                        <Input value={localFilterTitle} onChange={(e) => setLocalFilterTitle(e.target.value)} className="h-9 flex-1" placeholder="Filtrar..." />
                       </div>
                     </div>
 
@@ -387,8 +391,8 @@ function RouteComponent() {
                   <Button variant="outline" size="default" className="flex-1" onClick={() => {
                     setLocalSortBy('createdAt')
                     setLocalOrderBy('desc')
-                    setLocalFilterName('')
-                    setLocalFilterNameOperator('cont')
+                    setLocalFilterTitle('')
+                    setLocalFilterTitleOperator('cont')
                     setLocalFilterPath('')
                     setLocalFilterPathOperator('cont')
                     setLocalFilterActive('all')
@@ -400,8 +404,8 @@ function RouteComponent() {
                   <Button size="default" className="flex-1" onClick={() => {
                     setSortBy(localSortBy)
                     setOrderBy(localOrderBy)
-                    setFilterName(localFilterName)
-                    setFilterNameOperator(localFilterNameOperator)
+                    setFilterTitle(localFilterTitle)
+                    setFilterTitleOperator(localFilterTitleOperator)
                     setFilterPath(localFilterPath)
                     setFilterPathOperator(localFilterPathOperator)
                     setFilterActive(localFilterActive)
@@ -419,6 +423,21 @@ function RouteComponent() {
           <Button variant='ghost' onClick={() => { setSelected([]); refetch() }} disabled={isLoading || isRefetching}>
             {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
           </Button>
+
+          {selected.length === 1 ? (
+            <PageContentSheet
+              page={selectedPage}
+              trigger={(
+                <Button variant="outline" size="sm">
+                  Conteúdo
+                </Button>
+              )}
+            />
+          ) : (
+            <Button variant={'outline'} size="sm" disabled>
+              Conteúdo
+            </Button>
+          )}
 
           {selected.length === 1 ? (
             <DeletePageDialog pageId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
@@ -487,4 +506,3 @@ function RouteComponent() {
     </div>
   )
 }
-

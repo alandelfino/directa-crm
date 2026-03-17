@@ -24,12 +24,24 @@ const pageTypes = [
   { value: 'my_account', label: 'Minha conta' },
 ] as const
 
+function isValidJsonObject(v: string) {
+  try {
+    const parsed = JSON.parse(v)
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+  } catch {
+    return false
+  }
+}
+
 const formSchema = z.object({
-  name: z.string().min(1, { message: 'Nome é obrigatório' }).max(255, { message: 'Máximo 255 caracteres' }),
+  title: z.string().min(1, { message: 'Título é obrigatório' }).max(255, { message: 'Máximo 255 caracteres' }),
   path: z.string().min(1, { message: 'Path é obrigatório' }).max(255, { message: 'Máximo 255 caracteres' }).refine((v) => !/\s/.test(v), { message: 'Path não pode conter espaços' }),
   active: z.boolean().default(true),
   storeId: z.coerce.number().min(1, { message: 'Loja é obrigatória' }),
   type: z.enum(['landingpage', 'search', 'product', 'cart', 'checkout', 'login', 'register', 'my_account']),
+  content: z.string().optional().nullable().refine((v) => !v || v.trim().length === 0 || isValidJsonObject(v), {
+    message: 'Informe um JSON válido (objeto)',
+  }),
 })
 
 type NewPageSheetProps = {
@@ -44,11 +56,12 @@ export function NewPageSheet({ onCreated, trigger }: NewPageSheetProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      name: '',
+      title: '',
       path: '',
       active: true,
       storeId: 0,
       type: 'landingpage',
+      content: '',
     },
   })
 
@@ -69,12 +82,15 @@ export function NewPageSheet({ onCreated, trigger }: NewPageSheetProps) {
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
+      const rawContent = String(values.content ?? '').trim()
+      const content = rawContent.length > 0 ? JSON.parse(rawContent) : undefined
       const payload = {
-        name: values.name,
+        title: values.title,
         path: values.path,
         active: values.active,
         storeId: values.storeId,
         type: values.type,
+        ...(content ? { content } : {}),
       }
       const response = await privateInstance.post('/tenant/pages', payload)
       if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao criar página')
@@ -113,9 +129,9 @@ export function NewPageSheet({ onCreated, trigger }: NewPageSheetProps) {
             </SheetHeader>
 
             <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4 overflow-y-auto">
-              <FormField control={form.control as any} name="name" render={({ field }) => (
+              <FormField control={form.control as any} name="title" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome</FormLabel>
+                  <FormLabel>Título</FormLabel>
                   <FormControl>
                     <Input placeholder="Ex: Home" {...field} disabled={isPending} />
                   </FormControl>
@@ -198,6 +214,26 @@ export function NewPageSheet({ onCreated, trigger }: NewPageSheetProps) {
                       <Switch checked={Boolean(field.value)} onCheckedChange={(v) => field.onChange(v)} disabled={isPending} />
                     </FormControl>
                   </div>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control as any} name="content" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Content (JSON)</FormLabel>
+                  <FormControl>
+                    <textarea
+                      className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder='{"blocks":[]}'
+                      name={field.name}
+                      ref={field.ref}
+                      value={(field.value as any) ?? ''}
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">Opcional. Informe um JSON (objeto).</FormDescription>
+                  <FormMessage />
                 </FormItem>
               )} />
             </div>

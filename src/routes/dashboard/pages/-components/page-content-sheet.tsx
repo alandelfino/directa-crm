@@ -1,18 +1,33 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { privateInstance } from '@/lib/auth'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { MediaSelectorDialog } from '@/routes/dashboard/media/-components/media-selector-dialog'
-import type { MediaItem } from '@/routes/dashboard/media'
-import { ArrowDown, ArrowUp, Loader, Plus, Smartphone, Tablet, Monitor, Globe, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, GripVertical, Loader, Plus, Smartphone, Tablet, Monitor, Globe, X } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+    DndContext,
+    DragOverlay,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    type DragStartEvent,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 type Device = 'mobile' | 'tablet' | 'desktop'
 
@@ -36,12 +51,23 @@ type ThemeBlockFieldType =
     | 'image_link'
     | 'image_link_list'
 
+type ThemeBlockFieldOption = {
+    id: number
+    name: string
+    value: string
+    createdAt: string
+    updatedAt: string
+}
+
 type ThemeBlockField = {
     id: number
     name: string
     description: string | null
-    alias: string | null
+    alias: string
+    isRequired: boolean
+    schema: Record<string, any> | null
     type: ThemeBlockFieldType
+    options?: ThemeBlockFieldOption[]
     createdAt: string
     updatedAt: string
 }
@@ -50,6 +76,7 @@ type ThemeBlock = {
     id: number
     name: string
     description: string | null
+    alias: string
     createdAt: string
     updatedAt: string
     fields: ThemeBlockField[]
@@ -66,11 +93,21 @@ type StoreDetail = {
     storeThemeId?: number | null
 }
 
+type PageDetail = {
+    id: number
+    title: string
+    path: string
+    active: boolean
+    storeId: number
+    type: string
+    content: any | null
+}
+
 type PageBlockInstance = {
     instanceId: string
     block: ThemeBlock
     values: Record<number, any>
-    data: { id: number; name: string; fields: Record<string, any> }
+    data: { id: number; name: string; alias: string; fields: Record<string, any> }
 }
 
 export function PageContentSheet({
@@ -84,6 +121,8 @@ export function PageContentSheet({
     const [device, setDevice] = useState<Device>('desktop')
     const [pageBlocks, setPageBlocks] = useState<PageBlockInstance[]>([])
     const [selectedBlockInstanceId, setSelectedBlockInstanceId] = useState<string | null>(null)
+    const [didHydrate, setDidHydrate] = useState(false)
+    const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
     const previewSize = useMemo(() => {
         if (device === 'mobile') return { maxWidth: 390, label: 'Mobile' }
@@ -91,12 +130,27 @@ export function PageContentSheet({
         return { maxWidth: 1280, label: 'Desktop' }
     }, [device])
 
-    const displayUrl = useMemo(() => {
-        const p = page?.path ? String(page.path) : '/'
-        return p.startsWith('/') ? p : `/${p}`
-    }, [page])
+    const pageId = page?.id ?? null
 
-    const storeId = page?.store?.id ?? null
+    const { data: pageDetail, isLoading: isLoadingPageDetail } = useQuery({
+        queryKey: ['page-detail-for-editor', pageId],
+        enabled: open && !!pageId,
+        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+        staleTime: 0,
+        queryFn: async () => {
+            const res = await privateInstance.get(`/tenant/pages/${pageId}`)
+            if (res.status !== 200) throw new Error('Erro ao carregar página')
+            return res.data as PageDetail
+        },
+    })
+
+    const displayUrl = useMemo(() => {
+        const p = pageDetail?.path ? String(pageDetail.path) : (page?.path ? String(page.path) : '/')
+        return p.startsWith('/') ? p : `/${p}`
+    }, [page, pageDetail])
+
+    const storeId = pageDetail?.storeId ?? null
 
     const { data: storeDetail } = useQuery({
         queryKey: ['store-detail-for-page-editor', storeId],
@@ -153,15 +207,145 @@ export function PageContentSheet({
         return a.length > 0 ? a : `field_${f.id}`
     }
 
+    const hydrateFromPageContent = (content: any | null, blocks: ThemeBlock[]) => {
+        const contentBlocks = Array.isArray(content?.blocks) ? content.blocks : []
+        const byBlockId = new Map(blocks.map((b) => [b.id, b]))
+        const hydrated: PageBlockInstance[] = []
+
+        for (const raw of contentBlocks) {
+            const id = Number(raw?.id)
+            const name = String(raw?.name ?? '')
+            const alias = String(raw?.alias ?? '')
+            const fieldsObj = (raw?.fields && typeof raw.fields === 'object') ? raw.fields : {}
+            const def = Number.isFinite(id) ? byBlockId.get(id) : undefined
+            if (!def) continue
+
+            const values: Record<number, any> = {}
+            for (const f of def.fields ?? []) {
+                const key = fieldKey(f)
+                if (Object.prototype.hasOwnProperty.call(fieldsObj, key)) {
+                    values[f.id] = (fieldsObj as any)[key]
+                }
+            }
+
+            hydrated.push({
+                instanceId: createInstanceId(),
+                block: def,
+                values,
+                data: {
+                    id: def.id,
+                    name: name || def.name,
+                    alias: alias || def.alias,
+                    fields: { ...(fieldsObj as any) },
+                },
+            })
+        }
+
+        return hydrated
+    }
+
+    useEffect(() => {
+        if (!open) return
+        if (didHydrate) return
+        if (!pageDetail) return
+        if (!themeBlocks?.blocks) return
+
+        const hydrated = hydrateFromPageContent(pageDetail.content, themeBlocks.blocks)
+        setPageBlocks(hydrated)
+        setSelectedBlockInstanceId(null)
+        setDidHydrate(true)
+    }, [open, didHydrate, pageDetail, themeBlocks])
+
     const addBlock = (block: ThemeBlock) => {
+        const fields: Record<string, any> = {}
+        const values: Record<number, any> = {}
+        for (const f of block.fields ?? []) {
+            if (f.type !== 'boolean') continue
+            if (!f.isRequired) continue
+            const key = fieldKey(f)
+            fields[key] = false
+            values[f.id] = false
+        }
+
         const instance: PageBlockInstance = {
             instanceId: createInstanceId(),
             block,
-            values: {},
-            data: { id: block.id, name: block.name, fields: {} },
+            values,
+            data: { id: block.id, name: block.name, alias: block.alias, fields },
         }
         setPageBlocks((prev) => [...prev, instance])
         setSelectedBlockInstanceId(instance.instanceId)
+    }
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    )
+
+    const onDragStart = (event: DragStartEvent) => {
+        setActiveDragId(String(event.active.id))
+    }
+
+    const onDragEnd = (event: DragEndEvent) => {
+        setActiveDragId(null)
+        const { active, over } = event
+        if (!over) return
+        const from = pageBlocks.findIndex((b) => b.instanceId === String(active.id))
+        const to = pageBlocks.findIndex((b) => b.instanceId === String(over.id))
+        if (from < 0 || to < 0 || from === to) return
+        setPageBlocks((prev) => arrayMove(prev, from, to))
+    }
+
+    const activeDragItem = useMemo(
+        () => (activeDragId ? pageBlocks.find((b) => b.instanceId === activeDragId) ?? null : null),
+        [activeDragId, pageBlocks]
+    )
+
+    const SortableBlockRow = ({ item, idx }: { item: PageBlockInstance; idx: number }) => {
+        const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+            id: item.instanceId,
+        })
+        const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition }
+
+        return (
+            <div
+                ref={setNodeRef}
+                style={style}
+                className={`w-full rounded-md border transition-colors ${selectedBlockInstanceId === item.instanceId ? 'bg-muted/30 border-primary/40' : 'bg-background hover:bg-muted/20'
+                    } ${isDragging ? 'opacity-60' : ''}`}
+            >
+                <div className="flex items-start gap-2 px-3 py-2">
+                    <button
+                        type="button"
+                        className="mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                        {...attributes}
+                        {...listeners}
+                        aria-label="Reordenar bloco"
+                    >
+                        <GripVertical className="size-4" />
+                    </button>
+
+                    <button
+                        type="button"
+                        className="flex-1 min-w-0 text-left"
+                        onClick={() => setSelectedBlockInstanceId((cur) => (cur === item.instanceId ? null : item.instanceId))}
+                    >
+                        <div className="text-sm font-medium truncate">{idx + 1}. {item.block.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">{item.block.fields?.length ?? 0} campos</div>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+                        onClick={(e) => { e.stopPropagation(); removeBlock(item.instanceId) }}
+                        aria-label="Remover bloco"
+                    >
+                        <X className="size-4" />
+                    </button>
+                </div>
+            </div>
+        )
     }
 
     const removeBlock = (instanceId: string) => {
@@ -187,49 +371,74 @@ export function PageContentSheet({
         setFieldValue(selectedInstance.instanceId, field, value)
     }
 
-    const inspectorImageIds = useMemo(() => {
-        if (!selectedInstance) return []
-        const ids: number[] = []
-        for (const f of selectedInstance.block.fields ?? []) {
-            const v = selectedInstance.values[f.id]
-            if (f.type === 'image_link') {
-                const n = Number((v as any)?.imageId)
-                if (Number.isFinite(n) && n > 0) ids.push(n)
-            }
-            if (f.type === 'image_link_list') {
-                const list = Array.isArray(v) ? v : []
-                for (const it of list) {
-                    const n = Number((it as any)?.imageId)
-                    if (Number.isFinite(n) && n > 0) ids.push(n)
-                }
-            }
+    const isFilled = (type: ThemeBlockFieldType, value: any) => {
+        if (type === 'boolean') return typeof value === 'boolean'
+        if (type === 'number') {
+            if (value === null || value === undefined) return false
+            if (typeof value === 'number') return Number.isFinite(value)
+            const s = String(value).trim().replace(',', '.')
+            if (!s) return false
+            return Number.isFinite(Number(s))
         }
-        return Array.from(new Set(ids))
-    }, [selectedInstance])
 
-    const { data: inspectorMedias } = useQuery({
-        queryKey: ['page-editor-medias', inspectorImageIds.join(',')],
-        enabled: open && inspectorImageIds.length > 0,
-        refetchOnWindowFocus: false,
-        refetchOnMount: true,
-        staleTime: 0,
-        queryFn: async () => {
-            const res = await privateInstance.get('/tenant/medias', {
-                params: {
-                    page: 1,
-                    limit: Math.min(100, inspectorImageIds.length),
-                    id: JSON.stringify({ operator: 'in', value: inspectorImageIds }),
-                },
+        if (type === 'multiselect' || type === 'text_list') return Array.isArray(value) && value.length > 0
+        if (type === 'number_list') return Array.isArray(value) && value.length > 0 && value.every((n) => Number.isFinite(Number(n)))
+        if (type === 'image_list' || type === 'video_list') return Array.isArray(value) && value.length > 0
+        if (type === 'link') {
+            if (!value || typeof value !== 'object') return false
+            const label = String((value as any).label ?? '').trim()
+            const path = String((value as any).path ?? '').trim()
+            return label.length > 0 && path.length > 0
+        }
+        if (type === 'link_list') return Array.isArray(value) && value.length > 0
+        if (type === 'image_link') {
+            if (!value || typeof value !== 'object') return false
+            const mediaUrl = String((value as any).mediaUrl ?? (value as any).imageUrl ?? '').trim()
+            const label = String((value as any).label ?? '').trim()
+            const path = String((value as any).path ?? '').trim()
+            return mediaUrl.length > 0 && path.length > 0 && label.length > 0
+        }
+        if (type === 'image_link_list') {
+            if (!Array.isArray(value) || value.length === 0) return false
+            return value.every((it) => {
+                if (!it || typeof it !== 'object') return false
+                const mediaUrl = String((it as any).mediaUrl ?? '').trim()
+                const path = String((it as any).path ?? '').trim()
+                return mediaUrl.length > 0 && path.length > 0
             })
-            return (res.data?.items ?? []) as MediaItem[]
-        },
-    })
+        }
 
-    const mediaById = useMemo(() => new Map((inspectorMedias ?? []).map((m) => [m.id, m])), [inspectorMedias])
+        const s = String(value ?? '').trim()
+        return s.length > 0
+    }
+
+    const validateBeforeSave = () => {
+        const firstInvalid = (() => {
+            for (const b of pageBlocks) {
+                const missing: string[] = []
+                for (const f of b.block.fields ?? []) {
+                    if (!f.isRequired) continue
+                    const key = fieldKey(f)
+                    const v = b.data.fields?.[key]
+                    if (!isFilled(f.type, v)) missing.push(f.name)
+                }
+                if (missing.length > 0) return { instanceId: b.instanceId, blockName: b.block.name, missing }
+            }
+            return null
+        })()
+
+        if (!firstInvalid) return true
+        setSelectedBlockInstanceId(firstInvalid.instanceId)
+        toast.error('Preencha os campos obrigatórios', {
+            description: `${firstInvalid.blockName}: ${firstInvalid.missing.slice(0, 4).join(', ')}${firstInvalid.missing.length > 4 ? '…' : ''}`,
+        })
+        return false
+    }
+
+  
 
     const { isPending: isSaving, mutateAsync: saveContent } = useMutation({
         mutationFn: async () => {
-            const pageId = page?.id
             if (!pageId) throw new Error('Página inválida')
             const res = await privateInstance.put(`/tenant/pages/${pageId}/content`, {
                 content: contentToSave,
@@ -257,50 +466,53 @@ export function PageContentSheet({
                     setPageBlocks([])
                     setSelectedBlockInstanceId(null)
                     setDevice('desktop')
+                    setDidHydrate(false)
                 }
             }}
         >
             <SheetTrigger asChild>{trigger}</SheetTrigger>
-            <SheetContent className="w-full sm:max-w-[100vw] p-0 [&>button.absolute]:hidden" >
+            <SheetContent className="w-full sm:max-w-[100vw] p-0 overflow-x-hidden [&>button.absolute]:hidden" >
                 <div className="flex h-full flex-col">
-                    <div className="h-11 border-b px-3 flex items-center gap-2 bg-background">
+                    <div className="h-11 border-b px-3 flex items-center justify-between bg-background">
                         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-md bg-muted/20 px-2 py-1.5 max-w-[600px]">
                             <Globe className="size-4 text-muted-foreground" />
                             <Input className="h-7 border-0 bg-transparent shadow-none p-0 focus-visible:ring-0 text-sm" value={displayUrl} readOnly />
                         </div>
 
-                        <Tabs value={device} onValueChange={(v) => setDevice(v as Device)} className="shrink-0">
-                            <TabsList className="h-8">
-                                <TabsTrigger value="mobile" className="gap-2 h-7 px-2">
-                                    <Smartphone className="size-4" />
-                                </TabsTrigger>
-                                <TabsTrigger value="tablet" className="gap-2 h-7 px-2">
-                                    <Tablet className="size-4" />
-                                </TabsTrigger>
-                                <TabsTrigger value="desktop" className="gap-2 h-7 px-2">
-                                    <Monitor className="size-4" />
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        <div className="ml-4 flex items-center gap-2 shrink-0">
+                            <Tabs value={device} onValueChange={(v) => setDevice(v as Device)} className="shrink-0">
+                                <TabsList className="h-8">
+                                    <TabsTrigger value="mobile" className="gap-2 h-7 px-2">
+                                        <Smartphone className="size-4" />
+                                    </TabsTrigger>
+                                    <TabsTrigger value="tablet" className="gap-2 h-7 px-2">
+                                        <Tablet className="size-4" />
+                                    </TabsTrigger>
+                                    <TabsTrigger value="desktop" className="gap-2 h-7 px-2">
+                                        <Monitor className="size-4" />
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
 
-                        <Button
-                            type="button"
-                            size="sm"
-                            className="h-8"
-                            disabled={!page?.id || isSaving}
-                            onClick={() => saveContent()}
-                        >
-                            {isSaving ? <Loader className="size-4 animate-spin" /> : 'Salvar'}
-                        </Button>
-
-                        <SheetClose asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <X className="size-4" />
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="h-8"
+                                disabled={!pageId || isSaving || isLoadingPageDetail}
+                                onClick={() => { if (validateBeforeSave()) saveContent() }}
+                            >
+                                {isSaving ? <Loader className="size-4 animate-spin" /> : 'Salvar'}
                             </Button>
-                        </SheetClose>
+
+                            <SheetClose asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <X className="size-4" />
+                                </Button>
+                            </SheetClose>
+                        </div>
                     </div>
 
-                    <div className="flex-1 min-h-0 flex">
+                    <div className="flex-1 min-h-0 flex min-w-0">
                         <aside className="w-[300px] border-r bg-background">
                             <div className="h-full flex flex-col">
                                 <div className="px-3 py-2 border-b">
@@ -312,37 +524,46 @@ export function PageContentSheet({
 
                                 <ScrollArea className="flex-1 min-h-0">
                                     <div className="p-3 flex flex-col gap-2">
-                                        {!hasBlocks ? (
+                                        {(isLoadingPageDetail || blocksLoading) ? (
+                                            <>
+                                                {Array.from({ length: 6 }).map((_, i) => (
+                                                    <div key={i} className="rounded-md border px-3 py-2">
+                                                        <Skeleton className="h-4 w-3/4" />
+                                                        <Skeleton className="mt-2 h-3 w-1/3" />
+                                                    </div>
+                                                ))}
+                                            </>
+                                        ) : !hasBlocks ? (
                                             <div className="rounded-md border bg-muted/20 px-3 py-2">
                                                 <div className="text-sm font-medium">Nenhum bloco</div>
                                             </div>
                                         ) : (
-                                            pageBlocks.map((b, idx) => (
-                                                <button
-                                                    key={b.instanceId}
-                                                    type="button"
-                                                    onClick={() => setSelectedBlockInstanceId((cur) => (cur === b.instanceId ? null : b.instanceId))}
-                                                    className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${selectedBlockInstanceId === b.instanceId ? 'bg-muted/30 border-primary/40' : 'bg-background hover:bg-muted/20'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="min-w-0">
-                                                            <div className="text-sm font-medium truncate">{idx + 1}. {b.block.name}</div>
-                                                            <div className="text-xs text-muted-foreground truncate">
-                                                                {b.block.fields?.length ?? 0} campos
+                                            <DndContext
+                                                sensors={sensors}
+                                                collisionDetection={closestCenter}
+                                                modifiers={[restrictToVerticalAxis]}
+                                                onDragStart={onDragStart}
+                                                onDragEnd={onDragEnd}
+                                            >
+                                                <SortableContext items={pageBlocks.map((b) => b.instanceId)} strategy={verticalListSortingStrategy}>
+                                                    {pageBlocks.map((b, idx) => (
+                                                        <SortableBlockRow key={b.instanceId} item={b} idx={idx} />
+                                                    ))}
+                                                </SortableContext>
+                                                <DragOverlay>
+                                                    {activeDragItem ? (
+                                                        <div className="w-[270px] rounded-md border bg-background shadow-lg">
+                                                            <div className="flex items-start gap-2 px-3 py-2">
+                                                                <GripVertical className="mt-0.5 size-4 text-muted-foreground" />
+                                                                <div className="min-w-0">
+                                                                    <div className="text-sm font-medium truncate">{activeDragItem.block.name}</div>
+                                                                    <div className="text-xs text-muted-foreground truncate">{activeDragItem.block.fields?.length ?? 0} campos</div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
-                                                            onClick={(e) => { e.stopPropagation(); removeBlock(b.instanceId) }}
-                                                            aria-label="Remover bloco"
-                                                        >
-                                                            <X className="size-4" />
-                                                        </button>
-                                                    </div>
-                                                </button>
-                                            ))
+                                                    ) : null}
+                                                </DragOverlay>
+                                            </DndContext>
                                         )}
                                     </div>
                                 </ScrollArea>
@@ -379,9 +600,9 @@ export function PageContentSheet({
                             </div>
                         </aside>
 
-                        <main className="flex-1 min-h-0 flex flex-col bg-muted/20">
-                            <div className="flex-1 min-h-0 flex">
-                                <div className="flex-1 min-h-0 overflow-auto p-3">
+                        <main className="flex-1 min-h-0 flex flex-col bg-muted/20 min-w-0">
+                            <div className="flex-1 min-h-0 flex min-w-0">
+                                <div className="flex-1 min-h-0 overflow-auto p-3 min-w-0">
                                     <div className="mx-auto w-full" style={{ maxWidth: `${previewSize.maxWidth}px` }}>
                                         <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
                                             <div className="h-10 border-b bg-muted/30 flex items-center px-3 gap-2">
@@ -393,7 +614,7 @@ export function PageContentSheet({
                                                 <div className="text-xs text-muted-foreground truncate">{previewSize.label} • JSON</div>
                                             </div>
                                             <ScrollArea className="h-[72vh] bg-muted/10">
-                                                <pre className="p-3 text-xs leading-relaxed font-mono whitespace-pre-wrap break-words text-foreground">
+                                                <pre className="p-3 text-xs leading-relaxed font-mono whitespace-pre-wrap break-all max-w-full text-foreground">
 {pageBlocksJson}
                                                 </pre>
                                             </ScrollArea>
@@ -431,7 +652,9 @@ export function PageContentSheet({
                                                                     <div key={f.id} className="rounded-md border px-3 py-2">
                                                                         <div className="flex items-center justify-between gap-3">
                                                                             <div className="min-w-0">
-                                                                                <Label className="text-sm">{f.name}</Label>
+                                                                                <Label className="text-sm">
+                                                                                    {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                                </Label>
                                                                                 {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
                                                                             </div>
                                                                             <Switch checked={Boolean(v)} onCheckedChange={(nv) => setSelectedFieldValue(f, Boolean(nv))} />
@@ -443,7 +666,9 @@ export function PageContentSheet({
                                                             if (f.type === 'number') {
                                                                 return (
                                                                     <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">{f.name}</Label>
+                                                                        <Label className="text-sm">
+                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                        </Label>
                                                                         <Input
                                                                             type="number"
                                                                             className="mt-2 h-9"
@@ -457,7 +682,9 @@ export function PageContentSheet({
                                                             if (f.type === 'date') {
                                                                 return (
                                                                     <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">{f.name}</Label>
+                                                                        <Label className="text-sm">
+                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                        </Label>
                                                                         <Input
                                                                             type="date"
                                                                             className="mt-2 h-9"
@@ -471,7 +698,9 @@ export function PageContentSheet({
                                                             if (f.type === 'datetime') {
                                                                 return (
                                                                     <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">{f.name}</Label>
+                                                                        <Label className="text-sm">
+                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                        </Label>
                                                                         <Input
                                                                             type="datetime-local"
                                                                             className="mt-2 h-9"
@@ -482,10 +711,82 @@ export function PageContentSheet({
                                                                 )
                                                             }
 
+                                                            if (f.type === 'select') {
+                                                                const options = f.options ?? []
+                                                                return (
+                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
+                                                                        <Label className="text-sm">
+                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                        </Label>
+                                                                        {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
+                                                                        <Select value={typeof v === 'string' ? v : ''} onValueChange={(nv) => setSelectedFieldValue(f, nv)}>
+                                                                            <SelectTrigger className="mt-2 h-9 w-full">
+                                                                                <SelectValue placeholder="Selecione..." />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {options.map((o) => (
+                                                                                    <SelectItem key={o.id} value={o.value}>
+                                                                                        {o.name}
+                                                                                    </SelectItem>
+                                                                                ))}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                )
+                                                            }
+
+                                                            if (f.type === 'multiselect') {
+                                                                const options = f.options ?? []
+                                                                const selectedValues = Array.isArray(v) ? v.map((x) => String(x)) : []
+                                                                const selectedSet = new Set(selectedValues)
+                                                                const selectedLabel = selectedValues.length > 0
+                                                                    ? `${selectedValues.length} selecionado${selectedValues.length > 1 ? 's' : ''}`
+                                                                    : 'Selecionar...'
+
+                                                                return (
+                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
+                                                                        <Label className="text-sm">
+                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                        </Label>
+                                                                        {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
+                                                                        <DropdownMenu>
+                                                                            <DropdownMenuTrigger asChild>
+                                                                                <Button type="button" variant="outline" size="sm" className="mt-2 h-9 w-full justify-between">
+                                                                                    <span className="truncate">{selectedLabel}</span>
+                                                                                    <span className="text-xs text-muted-foreground">{selectedValues.length}</span>
+                                                                                </Button>
+                                                                            </DropdownMenuTrigger>
+                                                                            <DropdownMenuContent className="w-[320px]" align="end">
+                                                                                <DropdownMenuLabel>Opções</DropdownMenuLabel>
+                                                                                <DropdownMenuSeparator />
+                                                                                <ScrollArea className="max-h-[360px]">
+                                                                                    <div className="p-1">
+                                                                                        {options.map((o) => (
+                                                                                            <DropdownMenuCheckboxItem
+                                                                                                key={o.id}
+                                                                                                checked={selectedSet.has(o.value)}
+                                                                                                onCheckedChange={(checked) => {
+                                                                                                    const next = checked
+                                                                                                        ? Array.from(new Set([...selectedValues, o.value]))
+                                                                                                        : selectedValues.filter((x) => x !== o.value)
+                                                                                                    setSelectedFieldValue(f, next)
+                                                                                                }}
+                                                                                            >
+                                                                                                {o.name}
+                                                                                            </DropdownMenuCheckboxItem>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </ScrollArea>
+                                                                            </DropdownMenuContent>
+                                                                        </DropdownMenu>
+                                                                    </div>
+                                                                )
+                                                            }
+
                                                             if (f.type === 'image_link_list') {
                                                                 const listRaw = Array.isArray(v) ? v : []
                                                                 const list = listRaw.map((it: any) => ({
-                                                                    imageId: Number(it?.imageId ?? 0) || 0,
+                                                                    mediaUrl: String(it?.mediaUrl ?? ''),
                                                                     label: String(it?.label ?? ''),
                                                                     path: String(it?.path ?? ''),
                                                                 }))
@@ -503,16 +804,17 @@ export function PageContentSheet({
                                                                     <div key={f.id} className="rounded-md border px-3 py-2">
                                                                         <div className="flex items-start justify-between gap-2">
                                                                             <div className="min-w-0">
-                                                                                <Label className="text-sm">{f.name}</Label>
+                                                                                <Label className="text-sm">
+                                                                                    {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                                </Label>
                                                                                 {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
-                                                                                {f.alias ? <div className="text-[11px] text-muted-foreground truncate">{f.alias}</div> : null}
                                                                             </div>
                                                                             <Button
                                                                                 type="button"
                                                                                 size="sm"
                                                                                 variant="outline"
                                                                                 className="h-8 px-2"
-                                                                                onClick={() => setSelectedFieldValue(f, [...list, { imageId: 0, label: '', path: '' }])}
+                                                                                onClick={() => setSelectedFieldValue(f, [...list, { mediaUrl: '', label: '', path: '' }])}
                                                                             >
                                                                                 <Plus className="size-4" />
                                                                             </Button>
@@ -523,8 +825,8 @@ export function PageContentSheet({
                                                                                 <div className="text-xs text-muted-foreground">Nenhum item</div>
                                                                             ) : (
                                                                                 list.map((row: any, idx: number) => {
-                                                                                    const media = row.imageId > 0 ? mediaById.get(row.imageId) : undefined
-                                                                                    const canPreview = !!media?.url && typeof media?.mime === 'string' && media.mime.startsWith('image/')
+                                                                                    const mediaUrl = String(row.mediaUrl ?? '')
+                                                                                    const canPreview = mediaUrl.length > 0
 
                                                                                     return (
                                                                                         <div key={idx} className="rounded-md border bg-background p-2">
@@ -532,14 +834,14 @@ export function PageContentSheet({
                                                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                                                     <div className="h-10 w-10 rounded border bg-muted overflow-hidden flex items-center justify-center shrink-0">
                                                                                                         {canPreview ? (
-                                                                                                            <img src={media!.url!} alt={media?.name ?? 'banner'} className="h-full w-full object-cover" />
+                                                                                                            <img src={mediaUrl} alt="banner" className="h-full w-full object-cover" />
                                                                                                         ) : (
                                                                                                             <span className="text-xs text-muted-foreground">—</span>
                                                                                                         )}
                                                                                                     </div>
                                                                                                     <div className="min-w-0">
-                                                                                                        <div className="text-xs font-medium truncate">{row.imageId > 0 ? `Mídia #${row.imageId}` : 'Selecione um banner'}</div>
-                                                                                                        <div className="text-[11px] text-muted-foreground truncate">{media?.name ?? ''}</div>
+                                                                                                        <div className="text-xs font-medium truncate">{canPreview ? 'Banner selecionado' : 'Selecione um banner'}</div>
+                                                                                                        <div className="text-[11px] text-muted-foreground truncate">{canPreview ? mediaUrl : ''}</div>
                                                                                                     </div>
                                                                                                 </div>
 
@@ -564,8 +866,9 @@ export function PageContentSheet({
                                                                                                         const m = medias[0]
                                                                                                         if (!m) return
                                                                                                         if (typeof m.mime !== 'string' || !m.mime.startsWith('image/')) return
+                                                                                                        if (!m.url) return
                                                                                                         const next = [...list]
-                                                                                                        next[idx] = { ...next[idx], imageId: m.id }
+                                                                                                        next[idx] = { ...next[idx], mediaUrl: m.url }
                                                                                                         setSelectedFieldValue(f, next)
                                                                                                     }}
                                                                                                     trigger={<Button type="button" size="sm" variant="outline">Selecionar</Button>}
@@ -605,14 +908,15 @@ export function PageContentSheet({
 
                                                             return (
                                                                 <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                    <Label className="text-sm">{f.name}</Label>
+                                                                    <Label className="text-sm">
+                                                                        {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
+                                                                    </Label>
                                                                     <Input
                                                                         className="mt-2 h-9"
                                                                         value={v ?? ''}
                                                                         onChange={(e) => setSelectedFieldValue(f, e.target.value)}
                                                                         placeholder={f.type}
                                                                     />
-                                                                    {f.alias ? <div className="mt-2 text-[11px] text-muted-foreground truncate">{f.alias}</div> : null}
                                                                 </div>
                                                             )
                                                         })}

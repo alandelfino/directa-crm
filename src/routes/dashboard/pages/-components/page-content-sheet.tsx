@@ -106,8 +106,16 @@ type PageDetail = {
 type PageBlockInstance = {
     instanceId: string
     block: ThemeBlock
-    values: Record<number, any>
-    data: { id: number; name: string; alias: string; fields: Record<string, any> }
+    data: {
+        id: number
+        name: string
+        alias: string
+        devices: {
+            mobile: { fields: Record<string, any> }
+            tablet: { fields: Record<string, any> }
+            desktop: { fields: Record<string, any> }
+        }
+    }
 }
 
 export function PageContentSheet({
@@ -207,6 +215,33 @@ export function PageContentSheet({
         return a.length > 0 ? a : `field_${f.id}`
     }
 
+    useEffect(() => {
+        if (!open) return
+        if (device === 'desktop') return
+        setPageBlocks((prev) => {
+            let changed = false
+            const next = prev.map((b) => {
+                const desktopFields = b.data.devices.desktop.fields ?? {}
+                const targetFields = (b.data.devices as any)?.[device]?.fields ?? {}
+                if (Object.keys(desktopFields).length === 0) return b
+                const merged = { ...desktopFields, ...targetFields }
+                if (Object.keys(merged).length === Object.keys(targetFields).length) return b
+                changed = true
+                return {
+                    ...b,
+                    data: {
+                        ...b.data,
+                        devices: {
+                            ...b.data.devices,
+                            [device]: { fields: merged },
+                        },
+                    },
+                }
+            })
+            return changed ? next : prev
+        })
+    }, [device, open])
+
     const hydrateFromPageContent = (content: any | null, blocks: ThemeBlock[]) => {
         const contentBlocks = Array.isArray(content?.blocks) ? content.blocks : []
         const byBlockId = new Map(blocks.map((b) => [b.id, b]))
@@ -216,27 +251,41 @@ export function PageContentSheet({
             const id = Number(raw?.id)
             const name = String(raw?.name ?? '')
             const alias = String(raw?.alias ?? '')
-            const fieldsObj = (raw?.fields && typeof raw.fields === 'object') ? raw.fields : {}
             const def = Number.isFinite(id) ? byBlockId.get(id) : undefined
             if (!def) continue
 
-            const values: Record<number, any> = {}
-            for (const f of def.fields ?? []) {
-                const key = fieldKey(f)
-                if (Object.prototype.hasOwnProperty.call(fieldsObj, key)) {
-                    values[f.id] = (fieldsObj as any)[key]
-                }
+            const legacyFieldsObj = (raw?.fields && typeof raw.fields === 'object') ? raw.fields : {}
+            const devicesRaw = (raw?.devices && typeof raw.devices === 'object') ? raw.devices : null
+            const devices = {
+                mobile: { fields: {} as Record<string, any> },
+                tablet: { fields: {} as Record<string, any> },
+                desktop: { fields: {} as Record<string, any> },
+            }
+
+            const readDeviceFields = (d: any) => (d?.fields && typeof d.fields === 'object') ? d.fields : null
+            const mobileFields = readDeviceFields(devicesRaw?.mobile)
+            const tabletFields = readDeviceFields(devicesRaw?.tablet)
+            const desktopFields = readDeviceFields(devicesRaw?.desktop)
+
+            if (mobileFields || tabletFields || desktopFields) {
+                devices.mobile.fields = { ...(mobileFields ?? {}) }
+                devices.tablet.fields = { ...(tabletFields ?? {}) }
+                devices.desktop.fields = { ...(desktopFields ?? {}) }
+            } else {
+                const copy = { ...(legacyFieldsObj as any) }
+                devices.mobile.fields = { ...copy }
+                devices.tablet.fields = { ...copy }
+                devices.desktop.fields = { ...copy }
             }
 
             hydrated.push({
                 instanceId: createInstanceId(),
                 block: def,
-                values,
                 data: {
                     id: def.id,
                     name: name || def.name,
                     alias: alias || def.alias,
-                    fields: { ...(fieldsObj as any) },
+                    devices,
                 },
             })
         }
@@ -257,21 +306,31 @@ export function PageContentSheet({
     }, [open, didHydrate, pageDetail, themeBlocks])
 
     const addBlock = (block: ThemeBlock) => {
-        const fields: Record<string, any> = {}
-        const values: Record<number, any> = {}
+        const fieldsMobile: Record<string, any> = {}
+        const fieldsTablet: Record<string, any> = {}
+        const fieldsDesktop: Record<string, any> = {}
         for (const f of block.fields ?? []) {
             if (f.type !== 'boolean') continue
             if (!f.isRequired) continue
             const key = fieldKey(f)
-            fields[key] = false
-            values[f.id] = false
+            fieldsMobile[key] = false
+            fieldsTablet[key] = false
+            fieldsDesktop[key] = false
         }
 
         const instance: PageBlockInstance = {
             instanceId: createInstanceId(),
             block,
-            values,
-            data: { id: block.id, name: block.name, alias: block.alias, fields },
+            data: {
+                id: block.id,
+                name: block.name,
+                alias: block.alias,
+                devices: {
+                    mobile: { fields: fieldsMobile },
+                    tablet: { fields: fieldsTablet },
+                    desktop: { fields: fieldsDesktop },
+                },
+            },
         }
         setPageBlocks((prev) => [...prev, instance])
         setSelectedBlockInstanceId(instance.instanceId)
@@ -311,7 +370,7 @@ export function PageContentSheet({
             <div
                 ref={setNodeRef}
                 style={style}
-                className={`w-full rounded-md border transition-colors ${selectedBlockInstanceId === item.instanceId ? 'bg-muted/30 border-primary/40' : 'bg-background hover:bg-muted/20'
+                className={`w-full max-w-full rounded-md border transition-colors ${selectedBlockInstanceId === item.instanceId ? 'bg-muted/30 border-primary/40' : 'bg-background hover:bg-muted/20'
                     } ${isDragging ? 'opacity-60' : ''}`}
             >
                 <div className="flex items-start gap-2 px-3 py-2">
@@ -354,13 +413,20 @@ export function PageContentSheet({
     }
 
     const setFieldValue = (instanceId: string, field: ThemeBlockField, value: any) => {
+        const key = fieldKey(field)
         setPageBlocks((prev) =>
             prev.map((b) => {
                 if (b.instanceId !== instanceId) return b
+                const deviceFields = b.data.devices?.[device]?.fields ?? {}
                 return {
                     ...b,
-                    values: { ...b.values, [field.id]: value },
-                    data: { ...b.data, fields: { ...b.data.fields, [fieldKey(field)]: value } },
+                    data: {
+                        ...b.data,
+                        devices: {
+                            ...b.data.devices,
+                            [device]: { fields: { ...deviceFields, [key]: value } },
+                        },
+                    },
                 }
             })
         )
@@ -414,23 +480,28 @@ export function PageContentSheet({
 
     const validateBeforeSave = () => {
         const firstInvalid = (() => {
+            const deviceOrder: Device[] = ['mobile', 'tablet', 'desktop']
             for (const b of pageBlocks) {
-                const missing: string[] = []
-                for (const f of b.block.fields ?? []) {
-                    if (!f.isRequired) continue
-                    const key = fieldKey(f)
-                    const v = b.data.fields?.[key]
-                    if (!isFilled(f.type, v)) missing.push(f.name)
+                for (const d of deviceOrder) {
+                    const missing: string[] = []
+                    const fieldsObj = b.data.devices?.[d]?.fields ?? {}
+                    for (const f of b.block.fields ?? []) {
+                        if (!f.isRequired) continue
+                        const key = fieldKey(f)
+                        const v = (fieldsObj as any)?.[key]
+                        if (!isFilled(f.type, v)) missing.push(f.name)
+                    }
+                    if (missing.length > 0) return { instanceId: b.instanceId, blockName: b.block.name, device: d, missing }
                 }
-                if (missing.length > 0) return { instanceId: b.instanceId, blockName: b.block.name, missing }
             }
             return null
         })()
 
         if (!firstInvalid) return true
         setSelectedBlockInstanceId(firstInvalid.instanceId)
+        setDevice(firstInvalid.device)
         toast.error('Preencha os campos obrigatórios', {
-            description: `${firstInvalid.blockName}: ${firstInvalid.missing.slice(0, 4).join(', ')}${firstInvalid.missing.length > 4 ? '…' : ''}`,
+            description: `${firstInvalid.blockName} (${firstInvalid.device}): ${firstInvalid.missing.slice(0, 4).join(', ')}${firstInvalid.missing.length > 4 ? '…' : ''}`,
         })
         return false
     }
@@ -471,7 +542,7 @@ export function PageContentSheet({
             }}
         >
             <SheetTrigger asChild>{trigger}</SheetTrigger>
-            <SheetContent className="w-full sm:max-w-[100vw] p-0 overflow-x-hidden [&>button.absolute]:hidden" >
+            <SheetContent className="w-full sm:max-w-full p-0 overflow-x-hidden [&>button.absolute]:hidden" >
                 <div className="flex h-full flex-col">
                     <div className="h-11 border-b px-3 flex items-center justify-between bg-background">
                         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-md bg-muted/20 px-2 py-1.5 max-w-[600px]">
@@ -623,11 +694,11 @@ export function PageContentSheet({
                                 </div>
 
                                 <div
-                                    className={`bg-background overflow-hidden transition-all duration-200 ease-out ${inspectorOpen ? 'w-[360px] border-l' : 'w-0 border-l-0'
+                                    className={`bg-background flex-none min-w-0 overflow-hidden transition-all duration-200 ease-out ${inspectorOpen ? 'w-[360px] max-w-[360px] border-l' : 'w-0 max-w-0 border-l-0'
                                         }`}
                                 >
                                     <div
-                                        className={`h-full w-[360px] transition-transform duration-200 ease-out ${inspectorOpen ? 'translate-x-0' : 'translate-x-full'
+                                        className={`h-full w-[360px] max-w-[360px] min-w-0 overflow-hidden transition-transform duration-200 ease-out ${inspectorOpen ? 'translate-x-0' : 'translate-x-full'    
                                             }`}
                                     >
                                         <div className="h-full flex flex-col">
@@ -646,7 +717,7 @@ export function PageContentSheet({
 
                                                     <div className="flex flex-col gap-3">
                                                         {(selectedInstance?.block.fields ?? []).map((f) => {
-                                                            const v = selectedInstance?.values?.[f.id]
+                                                            const v = selectedInstance?.data?.devices?.[device]?.fields?.[fieldKey(f)]
                                                             if (f.type === 'boolean') {
                                                                 return (
                                                                     <div key={f.id} className="rounded-md border px-3 py-2">
@@ -829,7 +900,7 @@ export function PageContentSheet({
                                                                                     const canPreview = mediaUrl.length > 0
 
                                                                                     return (
-                                                                                        <div key={idx} className="rounded-md border bg-background p-2">
+                                                                                        <div key={idx} className="rounded-md border bg-background p-2 min-w-0 max-w-full overflow-hidden">
                                                                                             <div className="flex items-center justify-between gap-2">
                                                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                                                     <div className="h-10 w-10 rounded border bg-muted overflow-hidden flex items-center justify-center shrink-0">
@@ -840,8 +911,8 @@ export function PageContentSheet({
                                                                                                         )}
                                                                                                     </div>
                                                                                                     <div className="min-w-0">
-                                                                                                        <div className="text-xs font-medium truncate">{canPreview ? 'Banner selecionado' : 'Selecione um banner'}</div>
-                                                                                                        <div className="text-[11px] text-muted-foreground truncate">{canPreview ? mediaUrl : ''}</div>
+                                                                                                        <div className="w-full text-xs font-medium truncate">{canPreview ? 'Banner selecionado' : 'Selecione um banner'}</div>
+                                                                                                        <div className="w-full text-[11px] max-w-[150px] text-muted-foreground truncate">{canPreview ? mediaUrl : ''}</div>
                                                                                                     </div>
                                                                                                 </div>
 
@@ -858,7 +929,7 @@ export function PageContentSheet({
                                                                                                 </div>
                                                                                             </div>
 
-                                                                                            <div className="mt-2 flex items-center gap-2">
+                                                                                            <div className="mt-2 flex items-center gap-2 min-w-0">
                                                                                                 <MediaSelectorDialog
                                                                                                     multiple={false}
                                                                                                     toFilter="banner"
@@ -871,10 +942,10 @@ export function PageContentSheet({
                                                                                                         next[idx] = { ...next[idx], mediaUrl: m.url }
                                                                                                         setSelectedFieldValue(f, next)
                                                                                                     }}
-                                                                                                    trigger={<Button type="button" size="sm" variant="outline">Selecionar</Button>}
+                                                                                                    trigger={<Button type="button" size="sm" variant="outline" className="shrink-0">Selecionar</Button>}
                                                                                                 />
                                                                                                 <Input
-                                                                                                    className="h-9"
+                                                                                                    className="h-9 flex-1 min-w-0"
                                                                                                     placeholder="Label"
                                                                                                     value={row.label}
                                                                                                     onChange={(e) => {

@@ -1,1008 +1,621 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { privateInstance } from '@/lib/auth'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { MediaSelectorDialog } from '@/routes/dashboard/media/-components/media-selector-dialog'
-import { ArrowDown, ArrowUp, GripVertical, Loader, Plus, Smartphone, Tablet, Monitor, Globe, X } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-    DndContext,
-    DragOverlay,
-    KeyboardSensor,
-    PointerSensor,
-    closestCenter,
-    useSensor,
-    useSensors,
-    type DragEndEvent,
-    type DragStartEvent,
-} from '@dnd-kit/core'
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { GripVertical, Loader, Plus, Save, Trash2 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
-type Device = 'mobile' | 'tablet' | 'desktop'
-
-type ThemeBlockFieldType =
-    | 'text'
-    | 'number'
-    | 'boolean'
-    | 'select'
-    | 'multiselect'
-    | 'date'
-    | 'datetime'
-    | 'image'
-    | 'video'
-    | 'text_list'
-    | 'number_list'
-    | 'image_list'
-    | 'video_list'
-    | 'link'
-    | 'link_list'
-    | 'store_menu'
-    | 'image_link'
-    | 'image_link_list'
-
-type ThemeBlockFieldOption = {
-    id: number
-    name: string
-    value: string
-    createdAt: string
-    updatedAt: string
+type PageRef = {
+  id: number
+  title?: string
+  path?: string
 }
 
-type ThemeBlockField = {
-    id: number
-    name: string
-    description: string | null
-    alias: string
-    isRequired: boolean
-    schema: Record<string, any> | null
-    type: ThemeBlockFieldType
-    options?: ThemeBlockFieldOption[]
-    createdAt: string
-    updatedAt: string
+type PageBlock = {
+  id: number
+  name: string
+  description: string | null
+  order: number
+  createdAt: string
+  updatedAt: string
 }
 
-type ThemeBlock = {
-    id: number
-    name: string
-    description: string | null
-    alias: string
-    createdAt: string
-    updatedAt: string
-    fields: ThemeBlockField[]
+type PageBlockXPage = {
+  id: number
+  pageId: number
+  pageBlockId: number
+  order: number
+  selectedFieldIds: number[]
+  selectedFields?: Array<{ pageBlockFieldId: number; value: string }>
+  pageBlock?: PageBlock
 }
 
-type ThemeBlocksResponse = {
-    themeId: number
-    blocks: ThemeBlock[]
+type PageBlockFieldType = 'short_text' | 'long_text' | 'image' | 'image_list' | 'video' | 'video_list' | 'number' | 'unit'
+
+type PageBlockField = {
+  id: number
+  name: string
+  type: PageBlockFieldType
+  pageBlockId: number
+  order: number
+  createdAt: string
+  updatedAt: string
 }
 
-type StoreDetail = {
-    id: number
-    storeTheme?: { id: number; name: string } | null
-    storeThemeId?: number | null
-}
-
-type PageDetail = {
-    id: number
-    title: string
-    path: string
-    active: boolean
-    storeId: number
-    type: string
-    content: any | null
-}
-
-type PageBlockInstance = {
-    instanceId: string
-    block: ThemeBlock
-    data: {
-        id: number
-        name: string
-        alias: string
-        devices: {
-            mobile: { fields: Record<string, any> }
-            tablet: { fields: Record<string, any> }
-            desktop: { fields: Record<string, any> }
-        }
-    }
+function safeArray<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : []
 }
 
 export function PageContentSheet({
-    trigger,
-    page,
+  page,
+  trigger,
 }: {
-    trigger: React.ReactNode
-    page: { id: number; title: string; path: string; store?: { id: number; name: string } | null } | null
+  page: PageRef | null
+  trigger?: React.ReactNode
 }) {
-    const [open, setOpen] = useState(false)
-    const [device, setDevice] = useState<Device>('desktop')
-    const [pageBlocks, setPageBlocks] = useState<PageBlockInstance[]>([])
-    const [selectedBlockInstanceId, setSelectedBlockInstanceId] = useState<string | null>(null)
-    const [didHydrate, setDidHydrate] = useState(false)
-    const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const pageId = page?.id ?? 0
+  const [open, setOpen] = useState(false)
+  const [selectedBlockXPageId, setSelectedBlockXPageId] = useState<number | null>(null)
+  const [draftBlocks, setDraftBlocks] = useState<PageBlockXPage[]>([])
+  const [draftFieldValues, setDraftFieldValues] = useState<Record<number, Record<number, string>>>({})
+  const [initialBlockOrderById, setInitialBlockOrderById] = useState<Record<number, number>>({})
 
-    const previewSize = useMemo(() => {
-        if (device === 'mobile') return { maxWidth: 390, label: 'Mobile' }
-        if (device === 'tablet') return { maxWidth: 820, label: 'Tablet' }
-        return { maxWidth: 1280, label: 'Desktop' }
-    }, [device])
+  const { data: blocksOnPageData, isLoading: isLoadingBlocksOnPage, refetch: refetchBlocksOnPage } = useQuery({
+    queryKey: ['page-blocks-on-page', pageId],
+    enabled: open && pageId > 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0,
+    queryFn: async () => {
+      const res = await privateInstance.get(`/tenant/pages/${pageId}/blocks`)
+      const items = safeArray<PageBlockXPage>(res.data?.items ?? res.data)
+      return { pageId, items } as { pageId: number; items: PageBlockXPage[] }
+    },
+  })
 
-    const pageId = page?.id ?? null
+  const { data: allPageBlocksData, isLoading: isLoadingAllPageBlocks, refetch: refetchAllPageBlocks } = useQuery({
+    queryKey: ['page-blocks-all'],
+    enabled: open,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0,
+    queryFn: async () => {
+      const res = await privateInstance.get('/tenant/page-blocks', {
+        params: { page: 1, limit: 100, sortBy: 'order', orderBy: 'asc' },
+      })
+      return safeArray<PageBlock>(res.data?.items ?? res.data)
+    },
+  })
 
-    const { data: pageDetail, isLoading: isLoadingPageDetail } = useQuery({
-        queryKey: ['page-detail-for-editor', pageId],
-        enabled: open && !!pageId,
-        refetchOnWindowFocus: false,
-        refetchOnMount: true,
-        staleTime: 0,
-        queryFn: async () => {
-            const res = await privateInstance.get(`/tenant/pages/${pageId}`)
-            if (res.status !== 200) throw new Error('Erro ao carregar página')
-            return res.data as PageDetail
-        },
-    })
+  const blocksOnPage = useMemo(() => {
+    const items = blocksOnPageData?.items ?? []
+    return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  }, [blocksOnPageData])
 
-    const displayUrl = useMemo(() => {
-        const p = pageDetail?.path ? String(pageDetail.path) : (page?.path ? String(page.path) : '/')
-        return p.startsWith('/') ? p : `/${p}`
-    }, [page, pageDetail])
-
-    const storeId = pageDetail?.storeId ?? null
-
-    const { data: storeDetail } = useQuery({
-        queryKey: ['store-detail-for-page-editor', storeId],
-        enabled: open && !!storeId,
-        refetchOnWindowFocus: false,
-        refetchOnMount: true,
-        staleTime: 0,
-        queryFn: async () => {
-            const res = await privateInstance.get(`/tenant/stores/${storeId}`)
-            if (res.status !== 200) throw new Error('Erro ao carregar loja')
-            return res.data as StoreDetail
-        },
-    })
-
-    const themeId = Number(storeDetail?.storeTheme?.id ?? storeDetail?.storeThemeId ?? 0) || null
-
-    const { data: themeBlocks, isLoading: isLoadingBlocks, isRefetching: isRefetchingBlocks } = useQuery({
-        queryKey: ['theme-blocks', themeId],
-        enabled: open && !!themeId,
-        refetchOnWindowFocus: false,
-        refetchOnMount: true,
-        staleTime: 0,
-        queryFn: async () => {
-            const res = await privateInstance.get(`/tenant/themes/${themeId}/blocks`)
-            if (res.status !== 200) throw new Error('Erro ao carregar blocos do tema')
-            return res.data as ThemeBlocksResponse
-        },
-    })
-
-    const selectedInstance = useMemo(
-        () => pageBlocks.find((b) => b.instanceId === selectedBlockInstanceId) ?? null,
-        [pageBlocks, selectedBlockInstanceId]
+  useEffect(() => {
+    if (!open) return
+    setDraftBlocks(blocksOnPage)
+    setInitialBlockOrderById(
+      blocksOnPage.reduce<Record<number, number>>((acc, b) => {
+        acc[b.id] = Number(b.order ?? 0)
+        return acc
+      }, {})
     )
-    const inspectorOpen = !!selectedInstance
+    const nextValues: Record<number, Record<number, string>> = {}
 
-    const hasBlocks = pageBlocks.length > 0
-
-    const availableBlocks = useMemo(() => themeBlocks?.blocks ?? [], [themeBlocks])
-
-    const blocksLoading = isLoadingBlocks || isRefetchingBlocks
-
-    const createInstanceId = () => `${Date.now()}_${Math.random().toString(16).slice(2)}`
-
-    const contentToSave = useMemo(() => {
-        return { blocks: pageBlocks.map((b) => b.data) }
-    }, [pageBlocks])
-
-    const pageBlocksJson = useMemo(() => {
-        return JSON.stringify(contentToSave, null, 2)
-    }, [contentToSave])
-
-    const fieldKey = (f: ThemeBlockField) => {
-        const a = typeof f.alias === 'string' ? f.alias.trim() : ''
-        return a.length > 0 ? a : `field_${f.id}`
+    for (const b of blocksOnPage) {
+      const pbId = b.pageBlockId
+      const selectedFields = safeArray<{ pageBlockFieldId: number; value: string }>(b.selectedFields)
+      nextValues[pbId] = selectedFields.reduce<Record<number, string>>((acc, it) => {
+        acc[it.pageBlockFieldId] = String(it.value ?? '')
+        return acc
+      }, {})
     }
 
-    useEffect(() => {
-        if (!open) return
-        if (device === 'desktop') return
-        setPageBlocks((prev) => {
-            let changed = false
-            const next = prev.map((b) => {
-                const desktopFields = b.data.devices.desktop.fields ?? {}
-                const targetFields = (b.data.devices as any)?.[device]?.fields ?? {}
-                if (Object.keys(desktopFields).length === 0) return b
-                const merged = { ...desktopFields, ...targetFields }
-                if (Object.keys(merged).length === Object.keys(targetFields).length) return b
-                changed = true
-                return {
-                    ...b,
-                    data: {
-                        ...b.data,
-                        devices: {
-                            ...b.data.devices,
-                            [device]: { fields: merged },
-                        },
-                    },
-                }
-            })
-            return changed ? next : prev
-        })
-    }, [device, open])
+    setDraftFieldValues(nextValues)
+    setSelectedBlockXPageId((cur) => {
+      if (cur && blocksOnPage.some((b) => b.id === cur)) return cur
+      return blocksOnPage[0]?.id ?? null
+    })
+  }, [open, blocksOnPage])
 
-    const hydrateFromPageContent = (content: any | null, blocks: ThemeBlock[]) => {
-        const contentBlocks = Array.isArray(content?.blocks) ? content.blocks : []
-        const byBlockId = new Map(blocks.map((b) => [b.id, b]))
-        const hydrated: PageBlockInstance[] = []
+  const existingPageBlockIds = useMemo(() => new Set(draftBlocks.map((b) => b.pageBlockId)), [draftBlocks])
 
-        for (const raw of contentBlocks) {
-            const id = Number(raw?.id)
-            const name = String(raw?.name ?? '')
-            const alias = String(raw?.alias ?? '')
-            const def = Number.isFinite(id) ? byBlockId.get(id) : undefined
-            if (!def) continue
+  const availableBlocks = useMemo(() => {
+    const all = allPageBlocksData ?? []
+    return all.filter((b) => !existingPageBlockIds.has(b.id))
+  }, [allPageBlocksData, existingPageBlockIds])
 
-            const legacyFieldsObj = (raw?.fields && typeof raw.fields === 'object') ? raw.fields : {}
-            const devicesRaw = (raw?.devices && typeof raw.devices === 'object') ? raw.devices : null
-            const devices = {
-                mobile: { fields: {} as Record<string, any> },
-                tablet: { fields: {} as Record<string, any> },
-                desktop: { fields: {} as Record<string, any> },
-            }
+  const selectedBlock = useMemo(() => {
+    if (selectedBlockXPageId == null) return null
+    return draftBlocks.find((b) => b.id === selectedBlockXPageId) ?? null
+  }, [draftBlocks, selectedBlockXPageId])
 
-            const readDeviceFields = (d: any) => (d?.fields && typeof d.fields === 'object') ? d.fields : null
-            const mobileFields = readDeviceFields(devicesRaw?.mobile)
-            const tabletFields = readDeviceFields(devicesRaw?.tablet)
-            const desktopFields = readDeviceFields(devicesRaw?.desktop)
+  const selectedPageBlockId = selectedBlock?.pageBlockId ?? 0
 
-            if (mobileFields || tabletFields || desktopFields) {
-                devices.mobile.fields = { ...(mobileFields ?? {}) }
-                devices.tablet.fields = { ...(tabletFields ?? {}) }
-                devices.desktop.fields = { ...(desktopFields ?? {}) }
-            } else {
-                const copy = { ...(legacyFieldsObj as any) }
-                devices.mobile.fields = { ...copy }
-                devices.tablet.fields = { ...copy }
-                devices.desktop.fields = { ...copy }
-            }
+  const { data: fieldsData, isLoading: isLoadingFields } = useQuery({
+    queryKey: ['page-block-fields', selectedPageBlockId],
+    enabled: open && selectedPageBlockId > 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0,
+    queryFn: async () => {
+      const res = await privateInstance.get(`/tenant/page-blocks/${selectedPageBlockId}/fields`, {
+        params: { page: 1, limit: 100, sortBy: 'order', orderBy: 'asc' },
+      })
+      return safeArray<PageBlockField>(res.data?.items ?? res.data)
+    },
+  })
 
-            hydrated.push({
-                instanceId: createInstanceId(),
-                block: def,
-                data: {
-                    id: def.id,
-                    name: name || def.name,
-                    alias: alias || def.alias,
-                    devices,
-                },
-            })
+  const fields = useMemo(() => {
+    const list = fieldsData ?? []
+    return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  }, [fieldsData])
+
+  useEffect(() => {
+    if (!selectedPageBlockId) return
+    if (fields.length === 0) return
+    setDraftFieldValues((prev) => {
+      const current = { ...(prev[selectedPageBlockId] ?? {}) }
+      let changed = false
+      for (const f of fields) {
+        if (current[f.id] == null) {
+          current[f.id] = ''
+          changed = true
         }
+      }
+      if (!changed) return prev
+      return { ...prev, [selectedPageBlockId]: current }
+    })
+  }, [fields, selectedPageBlockId])
 
-        return hydrated
-    }
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
-    useEffect(() => {
-        if (!open) return
-        if (didHydrate) return
-        if (!pageDetail) return
-        if (!themeBlocks?.blocks) return
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) return
+    const from = draftBlocks.findIndex((b) => b.id === Number(active.id))
+    const to = draftBlocks.findIndex((b) => b.id === Number(over.id))
+    if (from < 0 || to < 0 || from === to) return
+    setDraftBlocks((prev) => {
+      const moved = arrayMove(prev, from, to)
+      return moved.map((b, idx) => ({ ...b, order: idx }))
+    })
+  }
 
-        const hydrated = hydrateFromPageContent(pageDetail.content, themeBlocks.blocks)
-        setPageBlocks(hydrated)
-        setSelectedBlockInstanceId(null)
-        setDidHydrate(true)
-    }, [open, didHydrate, pageDetail, themeBlocks])
+  const { isPending: isAddingBlock, mutateAsync: addBlockToPage } = useMutation({
+    mutationFn: async (pageBlockIdToAdd: number) => {
+      if (!pageId) throw new Error('Página inválida')
+      const res = await privateInstance.post(`/tenant/pages/${pageId}/blocks`, {
+        pageBlockId: pageBlockIdToAdd,
+      })
+      if (res.status !== 200 && res.status !== 201) throw new Error('Erro ao adicionar bloco')
+      return res.data
+    },
+    onSuccess: async () => {
+      await Promise.all([refetchBlocksOnPage(), refetchAllPageBlocks()])
+      toast.success('Bloco adicionado')
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao adicionar bloco', {
+        description: errorData?.detail || 'Não foi possível adicionar o bloco.',
+      })
+    },
+  })
 
-    const addBlock = (block: ThemeBlock) => {
-        const fieldsMobile: Record<string, any> = {}
-        const fieldsTablet: Record<string, any> = {}
-        const fieldsDesktop: Record<string, any> = {}
-        for (const f of block.fields ?? []) {
-            if (f.type !== 'boolean') continue
-            if (!f.isRequired) continue
-            const key = fieldKey(f)
-            fieldsMobile[key] = false
-            fieldsTablet[key] = false
-            fieldsDesktop[key] = false
-        }
+  const { isPending: isRemovingBlock, mutateAsync: removeBlockFromPage } = useMutation({
+    mutationFn: async (pageBlockXPageId: number) => {
+      if (!pageId) throw new Error('Página inválida')
+      const res = await privateInstance.delete(`/tenant/pages/${pageId}/blocks/${pageBlockXPageId}`)
+      if (res.status !== 204) throw new Error('Erro ao remover bloco')
+      return true
+    },
+    onSuccess: async () => {
+      await Promise.all([refetchBlocksOnPage(), refetchAllPageBlocks()])
+      toast.success('Bloco removido')
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao remover bloco', {
+        description: errorData?.detail || 'Não foi possível remover o bloco.',
+      })
+    },
+  })
 
-        const instance: PageBlockInstance = {
-            instanceId: createInstanceId(),
-            block,
-            data: {
-                id: block.id,
-                name: block.name,
-                alias: block.alias,
-                devices: {
-                    mobile: { fields: fieldsMobile },
-                    tablet: { fields: fieldsTablet },
-                    desktop: { fields: fieldsDesktop },
-                },
-            },
-        }
-        setPageBlocks((prev) => [...prev, instance])
-        setSelectedBlockInstanceId(instance.instanceId)
-    }
+  const { isPending: isSaving, mutateAsync: save } = useMutation({
+    mutationFn: async () => {
+      if (!pageId) throw new Error('Página inválida')
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    )
-
-    const onDragStart = (event: DragStartEvent) => {
-        setActiveDragId(String(event.active.id))
-    }
-
-    const onDragEnd = (event: DragEndEvent) => {
-        setActiveDragId(null)
-        const { active, over } = event
-        if (!over) return
-        const from = pageBlocks.findIndex((b) => b.instanceId === String(active.id))
-        const to = pageBlocks.findIndex((b) => b.instanceId === String(over.id))
-        if (from < 0 || to < 0 || from === to) return
-        setPageBlocks((prev) => arrayMove(prev, from, to))
-    }
-
-    const activeDragItem = useMemo(
-        () => (activeDragId ? pageBlocks.find((b) => b.instanceId === activeDragId) ?? null : null),
-        [activeDragId, pageBlocks]
-    )
-
-    const SortableBlockRow = ({ item, idx }: { item: PageBlockInstance; idx: number }) => {
-        const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-            id: item.instanceId,
-        })
-        const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition }
-
-        return (
-            <div
-                ref={setNodeRef}
-                style={style}
-                className={`w-full max-w-full rounded-md border transition-colors ${selectedBlockInstanceId === item.instanceId ? 'bg-muted/30 border-primary/40' : 'bg-background hover:bg-muted/20'
-                    } ${isDragging ? 'opacity-60' : ''}`}
-            >
-                <div className="flex items-start gap-2 px-3 py-2">
-                    <button
-                        type="button"
-                        className="mt-0.5 h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
-                        onClick={(e) => e.stopPropagation()}
-                        {...attributes}
-                        {...listeners}
-                        aria-label="Reordenar bloco"
-                    >
-                        <GripVertical className="size-4" />
-                    </button>
-
-                    <button
-                        type="button"
-                        className="flex-1 min-w-0 text-left"
-                        onClick={() => setSelectedBlockInstanceId((cur) => (cur === item.instanceId ? null : item.instanceId))}
-                    >
-                        <div className="text-sm font-medium truncate">{idx + 1}. {item.block.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{item.block.fields?.length ?? 0} campos</div>
-                    </button>
-
-                    <button
-                        type="button"
-                        className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
-                        onClick={(e) => { e.stopPropagation(); removeBlock(item.instanceId) }}
-                        aria-label="Remover bloco"
-                    >
-                        <X className="size-4" />
-                    </button>
-                </div>
-            </div>
+      const reorderUpdates = draftBlocks
+        .map((b, idx) => ({ id: b.id, nextOrder: idx, prevOrder: initialBlockOrderById[b.id] }))
+        .filter((x) => x.prevOrder !== x.nextOrder)
+        .map((x) =>
+          privateInstance.put(`/tenant/pages/${pageId}/blocks/${x.id}/reorder`, {
+            order: x.nextOrder,
+          })
         )
-    }
+      await Promise.all(reorderUpdates)
 
-    const removeBlock = (instanceId: string) => {
-        setPageBlocks((prev) => prev.filter((b) => b.instanceId !== instanceId))
-        setSelectedBlockInstanceId((cur) => (cur === instanceId ? null : cur))
-    }
+      const uniquePageBlockIds = Array.from(new Set(draftBlocks.map((b) => b.pageBlockId)))
+      const fieldUpdates = uniquePageBlockIds.map((pbId) =>
+        privateInstance.put(`/tenant/pages/${pageId}/blocks/${pbId}/fields`, (() => {
+          const values = draftFieldValues[pbId] ?? {}
+          const fieldIds = Object.keys(values).map((k) => Number(k)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b)
+          const fields = fieldIds.map((id) => ({ pageBlockFieldId: id, value: String(values[id] ?? '') }))
+          return { fieldIds, fields }
+        })())
+      )
+      await Promise.all(fieldUpdates)
+      return true
+    },
+    onSuccess: async () => {
+      await refetchBlocksOnPage()
+      toast.success('Conteúdo atualizado')
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao salvar', {
+        description: errorData?.detail || 'Não foi possível salvar as alterações.',
+      })
+    },
+  })
 
-    const setFieldValue = (instanceId: string, field: ThemeBlockField, value: any) => {
-        const key = fieldKey(field)
-        setPageBlocks((prev) =>
-            prev.map((b) => {
-                if (b.instanceId !== instanceId) return b
-                const deviceFields = b.data.devices?.[device]?.fields ?? {}
-                return {
-                    ...b,
-                    data: {
-                        ...b.data,
-                        devices: {
-                            ...b.data.devices,
-                            [device]: { fields: { ...deviceFields, [key]: value } },
-                        },
-                    },
-                }
-            })
-        )
-    }
+  const setFieldValue = (pageBlockId: number, fieldId: number, value: string) => {
+    setDraftFieldValues((prev) => ({
+      ...prev,
+      [pageBlockId]: {
+        ...(prev[pageBlockId] ?? {}),
+        [fieldId]: value,
+      },
+    }))
+  }
 
-    const setSelectedFieldValue = (field: ThemeBlockField, value: any) => {
-        if (!selectedInstance) return
-        setFieldValue(selectedInstance.instanceId, field, value)
-    }
+  const previewJson = useMemo(() => {
+    const payload = draftBlocks.map((b, idx) => ({
+      id: b.id,
+      pageId: b.pageId,
+      pageBlockId: b.pageBlockId,
+      order: idx,
+      fields: Object.keys(draftFieldValues[b.pageBlockId] ?? {})
+        .map((k) => Number(k))
+        .filter((n) => Number.isFinite(n))
+        .sort((a, b) => a - b)
+        .map((fieldId) => ({
+          pageBlockFieldId: fieldId,
+          value: String((draftFieldValues[b.pageBlockId] ?? {})[fieldId] ?? ''),
+        })),
+    }))
+    return JSON.stringify(payload, null, 2)
+  }, [draftBlocks, draftFieldValues])
 
-    const isFilled = (type: ThemeBlockFieldType, value: any) => {
-        if (type === 'boolean') return typeof value === 'boolean'
-        if (type === 'number') {
-            if (value === null || value === undefined) return false
-            if (typeof value === 'number') return Number.isFinite(value)
-            const s = String(value).trim().replace(',', '.')
-            if (!s) return false
-            return Number.isFinite(Number(s))
-        }
-
-        if (type === 'multiselect' || type === 'text_list') return Array.isArray(value) && value.length > 0
-        if (type === 'number_list') return Array.isArray(value) && value.length > 0 && value.every((n) => Number.isFinite(Number(n)))
-        if (type === 'image_list' || type === 'video_list') return Array.isArray(value) && value.length > 0
-        if (type === 'link') {
-            if (!value || typeof value !== 'object') return false
-            const label = String((value as any).label ?? '').trim()
-            const path = String((value as any).path ?? '').trim()
-            return label.length > 0 && path.length > 0
-        }
-        if (type === 'link_list') return Array.isArray(value) && value.length > 0
-        if (type === 'image_link') {
-            if (!value || typeof value !== 'object') return false
-            const mediaUrl = String((value as any).mediaUrl ?? (value as any).imageUrl ?? '').trim()
-            const label = String((value as any).label ?? '').trim()
-            const path = String((value as any).path ?? '').trim()
-            return mediaUrl.length > 0 && path.length > 0 && label.length > 0
-        }
-        if (type === 'image_link_list') {
-            if (!Array.isArray(value) || value.length === 0) return false
-            return value.every((it) => {
-                if (!it || typeof it !== 'object') return false
-                const mediaUrl = String((it as any).mediaUrl ?? '').trim()
-                const path = String((it as any).path ?? '').trim()
-                return mediaUrl.length > 0 && path.length > 0
-            })
-        }
-
-        const s = String(value ?? '').trim()
-        return s.length > 0
-    }
-
-    const validateBeforeSave = () => {
-        const firstInvalid = (() => {
-            const deviceOrder: Device[] = ['mobile', 'tablet', 'desktop']
-            for (const b of pageBlocks) {
-                for (const d of deviceOrder) {
-                    const missing: string[] = []
-                    const fieldsObj = b.data.devices?.[d]?.fields ?? {}
-                    for (const f of b.block.fields ?? []) {
-                        if (!f.isRequired) continue
-                        const key = fieldKey(f)
-                        const v = (fieldsObj as any)?.[key]
-                        if (!isFilled(f.type, v)) missing.push(f.name)
-                    }
-                    if (missing.length > 0) return { instanceId: b.instanceId, blockName: b.block.name, device: d, missing }
-                }
-            }
-            return null
-        })()
-
-        if (!firstInvalid) return true
-        setSelectedBlockInstanceId(firstInvalid.instanceId)
-        setDevice(firstInvalid.device)
-        toast.error('Preencha os campos obrigatórios', {
-            description: `${firstInvalid.blockName} (${firstInvalid.device}): ${firstInvalid.missing.slice(0, 4).join(', ')}${firstInvalid.missing.length > 4 ? '…' : ''}`,
-        })
-        return false
-    }
-
-  
-
-    const { isPending: isSaving, mutateAsync: saveContent } = useMutation({
-        mutationFn: async () => {
-            if (!pageId) throw new Error('Página inválida')
-            const res = await privateInstance.put(`/tenant/pages/${pageId}/content`, {
-                content: contentToSave,
-            })
-            if (res.status !== 200) throw new Error('Erro ao salvar conteúdo')
-            return res.data
-        },
-        onSuccess: () => {
-            toast.success('Conteúdo salvo com sucesso!')
-        },
-        onError: (error: any) => {
-            const errorData = error?.response?.data
-            toast.error(errorData?.title || 'Erro ao salvar conteúdo', {
-                description: errorData?.detail || 'Não foi possível salvar o conteúdo.',
-            })
-        },
-    })
+  const SortableBlockRow = ({ item, idx }: { item: PageBlockXPage; idx: number }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+    const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition }
 
     return (
-        <Sheet
-            open={open}
-            onOpenChange={(o) => {
-                setOpen(o)
-                if (!o) {
-                    setPageBlocks([])
-                    setSelectedBlockInstanceId(null)
-                    setDevice('desktop')
-                    setDidHydrate(false)
-                }
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          'w-full max-w-full rounded-md border transition-colors',
+          selectedBlockXPageId === item.id ? 'bg-muted/30 border-primary/40' : 'bg-background hover:bg-muted/20',
+          isDragging ? 'opacity-60' : ''
+        )}
+      >
+        <div className="flex items-start gap-2 px-3 py-2">
+          <button
+            type="button"
+            className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+            aria-label="Reordenar"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" />
+          </button>
+
+          <button
+            type="button"
+            className="flex-1 min-w-0 text-left"
+            onClick={() => setSelectedBlockXPageId((cur) => (cur === item.id ? null : item.id))}
+          >
+            <div className="text-sm font-medium truncate">
+              {idx + 1}. {item.pageBlock?.name ?? `#${item.pageBlockId}`}
+            </div>
+            <div className="text-xs text-muted-foreground truncate">
+              {Object.keys(draftFieldValues[item.pageBlockId] ?? {}).length} campos
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:hover:text-muted-foreground"
+            disabled={isRemovingBlock}
+            onClick={(e) => {
+              e.stopPropagation()
+              removeBlockFromPage(item.id)
             }}
-        >
-            <SheetTrigger asChild>{trigger}</SheetTrigger>
-            <SheetContent className="w-full sm:max-w-full p-0 overflow-x-hidden [&>button.absolute]:hidden" >
-                <div className="flex h-full flex-col">
-                    <div className="h-11 border-b px-3 flex items-center justify-between bg-background">
-                        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-md bg-muted/20 px-2 py-1.5 max-w-[600px]">
-                            <Globe className="size-4 text-muted-foreground" />
-                            <Input className="h-7 border-0 bg-transparent shadow-none p-0 focus-visible:ring-0 text-sm" value={displayUrl} readOnly />
-                        </div>
-
-                        <div className="ml-4 flex items-center gap-2 shrink-0">
-                            <Tabs value={device} onValueChange={(v) => setDevice(v as Device)} className="shrink-0">
-                                <TabsList className="h-8">
-                                    <TabsTrigger value="mobile" className="gap-2 h-7 px-2">
-                                        <Smartphone className="size-4" />
-                                    </TabsTrigger>
-                                    <TabsTrigger value="tablet" className="gap-2 h-7 px-2">
-                                        <Tablet className="size-4" />
-                                    </TabsTrigger>
-                                    <TabsTrigger value="desktop" className="gap-2 h-7 px-2">
-                                        <Monitor className="size-4" />
-                                    </TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="h-8"
-                                disabled={!pageId || isSaving || isLoadingPageDetail}
-                                onClick={() => { if (validateBeforeSave()) saveContent() }}
-                            >
-                                {isSaving ? <Loader className="size-4 animate-spin" /> : 'Salvar'}
-                            </Button>
-
-                            <SheetClose asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <X className="size-4" />
-                                </Button>
-                            </SheetClose>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 min-h-0 flex min-w-0">
-                        <aside className="w-[300px] border-r bg-background">
-                            <div className="h-full flex flex-col">
-                                <div className="px-3 py-2 border-b">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Blocos</div>
-                                        {blocksLoading ? <Loader className="size-3.5 animate-spin text-muted-foreground" /> : null}
-                                    </div>
-                                </div>
-
-                                <ScrollArea className="flex-1 min-h-0">
-                                    <div className="p-3 flex flex-col gap-2">
-                                        {(isLoadingPageDetail || blocksLoading) ? (
-                                            <>
-                                                {Array.from({ length: 6 }).map((_, i) => (
-                                                    <div key={i} className="rounded-md border px-3 py-2">
-                                                        <Skeleton className="h-4 w-3/4" />
-                                                        <Skeleton className="mt-2 h-3 w-1/3" />
-                                                    </div>
-                                                ))}
-                                            </>
-                                        ) : !hasBlocks ? (
-                                            <div className="rounded-md border bg-muted/20 px-3 py-2">
-                                                <div className="text-sm font-medium">Nenhum bloco</div>
-                                            </div>
-                                        ) : (
-                                            <DndContext
-                                                sensors={sensors}
-                                                collisionDetection={closestCenter}
-                                                modifiers={[restrictToVerticalAxis]}
-                                                onDragStart={onDragStart}
-                                                onDragEnd={onDragEnd}
-                                            >
-                                                <SortableContext items={pageBlocks.map((b) => b.instanceId)} strategy={verticalListSortingStrategy}>
-                                                    {pageBlocks.map((b, idx) => (
-                                                        <SortableBlockRow key={b.instanceId} item={b} idx={idx} />
-                                                    ))}
-                                                </SortableContext>
-                                                <DragOverlay>
-                                                    {activeDragItem ? (
-                                                        <div className="w-[270px] rounded-md border bg-background shadow-lg">
-                                                            <div className="flex items-start gap-2 px-3 py-2">
-                                                                <GripVertical className="mt-0.5 size-4 text-muted-foreground" />
-                                                                <div className="min-w-0">
-                                                                    <div className="text-sm font-medium truncate">{activeDragItem.block.name}</div>
-                                                                    <div className="text-xs text-muted-foreground truncate">{activeDragItem.block.fields?.length ?? 0} campos</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ) : null}
-                                                </DragOverlay>
-                                            </DndContext>
-                                        )}
-                                    </div>
-                                </ScrollArea>
-
-                                <div className="p-3 border-t">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                className="w-full justify-center gap-2"
-                                                disabled={!open || !themeId || blocksLoading || availableBlocks.length === 0}
-                                            >
-                                                <Plus className="size-4" /> Adicionar bloco
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-[280px]" align="start">
-                                            <DropdownMenuLabel>Blocos disponíveis</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <ScrollArea className="max-h-[360px]">
-                                                <div className="p-1">
-                                                    {availableBlocks.map((b) => (
-                                                        <DropdownMenuItem key={b.id} onSelect={() => addBlock(b)} className="flex flex-col items-start gap-0.5">
-                                                            <div className="text-sm font-medium">{b.name}</div>
-                                                            {b.description ? <div className="text-xs text-muted-foreground">{b.description}</div> : null}
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </div>
-                                            </ScrollArea>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </div>
-                        </aside>
-
-                        <main className="flex-1 min-h-0 flex flex-col bg-muted/20 min-w-0">
-                            <div className="flex-1 min-h-0 flex min-w-0">
-                                <div className="flex-1 min-h-0 overflow-auto p-3 min-w-0">
-                                    <div className="mx-auto w-full" style={{ maxWidth: `${previewSize.maxWidth}px` }}>
-                                        <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
-                                            <div className="h-10 border-b bg-muted/30 flex items-center px-3 gap-2">
-                                                <div className="flex items-center gap-1">
-                                                    <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                                                    <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-                                                    <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-                                                </div>
-                                                <div className="text-xs text-muted-foreground truncate">{previewSize.label} • JSON</div>
-                                            </div>
-                                            <ScrollArea className="h-[72vh] bg-muted/10">
-                                                <pre className="p-3 text-xs leading-relaxed font-mono whitespace-pre-wrap break-all max-w-full text-foreground">
-{pageBlocksJson}
-                                                </pre>
-                                            </ScrollArea>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div
-                                    className={`bg-background flex-none min-w-0 overflow-hidden transition-all duration-200 ease-out ${inspectorOpen ? 'w-[360px] max-w-[360px] border-l' : 'w-0 max-w-0 border-l-0'
-                                        }`}
-                                >
-                                    <div
-                                        className={`h-full w-[360px] max-w-[360px] min-w-0 overflow-hidden transition-transform duration-200 ease-out ${inspectorOpen ? 'translate-x-0' : 'translate-x-full'    
-                                            }`}
-                                    >
-                                        <div className="h-full flex flex-col">
-                                            <div className="px-3 py-2 border-b">
-                                                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Propriedades</div>
-                                            </div>
-
-                                            <ScrollArea className="flex-1 min-h-0">
-                                                <div className="p-3 flex flex-col gap-3">
-                                                    <div className="rounded-md border bg-muted/10 px-3 py-2">
-                                                        <div className="text-sm font-semibold">{selectedInstance?.block.name ?? ''}</div>
-                                                        {selectedInstance?.block.description ? (
-                                                            <div className="text-xs text-muted-foreground">{selectedInstance.block.description}</div>
-                                                        ) : null}
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-3">
-                                                        {(selectedInstance?.block.fields ?? []).map((f) => {
-                                                            const v = selectedInstance?.data?.devices?.[device]?.fields?.[fieldKey(f)]
-                                                            if (f.type === 'boolean') {
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <div className="flex items-center justify-between gap-3">
-                                                                            <div className="min-w-0">
-                                                                                <Label className="text-sm">
-                                                                                    {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                                </Label>
-                                                                                {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
-                                                                            </div>
-                                                                            <Switch checked={Boolean(v)} onCheckedChange={(nv) => setSelectedFieldValue(f, Boolean(nv))} />
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            if (f.type === 'number') {
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">
-                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                        </Label>
-                                                                        <Input
-                                                                            type="number"
-                                                                            className="mt-2 h-9"
-                                                                            value={v ?? ''}
-                                                                            onChange={(e) => setSelectedFieldValue(f, e.target.value)}
-                                                                        />
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            if (f.type === 'date') {
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">
-                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                        </Label>
-                                                                        <Input
-                                                                            type="date"
-                                                                            className="mt-2 h-9"
-                                                                            value={v ?? ''}
-                                                                            onChange={(e) => setSelectedFieldValue(f, e.target.value)}
-                                                                        />
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            if (f.type === 'datetime') {
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">
-                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                        </Label>
-                                                                        <Input
-                                                                            type="datetime-local"
-                                                                            className="mt-2 h-9"
-                                                                            value={v ?? ''}
-                                                                            onChange={(e) => setSelectedFieldValue(f, e.target.value)}
-                                                                        />
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            if (f.type === 'select') {
-                                                                const options = f.options ?? []
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">
-                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                        </Label>
-                                                                        {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
-                                                                        <Select value={typeof v === 'string' ? v : ''} onValueChange={(nv) => setSelectedFieldValue(f, nv)}>
-                                                                            <SelectTrigger className="mt-2 h-9 w-full">
-                                                                                <SelectValue placeholder="Selecione..." />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {options.map((o) => (
-                                                                                    <SelectItem key={o.id} value={o.value}>
-                                                                                        {o.name}
-                                                                                    </SelectItem>
-                                                                                ))}
-                                                                            </SelectContent>
-                                                                        </Select>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            if (f.type === 'multiselect') {
-                                                                const options = f.options ?? []
-                                                                const selectedValues = Array.isArray(v) ? v.map((x) => String(x)) : []
-                                                                const selectedSet = new Set(selectedValues)
-                                                                const selectedLabel = selectedValues.length > 0
-                                                                    ? `${selectedValues.length} selecionado${selectedValues.length > 1 ? 's' : ''}`
-                                                                    : 'Selecionar...'
-
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <Label className="text-sm">
-                                                                            {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                        </Label>
-                                                                        {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
-                                                                        <DropdownMenu>
-                                                                            <DropdownMenuTrigger asChild>
-                                                                                <Button type="button" variant="outline" size="sm" className="mt-2 h-9 w-full justify-between">
-                                                                                    <span className="truncate">{selectedLabel}</span>
-                                                                                    <span className="text-xs text-muted-foreground">{selectedValues.length}</span>
-                                                                                </Button>
-                                                                            </DropdownMenuTrigger>
-                                                                            <DropdownMenuContent className="w-[320px]" align="end">
-                                                                                <DropdownMenuLabel>Opções</DropdownMenuLabel>
-                                                                                <DropdownMenuSeparator />
-                                                                                <ScrollArea className="max-h-[360px]">
-                                                                                    <div className="p-1">
-                                                                                        {options.map((o) => (
-                                                                                            <DropdownMenuCheckboxItem
-                                                                                                key={o.id}
-                                                                                                checked={selectedSet.has(o.value)}
-                                                                                                onCheckedChange={(checked) => {
-                                                                                                    const next = checked
-                                                                                                        ? Array.from(new Set([...selectedValues, o.value]))
-                                                                                                        : selectedValues.filter((x) => x !== o.value)
-                                                                                                    setSelectedFieldValue(f, next)
-                                                                                                }}
-                                                                                            >
-                                                                                                {o.name}
-                                                                                            </DropdownMenuCheckboxItem>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </ScrollArea>
-                                                                            </DropdownMenuContent>
-                                                                        </DropdownMenu>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            if (f.type === 'image_link_list') {
-                                                                const listRaw = Array.isArray(v) ? v : []
-                                                                const list = listRaw.map((it: any) => ({
-                                                                    mediaUrl: String(it?.mediaUrl ?? ''),
-                                                                    label: String(it?.label ?? ''),
-                                                                    path: String(it?.path ?? ''),
-                                                                }))
-
-                                                                const move = (from: number, to: number) => {
-                                                                    if (from === to) return
-                                                                    if (from < 0 || to < 0 || from >= list.length || to >= list.length) return
-                                                                    const next = [...list]
-                                                                    const [removed] = next.splice(from, 1)
-                                                                    next.splice(to, 0, removed)
-                                                                    setSelectedFieldValue(f, next)
-                                                                }
-
-                                                                return (
-                                                                    <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                        <div className="flex items-start justify-between gap-2">
-                                                                            <div className="min-w-0">
-                                                                                <Label className="text-sm">
-                                                                                    {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                                </Label>
-                                                                                {f.description ? <div className="text-xs text-muted-foreground truncate">{f.description}</div> : null}
-                                                                            </div>
-                                                                            <Button
-                                                                                type="button"
-                                                                                size="sm"
-                                                                                variant="outline"
-                                                                                className="h-8 px-2"
-                                                                                onClick={() => setSelectedFieldValue(f, [...list, { mediaUrl: '', label: '', path: '' }])}
-                                                                            >
-                                                                                <Plus className="size-4" />
-                                                                            </Button>
-                                                                        </div>
-
-                                                                        <div className="mt-3 flex flex-col gap-2">
-                                                                            {list.length === 0 ? (
-                                                                                <div className="text-xs text-muted-foreground">Nenhum item</div>
-                                                                            ) : (
-                                                                                list.map((row: any, idx: number) => {
-                                                                                    const mediaUrl = String(row.mediaUrl ?? '')
-                                                                                    const canPreview = mediaUrl.length > 0
-
-                                                                                    return (
-                                                                                        <div key={idx} className="rounded-md border bg-background p-2 min-w-0 max-w-full overflow-hidden">
-                                                                                            <div className="flex items-center justify-between gap-2">
-                                                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                                                    <div className="h-10 w-10 rounded border bg-muted overflow-hidden flex items-center justify-center shrink-0">
-                                                                                                        {canPreview ? (
-                                                                                                            <img src={mediaUrl} alt="banner" className="h-full w-full object-cover" />
-                                                                                                        ) : (
-                                                                                                            <span className="text-xs text-muted-foreground">—</span>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                    <div className="min-w-0">
-                                                                                                        <div className="w-full text-xs font-medium truncate">{canPreview ? 'Banner selecionado' : 'Selecione um banner'}</div>
-                                                                                                        <div className="w-full text-[11px] max-w-[150px] text-muted-foreground truncate">{canPreview ? mediaUrl : ''}</div>
-                                                                                                    </div>
-                                                                                                </div>
-
-                                                                                                <div className="flex items-center gap-1">
-                                                                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => move(idx, idx - 1)}>
-                                                                                                        <ArrowUp className="size-4" />
-                                                                                                    </Button>
-                                                                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={idx === list.length - 1} onClick={() => move(idx, idx + 1)}>
-                                                                                                        <ArrowDown className="size-4" />
-                                                                                                    </Button>
-                                                                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedFieldValue(f, list.filter((_: any, i: number) => i !== idx))}>
-                                                                                                        <X className="size-4" />
-                                                                                                    </Button>
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                            <div className="mt-2 flex items-center gap-2 min-w-0">
-                                                                                                <MediaSelectorDialog
-                                                                                                    multiple={false}
-                                                                                                    toFilter="banner"
-                                                                                                    onSelect={(medias) => {
-                                                                                                        const m = medias[0]
-                                                                                                        if (!m) return
-                                                                                                        if (typeof m.mime !== 'string' || !m.mime.startsWith('image/')) return
-                                                                                                        if (!m.url) return
-                                                                                                        const next = [...list]
-                                                                                                        next[idx] = { ...next[idx], mediaUrl: m.url }
-                                                                                                        setSelectedFieldValue(f, next)
-                                                                                                    }}
-                                                                                                    trigger={<Button type="button" size="sm" variant="outline" className="shrink-0">Selecionar</Button>}
-                                                                                                />
-                                                                                                <Input
-                                                                                                    className="h-9 flex-1 min-w-0"
-                                                                                                    placeholder="Label"
-                                                                                                    value={row.label}
-                                                                                                    onChange={(e) => {
-                                                                                                        const next = [...list]
-                                                                                                        next[idx] = { ...next[idx], label: e.target.value }
-                                                                                                        setSelectedFieldValue(f, next)
-                                                                                                    }}
-                                                                                                />
-                                                                                            </div>
-
-                                                                                            <div className="mt-2">
-                                                                                                <Input
-                                                                                                    className="h-9"
-                                                                                                    placeholder="/caminho"
-                                                                                                    value={row.path}
-                                                                                                    onChange={(e) => {
-                                                                                                        const next = [...list]
-                                                                                                        next[idx] = { ...next[idx], path: e.target.value.replace(/\s+/g, '') }
-                                                                                                        setSelectedFieldValue(f, next)
-                                                                                                    }}
-                                                                                                />
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    )
-                                                                                })
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            return (
-                                                                <div key={f.id} className="rounded-md border px-3 py-2">
-                                                                    <Label className="text-sm">
-                                                                        {f.name}{f.isRequired ? <span className="text-destructive"> *</span> : null}
-                                                                    </Label>
-                                                                    <Input
-                                                                        className="mt-2 h-9"
-                                                                        value={v ?? ''}
-                                                                        onChange={(e) => setSelectedFieldValue(f, e.target.value)}
-                                                                        placeholder={f.type}
-                                                                    />
-                                                                </div>
-                                                            )
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            </ScrollArea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </main>
-                    </div>
-                </div>
-            </SheetContent>
-        </Sheet>
+            aria-label="Remover bloco"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      </div>
     )
-}
+  }
 
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (!o) {
+          setSelectedBlockXPageId(null)
+          setDraftBlocks([])
+          setDraftFieldValues({})
+          setInitialBlockOrderById({})
+        }
+      }}
+    >
+      <SheetTrigger asChild>
+        {trigger ? trigger : (
+          <Button variant="outline" size="sm" disabled={!pageId}>
+            Conteúdo
+          </Button>
+        )}
+      </SheetTrigger>
+      <SheetContent className="min-w-full w-full p-0">
+        <div className="h-full flex flex-col">
+          <SheetHeader className="p-4 border-b">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <SheetTitle className="truncate">Conteúdo • {page?.title ?? `#${pageId}`}</SheetTitle>
+                {page?.path ? <div className="text-xs text-muted-foreground truncate">{page.path}</div> : null}
+              </div>
+              <Button type="button" size="sm" className="h-8 gap-2" disabled={!pageId || isSaving || isLoadingBlocksOnPage} onClick={() => save()}>
+                {isSaving ? <Loader className="size-4 animate-spin" /> : <Save className="size-4" />}
+                Salvar
+              </Button>
+            </div>
+          </SheetHeader>
+
+          <div className="flex-1 min-h-0 flex min-w-0">
+            <aside className="w-[320px] border-r bg-background">
+              <div className="h-full flex flex-col">
+                <div className="px-3 py-2 border-b">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Blocos</div>
+                    {(isLoadingBlocksOnPage || isLoadingAllPageBlocks) ? <Loader className="size-3.5 animate-spin text-muted-foreground" /> : null}
+                  </div>
+                </div>
+
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="p-3 flex flex-col gap-2">
+                    {isLoadingBlocksOnPage ? (
+                      <>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="rounded-md border px-3 py-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="mt-2 h-3 w-1/3" />
+                          </div>
+                        ))}
+                      </>
+                    ) : draftBlocks.length === 0 ? (
+                      <div className="rounded-md border bg-muted/20 px-3 py-2">
+                        <div className="text-sm font-medium">Nenhum bloco</div>
+                      </div>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        modifiers={[restrictToVerticalAxis]}
+                        onDragEnd={onDragEnd}
+                      >
+                        <SortableContext items={draftBlocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                          {draftBlocks.map((b, idx) => (
+                            <SortableBlockRow key={b.id} item={b} idx={idx} />
+                          ))}
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <div className="p-3 border-t">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="w-full justify-center gap-2"
+                        disabled={!open || !pageId || isLoadingAllPageBlocks || isAddingBlock || availableBlocks.length === 0}
+                      >
+                        <Plus className="size-4" /> Adicionar bloco
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[300px]" align="start">
+                      <DropdownMenuLabel>Blocos disponíveis</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <ScrollArea className="max-h-[360px]">
+                        <div className="p-1">
+                          {availableBlocks.map((b) => (
+                            <DropdownMenuItem
+                              key={b.id}
+                              onSelect={() => addBlockToPage(b.id)}
+                              className="flex flex-col items-start gap-0.5"
+                            >
+                              <div className="text-sm font-medium">{b.name}</div>
+                              {b.description ? <div className="text-xs text-muted-foreground">{b.description}</div> : null}
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </aside>
+
+            <main className="flex-1 min-h-0 flex flex-col bg-muted/20 min-w-0">
+              <div className="flex-1 min-h-0 overflow-auto p-3 min-w-0">
+                <div className="mx-auto w-full max-w-[960px]">
+                  <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
+                    <div className="h-10 border-b bg-muted/30 flex items-center px-3 gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">JSON</div>
+                    </div>
+                    <ScrollArea className="h-[72vh] bg-muted/10">
+                      <pre className="p-3 text-xs leading-relaxed font-mono whitespace-pre-wrap break-all max-w-full text-foreground">
+{previewJson}
+                      </pre>
+                    </ScrollArea>
+                  </div>
+                </div>
+              </div>
+            </main>
+
+            <aside className="w-[380px] border-l bg-background min-w-0">
+              <div className="h-full flex flex-col">
+                <div className="px-3 py-2 border-b">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Campos</div>
+                </div>
+
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="p-3">
+                    {!selectedBlock ? (
+                      <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">Selecione um bloco</div>
+                    ) : (
+                      <>
+                        <div className="rounded-md border bg-muted/10 px-3 py-2">
+                          <div className="text-sm font-semibold">{selectedBlock.pageBlock?.name ?? `#${selectedBlock.pageBlockId}`}</div>
+                          {selectedBlock.pageBlock?.description ? (
+                            <div className="text-xs text-muted-foreground">{selectedBlock.pageBlock.description}</div>
+                          ) : null}
+                        </div>
+
+                        <Separator className="my-3" />
+
+                        {isLoadingFields ? (
+                          <div className="flex flex-col gap-2">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <div key={i} className="rounded-md border px-3 py-2">
+                                <Skeleton className="h-4 w-3/4" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : fields.length === 0 ? (
+                          <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">Nenhum campo</div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {fields.map((f) => {
+                              const value = String((draftFieldValues[selectedPageBlockId] ?? {})[f.id] ?? '')
+                              return (
+                                <div key={f.id} className="rounded-md border px-3 py-2">
+                                  <div className="min-w-0">
+                                    <Label className="text-sm">{f.name}</Label>
+                                    <div className="text-xs text-muted-foreground">{f.type}</div>
+                                  </div>
+
+                                  <div className="mt-2">
+                                    {f.type === 'long_text' ? (
+                                      <Textarea
+                                        rows={4}
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="Digite aqui..."
+                                      />
+                                    ) : f.type === 'image_list' ? (
+                                      <Textarea
+                                        rows={4}
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="1 URL por linha"
+                                      />
+                                    ) : f.type === 'video_list' ? (
+                                      <Textarea
+                                        rows={4}
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="1 URL por linha"
+                                      />
+                                    ) : f.type === 'image' ? (
+                                      <Input
+                                        type="url"
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="URL da imagem"
+                                      />
+                                    ) : f.type === 'video' ? (
+                                      <Input
+                                        type="url"
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="URL do vídeo"
+                                      />
+                                    ) : f.type === 'number' ? (
+                                      <Input
+                                        type="number"
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="0"
+                                      />
+                                    ) : f.type === 'unit' ? (
+                                      <Input
+                                        type="text"
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="Ex: kg"
+                                      />
+                                    ) : (
+                                      <Input
+                                        type="text"
+                                        value={value}
+                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
+                                        placeholder="Digite aqui..."
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <div className="p-3 border-t">
+                  <div className="text-xs text-muted-foreground">
+                    Preencha os valores dos campos desse bloco.
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}

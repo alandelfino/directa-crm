@@ -32,16 +32,6 @@ type PageItem = {
   active: boolean
   storeId: number
   type: string
-  content?: any
-}
-
-function isValidJsonObject(v: string) {
-  try {
-    const parsed = JSON.parse(v)
-    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
-  } catch {
-    return false
-  }
 }
 
 const formSchema = z.object({
@@ -50,9 +40,6 @@ const formSchema = z.object({
   active: z.boolean().default(true),
   storeId: z.coerce.number().min(1, { message: 'Loja é obrigatória' }),
   type: z.enum(['landingpage', 'search', 'product', 'cart', 'checkout', 'login', 'register', 'my_account']),
-  content: z.string().optional().nullable().refine((v) => !v || v.trim().length === 0 || isValidJsonObject(v), {
-    message: 'Informe um JSON válido (objeto)',
-  }),
 })
 
 export function EditPageSheet({ pageId, onSaved }: { pageId: number, onSaved?: () => void }) {
@@ -68,7 +55,6 @@ export function EditPageSheet({ pageId, onSaved }: { pageId: number, onSaved?: (
       active: true,
       storeId: 0,
       type: 'landingpage',
-      content: '',
     },
   })
 
@@ -100,7 +86,6 @@ export function EditPageSheet({ pageId, onSaved }: { pageId: number, onSaved?: (
           active: p.active === true,
           storeId: p.storeId ?? 0,
           type: (p.type as any) ?? 'landingpage',
-          content: p.content ? JSON.stringify(p.content, null, 2) : '',
         })
       } catch (err: any) {
         const errorData = err?.response?.data
@@ -117,15 +102,12 @@ export function EditPageSheet({ pageId, onSaved }: { pageId: number, onSaved?: (
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const rawContent = String(values.content ?? '').trim()
-      const content = rawContent.length > 0 ? JSON.parse(rawContent) : undefined
       const payload = {
         title: values.title,
         path: values.path,
         active: values.active,
         storeId: values.storeId,
         type: values.type,
-        ...(content ? { content } : {}),
       }
       const response = await privateInstance.put(`/tenant/pages/${pageId}`, payload)
       if (response.status !== 200) throw new Error('Erro ao atualizar página')
@@ -258,30 +240,6 @@ export function EditPageSheet({ pageId, onSaved }: { pageId: number, onSaved?: (
                       <Switch checked={Boolean(field.value)} onCheckedChange={(v) => field.onChange(v)} disabled={loading || isPending} />
                     </FormControl>
                   </div>
-                </FormItem>
-              )} />
-
-              <FormField control={form.control as any} name="content" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Content (JSON)</FormLabel>
-                  <FormControl>
-                    {loading ? (
-                      <Skeleton className="h-28 w-full" />
-                    ) : (
-                      <textarea
-                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder='{"blocks":[]}'
-                        name={field.name}
-                        ref={field.ref}
-                        value={(field.value as any) ?? ''}
-                        onBlur={field.onBlur}
-                        onChange={field.onChange}
-                        disabled={loading || isPending}
-                      />
-                    )}
-                  </FormControl>
-                  <FormDescription className="text-xs">Opcional. Informe um JSON (objeto).</FormDescription>
-                  <FormMessage />
                 </FormItem>
               )} />
             </div>

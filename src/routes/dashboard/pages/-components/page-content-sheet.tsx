@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -43,7 +44,7 @@ type PageBlockXPage = {
   pageBlock?: PageBlock
 }
 
-type PageBlockFieldType = 'short_text' | 'long_text' | 'image' | 'image_list' | 'video' | 'video_list' | 'number' | 'unit'
+type PageBlockFieldType = 'short_text' | 'long_text' | 'image' | 'image_list' | 'video' | 'video_list' | 'number' | 'unit' | 'boolean'
 
 type PageBlockField = {
   id: number
@@ -173,7 +174,7 @@ export function PageContentSheet({
       let changed = false
       for (const f of fields) {
         if (current[f.id] == null) {
-          current[f.id] = ''
+          current[f.id] = f.type === 'boolean' ? 'false' : ''
           changed = true
         }
       }
@@ -285,6 +286,96 @@ export function PageContentSheet({
         [fieldId]: value,
       },
     }))
+  }
+
+  const renderFieldInput = (field: PageBlockField, value: string) => {
+    switch (field.type) {
+      case 'long_text':
+        return (
+          <Textarea
+            rows={4}
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="Digite aqui..."
+          />
+        )
+      case 'image_list':
+        return (
+          <Textarea
+            rows={4}
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="1 URL por linha"
+          />
+        )
+      case 'video_list':
+        return (
+          <Textarea
+            rows={4}
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="1 URL por linha"
+          />
+        )
+      case 'image':
+        return (
+          <Input
+            type="url"
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="URL da imagem"
+          />
+        )
+      case 'video':
+        return (
+          <Input
+            type="url"
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="URL do vídeo"
+          />
+        )
+      case 'number':
+        return (
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="0"
+          />
+        )
+      case 'boolean':
+        return (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={value === 'true' || value === '1'}
+              onCheckedChange={(v) => setFieldValue(selectedPageBlockId, field.id, v === true ? 'true' : 'false')}
+            />
+            <div className="text-sm text-muted-foreground select-none">
+              {value === 'true' || value === '1' ? 'Ativo' : 'Inativo'}
+            </div>
+          </div>
+        )
+      case 'unit':
+        return (
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="Ex: kg"
+          />
+        )
+      case 'short_text':
+      default:
+        return (
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            placeholder="Digite aqui..."
+          />
+        )
+    }
   }
 
   const previewJson = useMemo(() => {
@@ -538,63 +629,7 @@ export function PageContentSheet({
                                   </div>
 
                                   <div className="mt-2">
-                                    {f.type === 'long_text' ? (
-                                      <Textarea
-                                        rows={4}
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="Digite aqui..."
-                                      />
-                                    ) : f.type === 'image_list' ? (
-                                      <Textarea
-                                        rows={4}
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="1 URL por linha"
-                                      />
-                                    ) : f.type === 'video_list' ? (
-                                      <Textarea
-                                        rows={4}
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="1 URL por linha"
-                                      />
-                                    ) : f.type === 'image' ? (
-                                      <Input
-                                        type="url"
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="URL da imagem"
-                                      />
-                                    ) : f.type === 'video' ? (
-                                      <Input
-                                        type="url"
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="URL do vídeo"
-                                      />
-                                    ) : f.type === 'number' ? (
-                                      <Input
-                                        type="number"
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="0"
-                                      />
-                                    ) : f.type === 'unit' ? (
-                                      <Input
-                                        type="text"
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="Ex: kg"
-                                      />
-                                    ) : (
-                                      <Input
-                                        type="text"
-                                        value={value}
-                                        onChange={(e) => setFieldValue(selectedPageBlockId, f.id, e.target.value)}
-                                        placeholder="Digite aqui..."
-                                      />
-                                    )}
+                                    {renderFieldInput(f, value)}
                                   </div>
                                 </div>
                               )

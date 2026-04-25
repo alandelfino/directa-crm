@@ -243,10 +243,9 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-4'>
+      <div className='flex items-center justify-between p-2'>
         <div className='flex flex-col'>
           <h2 className='text-lg font-semibold'>Cobranças</h2>
-          <p className='text-sm text-muted-foreground'>Faturas e períodos de cobrança da conta.</p>
         </div>
         <div className='flex items-center gap-3'>
           <Button
@@ -311,8 +310,8 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
-        <div className='border rounded-lg overflow-hidden h-full flex flex-col flex-1 border-r-0 border-b-0 rounded-tr-none! rounded-br-none! rounded-bl-none!'>
+      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={billings}

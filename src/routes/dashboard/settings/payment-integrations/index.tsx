@@ -170,7 +170,7 @@ function RouteComponent() {
             setIsFilterOpen(open)
           }}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" disabled={isLoading || isRefetching}>
+              <Button variant="ghost" size="sm" disabled={isLoading || isRefetching}>
                 <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
                 {activeFilterCount > 0 && (
                   <span className="absolute top-2 right-2 flex h-2 w-2">

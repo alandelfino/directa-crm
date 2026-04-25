@@ -218,37 +218,36 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-4'>
+      <div className='flex items-center justify-between p-2'>
         <div className='flex flex-col'>
           <h2 className='text-lg font-semibold'>Tamanhos de Mídias</h2>
-          <p className='text-sm text-muted-foreground'>Gerencie os tamanhos de mídias da conta.</p>
         </div>
         <div className='flex items-center gap-2'>
-          <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
-            {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
+          <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
+            {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className='size-[0.85rem]' />)}
           </Button>
 
           {selectedItems.length === 1 ? (
             <DeleteMediaSize mediaSizeId={selectedItems[0]} />
           ) : (
-            <Button variant={'outline'} disabled>
-              <Trash /> Excluir
+            <Button variant={'outline'} size="sm" disabled>
+              <Trash className="size-[0.85rem]" /> Excluir
             </Button>
           )}
 
           {selectedItems.length === 1 ? (
             <EditMediaSizeSheet mediaSizeId={selectedItems[0]} />
           ) : (
-            <Button variant={'outline'} disabled>
-              <Edit /> Editar
+            <Button variant={'outline'} size="sm" disabled>
+              <Edit className="size-[0.85rem]" /> Editar
             </Button>
           )}
           <NewMediaSizeSheet />
         </div>
       </div>
 
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
-        <div className='border-t border-l border-neutral-200 rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={items}

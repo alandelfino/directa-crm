@@ -6,9 +6,12 @@ export const Route = createFileRoute('/dashboard/settings/webhooks/')({
 
 function RouteComponent() {
   return (
-    <div className='flex flex-col gap-4'>
-      <h2 className='text-lg font-semibold'>Webhooks</h2>
-      <p className='text-sm text-muted-foreground'>Gerencie webhooks para eventos da conta.</p>
+    <div className='flex flex-col w-full h-full'>
+      <div className='flex items-center justify-between p-2'>
+        <div className='flex flex-col'>
+          <h2 className='text-lg font-semibold'>Webhooks</h2>
+        </div>
+      </div>
     </div>
   )
 }

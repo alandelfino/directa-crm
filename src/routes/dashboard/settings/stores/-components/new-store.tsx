@@ -109,8 +109,8 @@ export function NewStoreSheet({ onCreated }: { onCreated?: () => void }) {
   return (
     <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) form.reset(); }}>
       <SheetTrigger asChild>
-        <Button variant={'default'}>
-          <Plus className="mr-2 h-4 w-4" /> Nova loja
+        <Button variant={'default'} size="sm">
+          <Plus className="size-[0.85rem] mr-2" /> Nova loja
         </Button>
       </SheetTrigger>
       <SheetContent className='min-w-[500px] sm:w-[540px] overflow-y-auto'>

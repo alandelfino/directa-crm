@@ -164,10 +164,9 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-4'>
+      <div className='flex items-center justify-between p-2'>
         <div className='flex flex-col'>
           <h2 className='text-lg font-semibold'>Perfis</h2>
-          <p className='text-sm text-muted-foreground'>Gerencie perfis de usuários.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedProfiles([]); refetch() }}>
@@ -193,8 +192,8 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
-        <div className='border-t border-l border-neutral-200 rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={profiles}

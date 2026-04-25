@@ -165,10 +165,9 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-4'>
+      <div className='flex items-center justify-between p-2'>
         <div className='flex flex-col'>
           <h2 className='text-lg font-semibold'>Integrações de Transportadoras</h2>
-          <p className='text-sm text-muted-foreground'>Gerencie suas integrações com transportadoras.</p>
         </div>
         <div className='flex items-center gap-2'>
             <Popover open={isFilterOpen} onOpenChange={(open) => {
@@ -181,7 +180,7 @@ function RouteComponent() {
               setIsFilterOpen(open)
             }}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" disabled={isLoading || isRefetching}>
+                <Button variant="ghost" size="sm" disabled={isLoading || isRefetching}>
                   <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
                   {activeFilterCount > 0 && (
                     <span className="absolute top-2 right-2 flex h-2 w-2">
@@ -322,8 +321,8 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
-        <div className=' rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={data?.items || []}

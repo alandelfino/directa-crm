@@ -50,8 +50,8 @@ export function NewDistributionCenterSheet({ onCreated }: { onCreated?: () => vo
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={'default'}>
-          <Plus /> Novo centro
+        <Button variant={'default'} size="sm">
+          <Plus className="size-[0.85rem] mr-2" /> Novo centro
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-sm'>

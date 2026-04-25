@@ -17,17 +17,14 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <div className='p-4'>
-        <div className='flex items-center justify-between'>
-          <div className='flex flex-col'>
-            <h2 className='text-lg font-semibold'>Integrações</h2>
-            <p className='text-sm text-muted-foreground'>Conecte serviços externos à sua conta.</p>
-          </div>
+      <div className='flex items-center justify-between p-2'>
+        <div className='flex flex-col'>
+          <h2 className='text-lg font-semibold'>Integrações</h2>
         </div>
       </div>
 
-      <div className='flex-1 min-h-0 overflow-y-auto pl-4'>
-        <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pr-4 pb-6'>
+      <div className='flex-1 min-h-0 overflow-y-auto p-2'>
+        <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-6'>
           {items.map((it) => (
             <Card key={it.id} className='group rounded-xl border border-neutral-200 hover:border-ring transition-colors'>
               <CardContent className='h-full p-4 flex flex-col justify-between'>

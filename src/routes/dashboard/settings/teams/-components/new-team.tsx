@@ -51,8 +51,8 @@ export function NewTeamSheet({ onCreated }: { onCreated?: () => void }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={'default'}>
-          <Plus /> Nova equipe
+        <Button variant={'default'} size="sm">
+          <Plus className="size-[0.85rem] mr-2" /> Nova equipe
         </Button>
       </SheetTrigger>
       <SheetContent className='sm:max-w-sm'>

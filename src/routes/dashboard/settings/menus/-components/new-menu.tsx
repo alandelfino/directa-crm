@@ -75,8 +75,8 @@ export function NewStoreMenuSheet({ storeId, onCreated }: { storeId?: number, on
       if (v && initialStoreId > 0) form.setValue('storeId', initialStoreId)
     }}>
       <SheetTrigger asChild>
-        <Button variant={'default'}>
-          <Plus className="mr-2 h-4 w-4" /> Novo menu
+        <Button variant={'default'} size="sm">
+          <Plus className="size-[0.85rem] mr-2" /> Novo menu
         </Button>
       </SheetTrigger>
       <SheetContent className='min-w-[500px] sm:w-[540px] overflow-y-auto'>

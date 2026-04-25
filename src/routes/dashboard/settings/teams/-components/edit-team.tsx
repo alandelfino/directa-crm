@@ -72,8 +72,8 @@ export function EditTeamSheet({ teamId, onSaved }: { teamId: number, onSaved?: (
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={'outline'}>
-          <Edit className='h-4 w-4' />
+        <Button variant={'outline'} size="sm">
+          <Edit className='size-[0.85rem] mr-2' />
           Editar
         </Button>
       </SheetTrigger>

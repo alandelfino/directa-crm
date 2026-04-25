@@ -83,8 +83,8 @@ export function NewMediaSizeSheet() {
       if (!val) form.reset()
     }}>
       <SheetTrigger asChild>
-        <Button variant="default">
-          <Plus className="w-4 h-4 mr-2" />Cadastrar
+        <Button variant="default" size="sm">
+          <Plus className="size-[0.85rem] mr-2" /> Cadastrar
         </Button>
       </SheetTrigger>
       <SheetContent>

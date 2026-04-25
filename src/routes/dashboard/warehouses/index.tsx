@@ -153,7 +153,7 @@ function RouteComponent() {
     <div className='flex flex-col w-full h-full'>
       <Topbar title='Depósitos' breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Depósitos', href: '/dashboard/warehouses', isLast: true }]} />
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='border-b flex w-full items-center p-2 gap-4'>
+        <div className='flex w-full items-center p-2 gap-4'>
           <div className='flex items-center gap-2 flex-1'>
              <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Funnel, RefreshCw, Package } from 'lucide-react'
+import { RefreshCw, Package } from 'lucide-react'
 import { useEffect, useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -11,6 +11,7 @@ import { DataTable } from '@/components/data-table'
 import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewStockMovementSheet } from './-components/new-stock-movement-sheet'
+import { Badge } from '@/components/ui/badge'
 
 
 export const Route = createFileRoute('/dashboard/stock/')({
@@ -85,9 +86,9 @@ function RouteComponent() {
     {
       id: 'select',
       width: '60px',
-      header: () => (<div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>),
+      header: () => (<div className='flex items-center justify-center text-xs text-muted-foreground'>Sel.</div>),
       cell: (item) => (
-        <div className='flex justify-center items-center'>
+        <div className='flex items-center justify-center'>
           <Checkbox
             checked={selectedId === item.id}
             onCheckedChange={() => setSelectedId(selectedId === item.id ? null : item.id)}
@@ -95,7 +96,7 @@ function RouteComponent() {
         </div>
       ),
       headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] p-2!'
+      className: 'w-[60px] min-w-[60px] border-r'
     },
     {
       id: 'type',
@@ -109,21 +110,14 @@ function RouteComponent() {
         }
 
         return (
-          <span
-            className={
-              isInflow
-                ? 'inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 text-green-600 text-xs font-medium'
-                : 'inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium'
-            }
-          >
-            <span className={isInflow ? 'h-1.5 w-1.5 rounded-full bg-green-600' : 'h-1.5 w-1.5 rounded-full bg-red-600'} />
+          <Badge variant={isInflow ? 'default' : 'destructive'} className="h-5 text-[10px]">
             {isInflow ? 'Entrada' : 'Saída'}
-          </span>
+          </Badge>
         )
       },
       width: '100px',
       headerClassName: 'w-[100px] min-w-[100px] border-r',
-      className: 'w-[100px] min-w-[100px] p-2!'
+      className: 'w-[100px] min-w-[100px] border-r text-center'
     },
     {
       id: 'stockType',
@@ -131,14 +125,14 @@ function RouteComponent() {
       cell: (item) => {
         const label = item.stockType === 'reserved' ? 'Reservado' : 'Físico'
         return (
-          <span className='inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-xs font-medium'>
+          <Badge variant="outline" className="h-5 text-[10px]">
             {label}
-          </span>
+          </Badge>
         )
       },
       width: '140px',
       headerClassName: 'w-[140px] min-w-[140px] border-r',
-      className: 'w-[140px] min-w-[140px] p-2!'
+      className: 'w-[140px] min-w-[140px] border-r text-center'
     },
     {
       id: 'product_sku',
@@ -150,7 +144,7 @@ function RouteComponent() {
       },
       width: '120px',
       headerClassName: 'w-[120px] min-w-[120px] border-r',
-      className: 'w-[120px] min-w-[120px] p-2!'
+      className: 'w-[120px] min-w-[120px] border-r font-mono'
     },
     {
       id: 'product_name',
@@ -161,7 +155,7 @@ function RouteComponent() {
       },
       width: '280px',
       headerClassName: 'w-[280px] min-w-[280px] border-r',
-      className: 'w-[280px] min-w-[280px] p-2!'
+      className: 'w-[280px] min-w-[280px] border-r'
     },
     {
       id: 'distribution_center_name',
@@ -172,7 +166,7 @@ function RouteComponent() {
       },
       width: '200px',
       headerClassName: 'w-[200px] min-w-[200px] border-r',
-      className: 'w-[200px] min-w-[200px] p-2!'
+      className: 'w-[200px] min-w-[200px] border-r'
     },
     {
       id: 'created_at',
@@ -182,7 +176,7 @@ function RouteComponent() {
       ),
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
-      className: 'w-[180px] min-w-[180px] p-2!'
+      className: 'w-[180px] min-w-[180px] border-r'
     },
     {
       id: 'amount',
@@ -192,7 +186,7 @@ function RouteComponent() {
       ),
       width: '100px',
       headerClassName: 'w-[100px] min-w-[100px] border-r',
-      className: 'w-[100px] min-w-[100px] p-2!'
+      className: 'w-[100px] min-w-[100px] border-r text-center font-medium'
     },
     {
       id: 'observation',
@@ -202,7 +196,7 @@ function RouteComponent() {
       ),
       width: '200px',
       headerClassName: 'w-[200px] min-w-[200px] border-r',
-      className: 'w-[200px] min-w-[200px] p-2!'
+      className: 'w-[200px] min-w-[200px] border-r text-muted-foreground'
     },
   ], [selectedId])
 
@@ -259,70 +253,48 @@ function RouteComponent() {
   return (
     <div className='flex flex-col w-full h-full'>
 
-      <Topbar title="Movimento de estoque" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Movimento de estoque', href: '/dashboard/stock', isLast: true }]} />
+      <Topbar title="Movimentos de estoque" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Movimentos de estoque', href: '/dashboard/stock', isLast: true }]} />
 
-      {/* Content */}
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-
-        {/* Actions */}
-        <div className='border-b flex w-full items-center p-2 gap-4'>
-
-          {/* Filters */}
-          <div className='flex items-center gap-2 flex-1'>
-            <Button variant={'outline'} size="sm">
-              <Funnel className="size-[0.85rem]" /> Filtros
-            </Button>
-          </div>
-
+        <div className='flex w-full items-center justify-end gap-4 p-2'>
           <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => refetch()}>
-              {
-                (isLoading || isRefetching)
-                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
-                  : <RefreshCw className="size-[0.85rem]" />
-              }
+            <Button variant='ghost' size='sm' disabled={isLoading || isRefetching} onClick={() => refetch()}>
+              <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
             </Button>
             <NewStockMovementSheet onCreated={() => refetch()} />
           </div>
-
         </div>
 
-        {/* Table */}
-        <DataTable
-          columns={columns}
-          data={movements}
-          loading={isLoading || isRefetching}
-          page={currentPage}
-          perPage={perPage}
-          totalItems={totalItems}
-          emptyMessage='Nenhum movimento encontrado'
-          emptySlot={(
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Package className='h-6 w-6' />
-                </EmptyMedia>
-                <EmptyTitle>Nenhum movimento ainda</EmptyTitle>
-                <EmptyDescription>
-                  Você ainda não possui registros de movimentação de estoque.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <div className='flex gap-2'>
-                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => refetch()}>
-                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
-                  </Button>
-                </div>
-              </EmptyContent>
-            </Empty>
-          )}
-          onChange={({ page, perPage }) => {
-            if (typeof page === 'number') setCurrentPage(page)
-            if (typeof perPage === 'number') setPerPage(perPage)
-            // Disparar refetch quando houver mudança
-            refetch()
-          }} />
-
+        <div className='flex-1 overflow-hidden'>
+          <DataTable
+            columns={columns}
+            data={movements}
+            loading={isLoading || isRefetching}
+            page={currentPage}
+            perPage={perPage}
+            totalItems={totalItems}
+            emptyMessage='Nenhum movimento encontrado'
+            emptySlot={(
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia>
+                    <Package className='size-10' />
+                  </EmptyMedia>
+                  <EmptyTitle>Nenhum movimento encontrado</EmptyTitle>
+                  <EmptyDescription>Cadastre um novo movimento para começar.</EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <NewStockMovementSheet onCreated={() => refetch()} />
+                </EmptyContent>
+              </Empty>
+            )}
+            onRowClick={(row) => setSelectedId(selectedId === row.id ? null : row.id)}
+            onChange={({ page, perPage }) => {
+              if (typeof page === 'number') setCurrentPage(page)
+              if (typeof perPage === 'number') setPerPage(perPage)
+            }}
+          />
+        </div>
       </div>
     </div>
   )

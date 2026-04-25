@@ -197,7 +197,7 @@ function RouteComponent() {
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
 
         {/* Actions */}
-        <div className='border-b flex w-full items-center p-2 gap-4'>
+        <div className='flex w-full items-center p-2 gap-4'>
 
           {/* Filters */}
           <div className='flex items-center gap-2 flex-1'>

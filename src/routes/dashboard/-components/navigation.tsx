@@ -103,7 +103,7 @@ export function Navigation() {
                     href: '/dashboard/pages',
                 },
                 {
-                    label: 'Unidades de medida',
+                    label: 'Un. de medida',
                     icon: <Ruler />,
                     href: '/dashboard/units',
                 },
@@ -118,7 +118,7 @@ export function Navigation() {
                     href: '/dashboard/warehouses',
                 },
                 {
-                    label: 'Movimento de estoque',
+                    label: 'Estoques',
                     icon: <Package />,
                     href: '/dashboard/stock',
                 },
@@ -128,7 +128,7 @@ export function Navigation() {
             groupName: 'Configurações',
             items: [
                 {
-                    label: 'Configurações da conta',
+                    label: 'Configurações',
                     icon: <Settings />,
                     href: '/dashboard/settings/account',
                 }

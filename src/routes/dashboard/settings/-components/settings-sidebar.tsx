@@ -20,11 +20,11 @@ export function SettingsSidebar() {
     { separator: true },
     { label: 'Integrações', href: '/dashboard/settings/integrations' },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks' },
-    { label: 'Integrações de Transportadoras', href: '/dashboard/settings/carrier-integrations' },
-    { label: 'Integrações de Pagamento', href: '/dashboard/settings/payment-integrations' },
+    { label: 'Transportadoras', href: '/dashboard/settings/carrier-integrations' },
+    { label: 'Pagamento', href: '/dashboard/settings/payment-integrations' },
   ]
   return (
-    <aside className='min-w-42 w-fit pr-2 shrink-0  p-4 h-full overflow-y-auto'>
+    <aside className='min-w-48 max-w-48 w-fit pr-2 shrink-0  p-4 h-full overflow-y-auto'>
       <nav className='flex flex-col gap-1'>
         {items.map((item, index) => {
           const active = router.location.pathname.startsWith(item?.href ?? '')
@@ -35,8 +35,13 @@ export function SettingsSidebar() {
                   <span className='block rounded-md px-3 py-2 text-sm text-muted-foreground'>{item.label}</span>
                 </Button>
               ) : (
-                <Button key={item.href} asChild variant={'link'} className='flex justify-start font-normal text-foreground-muted'>
-                  <Link to={item.href} className={`block rounded-md px-3 py-2 text-sm transition-colors ${active ? 'text-primary underline underline-offset-4' : 'text-muted-foreground underline-offset-4 hover:underline hover:text-primary'}`}>{item.label}</Link>
+                <Button key={item.href} asChild variant={'link'} className='flex justify-start font-normal text-foreground-muted max-w-full h-auto whitespace-normal'>
+                  <Link
+                    to={item.href}
+                    className={`block rounded-md px-3 py-2 text-sm transition-colors whitespace-normal break-words leading-snug ${active ? 'text-primary underline underline-offset-4' : 'text-muted-foreground underline-offset-4 hover:underline hover:text-primary'}`}
+                  >
+                    {item.label}
+                  </Link>
                 </Button>
               )
             )

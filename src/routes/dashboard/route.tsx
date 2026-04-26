@@ -32,9 +32,17 @@ function RouteComponent() {
   // Mantemos apenas listener se necessário, mas o estado inicial já cobre.
   
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={setSidebarOpen}
+      style={
+        {
+          '--sidebar-width': '14rem',
+        } as React.CSSProperties
+      }
+    >
       <DashboardSidebar />
-      <main className='flex flex-col w-full h-lvh overflow-x-hidden'>
+      <main className='flex flex-col w-fit h-lvh overflow-x-hidden'>
         <Outlet />
       </main>
 

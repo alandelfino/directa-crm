@@ -9,8 +9,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -18,6 +16,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { GripVertical, Loader, Plus, Save, Trash2 } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { parseUnitValue, ThemeFieldBooleanToggle, ThemeFieldLongText, ThemeFieldNumberInput, ThemeFieldTextInput, ThemeFieldUnitInput, type UnitOption } from '@/components/theme-field-inputs'
 
 type PageRef = {
   id: number
@@ -118,9 +117,8 @@ export function PageContentSheet({
     const nextValues: Record<number, Record<number, string>> = {}
 
     for (const b of blocksOnPage) {
-      const pbId = b.pageBlockId
       const selectedFields = safeArray<{ pageBlockFieldId: number; value: string }>(b.selectedFields)
-      nextValues[pbId] = selectedFields.reduce<Record<number, string>>((acc, it) => {
+      nextValues[b.id] = selectedFields.reduce<Record<number, string>>((acc, it) => {
         acc[it.pageBlockFieldId] = String(it.value ?? '')
         return acc
       }, {})
@@ -133,12 +131,9 @@ export function PageContentSheet({
     })
   }, [open, blocksOnPage])
 
-  const existingPageBlockIds = useMemo(() => new Set(draftBlocks.map((b) => b.pageBlockId)), [draftBlocks])
-
   const availableBlocks = useMemo(() => {
-    const all = allPageBlocksData ?? []
-    return all.filter((b) => !existingPageBlockIds.has(b.id))
-  }, [allPageBlocksData, existingPageBlockIds])
+    return allPageBlocksData ?? []
+  }, [allPageBlocksData])
 
   const selectedBlock = useMemo(() => {
     if (selectedBlockXPageId == null) return null
@@ -167,10 +162,11 @@ export function PageContentSheet({
   }, [fieldsData])
 
   useEffect(() => {
+    if (!selectedBlockXPageId) return
     if (!selectedPageBlockId) return
     if (fields.length === 0) return
     setDraftFieldValues((prev) => {
-      const current = { ...(prev[selectedPageBlockId] ?? {}) }
+      const current = { ...(prev[selectedBlockXPageId] ?? {}) }
       let changed = false
       for (const f of fields) {
         if (current[f.id] == null) {
@@ -179,9 +175,9 @@ export function PageContentSheet({
         }
       }
       if (!changed) return prev
-      return { ...prev, [selectedPageBlockId]: current }
+      return { ...prev, [selectedBlockXPageId]: current }
     })
-  }, [fields, selectedPageBlockId])
+  }, [fields, selectedBlockXPageId, selectedPageBlockId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -254,10 +250,9 @@ export function PageContentSheet({
         )
       await Promise.all(reorderUpdates)
 
-      const uniquePageBlockIds = Array.from(new Set(draftBlocks.map((b) => b.pageBlockId)))
-      const fieldUpdates = uniquePageBlockIds.map((pbId) =>
-        privateInstance.put(`/tenant/pages/${pageId}/blocks/${pbId}/fields`, (() => {
-          const values = draftFieldValues[pbId] ?? {}
+      const fieldUpdates = draftBlocks.map((b) =>
+        privateInstance.put(`/tenant/pages/${pageId}/blocks/${b.id}/fields`, (() => {
+          const values = draftFieldValues[b.id] ?? {}
           const fieldIds = Object.keys(values).map((k) => Number(k)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b)
           const fields = fieldIds.map((id) => ({ pageBlockFieldId: id, value: String(values[id] ?? '') }))
           return { fieldIds, fields }
@@ -278,100 +273,108 @@ export function PageContentSheet({
     },
   })
 
-  const setFieldValue = (pageBlockId: number, fieldId: number, value: string) => {
+  const setFieldValue = (pageBlockXPageId: number, fieldId: number, value: string) => {
     setDraftFieldValues((prev) => ({
       ...prev,
-      [pageBlockId]: {
-        ...(prev[pageBlockId] ?? {}),
+      [pageBlockXPageId]: {
+        ...(prev[pageBlockXPageId] ?? {}),
         [fieldId]: value,
       },
     }))
   }
 
   const renderFieldInput = (field: PageBlockField, value: string) => {
+    if (!selectedBlockXPageId) return null
     switch (field.type) {
       case 'long_text':
         return (
-          <Textarea
+          <ThemeFieldLongText
             rows={4}
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="Digite aqui..."
           />
         )
       case 'image_list':
         return (
-          <Textarea
+          <ThemeFieldLongText
             rows={4}
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="1 URL por linha"
           />
         )
       case 'video_list':
         return (
-          <Textarea
+          <ThemeFieldLongText
             rows={4}
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="1 URL por linha"
           />
         )
       case 'image':
         return (
-          <Input
+          <ThemeFieldTextInput
             type="url"
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="URL da imagem"
           />
         )
       case 'video':
         return (
-          <Input
+          <ThemeFieldTextInput
             type="url"
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="URL do vídeo"
           />
         )
       case 'number':
         return (
-          <Input
-            type="number"
+          <ThemeFieldNumberInput
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="0"
           />
         )
       case 'boolean':
         return (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={value === 'true' || value === '1'}
-              onCheckedChange={(v) => setFieldValue(selectedPageBlockId, field.id, v === true ? 'true' : 'false')}
-            />
-            <div className="text-sm text-muted-foreground select-none">
-              {value === 'true' || value === '1' ? 'Ativo' : 'Inativo'}
-            </div>
-          </div>
-        )
-      case 'unit':
-        return (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
-            placeholder="Ex: kg"
+          <ThemeFieldBooleanToggle
+            value={value === 'true' || value === '1'}
+            onChange={(v) => setFieldValue(selectedBlockXPageId, field.id, v ? 'true' : 'false')}
+            disabled={isSaving}
           />
         )
+      case 'unit':
+        {
+          const parsed = parseUnitValue(value)
+          return (
+            <ThemeFieldUnitInput
+              value={parsed}
+              onChange={(next) => {
+                const unit: UnitOption = next.unit === 'px' || next.unit === 'rem' || next.unit === 'em' || next.unit === '%' ? next.unit : 'px'
+                const amount = String(next.amount ?? '').trim().replace(',', '.')
+                setFieldValue(selectedBlockXPageId, field.id, amount ? `${amount}${unit}` : '')
+              }}
+              disabled={isSaving}
+            />
+          )
+        }
       case 'short_text':
       default:
         return (
-          <Input
-            type="text"
+          <ThemeFieldTextInput
             value={value}
-            onChange={(e) => setFieldValue(selectedPageBlockId, field.id, e.target.value)}
+            onChange={(next) => setFieldValue(selectedBlockXPageId, field.id, next)}
+            disabled={isSaving}
             placeholder="Digite aqui..."
           />
         )
@@ -384,13 +387,13 @@ export function PageContentSheet({
       pageId: b.pageId,
       pageBlockId: b.pageBlockId,
       order: idx,
-      fields: Object.keys(draftFieldValues[b.pageBlockId] ?? {})
+      fields: Object.keys(draftFieldValues[b.id] ?? {})
         .map((k) => Number(k))
         .filter((n) => Number.isFinite(n))
         .sort((a, b) => a - b)
         .map((fieldId) => ({
           pageBlockFieldId: fieldId,
-          value: String((draftFieldValues[b.pageBlockId] ?? {})[fieldId] ?? ''),
+          value: String((draftFieldValues[b.id] ?? {})[fieldId] ?? ''),
         })),
     }))
     return JSON.stringify(payload, null, 2)
@@ -430,7 +433,7 @@ export function PageContentSheet({
               {idx + 1}. {item.pageBlock?.name ?? `#${item.pageBlockId}`}
             </div>
             <div className="text-xs text-muted-foreground truncate">
-              {Object.keys(draftFieldValues[item.pageBlockId] ?? {}).length} campos
+              {Object.keys(draftFieldValues[item.id] ?? {}).length} campos
             </div>
           </button>
 
@@ -620,7 +623,7 @@ export function PageContentSheet({
                         ) : (
                           <div className="flex flex-col gap-2">
                             {fields.map((f) => {
-                              const value = String((draftFieldValues[selectedPageBlockId] ?? {})[f.id] ?? '')
+                              const value = String((draftFieldValues[selectedBlockXPageId ?? 0] ?? {})[f.id] ?? '')
                               return (
                                 <div key={f.id} className="rounded-md border px-3 py-2">
                                   <div className="min-w-0">

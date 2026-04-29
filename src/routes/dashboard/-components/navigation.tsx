@@ -93,20 +93,25 @@ export function Navigation() {
                     href: '/dashboard/products',
                 },
                 {
-                    label: 'Midias',
-                    icon: <Images />,
-                    href: '/dashboard/media',
+                    label: 'Un. de medida',
+                    icon: <Ruler />,
+                    href: '/dashboard/units',
                 },
+            ]
+        },
+        {
+            groupName: 'CMS',
+            items: [
                 {
                     label: 'Páginas',
                     icon: <FileText />,
                     href: '/dashboard/pages',
                 },
                 {
-                    label: 'Un. de medida',
-                    icon: <Ruler />,
-                    href: '/dashboard/units',
-                },
+                    label: 'Mídias',
+                    icon: <Images />,
+                    href: '/dashboard/media',
+                }
             ]
         },
         {

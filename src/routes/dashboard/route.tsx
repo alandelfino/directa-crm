@@ -42,7 +42,7 @@ function RouteComponent() {
       }
     >
       <DashboardSidebar />
-      <main className='flex flex-col w-fit h-lvh overflow-x-hidden'>
+      <main className='flex flex-1 flex-col min-w-0 w-full h-lvh overflow-x-hidden'>
         <Outlet />
       </main>
 

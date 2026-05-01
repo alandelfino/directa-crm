@@ -655,7 +655,7 @@ export function PageContentSheet({
     return JSON.stringify(payload, null, 2)
   }, [draftBlocks, draftFieldValues])
 
-  const SortableBlockRow = ({ item, idx }: { item: DraftBlock; idx: number }) => {
+  const SortableBlockRow = ({ item }: { item: DraftBlock }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.key })
     const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition }
 
@@ -832,8 +832,8 @@ export function PageContentSheet({
                         onDragEnd={onDragEnd}
                       >
                         <SortableContext items={draftBlocks.map((b) => b.key)} strategy={verticalListSortingStrategy}>
-                          {draftBlocks.map((b, idx) => (
-                            <SortableBlockRow key={b.key} item={b} idx={idx} />
+                          {draftBlocks.map((b) => (
+                            <SortableBlockRow key={b.key} item={b} />
                           ))}
                         </SortableContext>
                       </DndContext>

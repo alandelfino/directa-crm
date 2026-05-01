@@ -31,6 +31,24 @@ export function maskMoneyInput(raw: string, currency: string = 'BRL', locale: st
   return { text: formatMoneyFromCents(cents, currency, locale), value: cents }
 }
 
+export function formatPercentFromCents(cents?: number, locale: string = 'pt-BR'): string {
+  if (typeof cents !== 'number' || !Number.isFinite(cents)) return '-'
+  const value = cents / 100
+  try {
+    const txt = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+    return `${txt}%`
+  } catch {
+    return `${value.toFixed(2)}%`
+  }
+}
+
+export function maskPercentInput(raw: string, locale: string = 'pt-BR'): { text: string; value: number | undefined } {
+  const digits = (raw || '').replace(/\D/g, '')
+  if (!digits) return { text: '', value: undefined }
+  const cents = Number(digits)
+  return { text: formatPercentFromCents(cents, locale), value: cents }
+}
+
 export function formatarMoeda(valor: unknown): string {
   const num = typeof valor === 'number' ? valor : (() => {
     const s = String(valor ?? '')

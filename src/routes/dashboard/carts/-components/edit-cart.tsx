@@ -1,4 +1,4 @@
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 import { privateInstance } from "@/lib/auth"
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw } from "lucide-react"
+import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw, LocationEdit } from "lucide-react"
 import { toast } from "sonner"
 import { AddProductsToCartSheet } from "./add-products-to-cart-sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -94,7 +94,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const queryClient = useQueryClient()
 
   // Fetch Cart Details (Store, Status, etc.)
-  const { data: cart, isLoading: isLoadingCart, isRefetching: isRefetchingCart } = useQuery({
+  const { data: cart, isLoading: isLoadingCart } = useQuery({
     queryKey: ['cart', cartId],
     queryFn: async () => {
       const response = await privateInstance.get(`/tenant/carts/${cartId}`)
@@ -360,24 +360,15 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
         <SheetContent className="w-[80vw] sm:max-w-none flex flex-col h-full p-0 gap-0">
           <div className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="mx-auto flex max-w-[1400px] items-start justify-between gap-4 px-6 py-4">
-              <SheetHeader className="gap-0 p-0 flex flex-row items-start">
+              <SheetHeader className="gap-0 p-0 flex flex-row items-center">
                 <div className="flex gap-3 items-center min-w-0">
-                  <Avatar className="h-10 w-10 border bg-primary/5 shrink-0">
-                    <AvatarFallback className="bg-primary/5 text-primary">
-                      <ShoppingCart className="h-4 w-4" />
+                  <Avatar className="h-10 w-10 border bg-white shadow-sm shrink-0 rounded-lg">
+                    <AvatarFallback className="bg-white">
+                      <ShoppingCart className="h-5 w-5 stroke-neutral-600" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col gap-1 min-w-0">
-                    <SheetTitle className="text-lg leading-snug truncate">{cart?.customer?.name || `Carrinho #${cartId}`}</SheetTitle>
-                    <SheetDescription className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 bg-muted px-2 py-0.5 rounded text-xs font-medium text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {cart?.createdAt ? new Date(cart.createdAt).toLocaleDateString('pt-BR') : '...'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {cart?.createdAt ? new Date(cart.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                      </span>
-                    </SheetDescription>
+                    <SheetTitle className="text-lg leading-snug truncate">Carrinho de compras</SheetTitle>
                   </div>
                 </div>
               </SheetHeader>
@@ -400,12 +391,12 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
               ) : (
                 <div className="grid flex-1 min-h-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
                   <div className="flex min-h-0 flex-col">
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex min-h-0 flex-1 flex-col">
-                      <TabsList className="grid w-full grid-cols-4 h-10 p-1 rounded-xl bg-muted/60">
-                        <TabsTrigger value="items">Itens do Carrinho</TabsTrigger>
-                        <TabsTrigger value="shipping">Fretes</TabsTrigger>
-                        <TabsTrigger value="addresses">Endereços</TabsTrigger>
-                        <TabsTrigger value="details">Detalhes</TabsTrigger>
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex min-h-0 flex-col">
+                      <TabsList className="flex gap-4 h-10 p-1 rounded-xl bg-muted/60">
+                        <TabsTrigger value="items"> <Package className="h-2 w-2" /> Itens do Carrinho</TabsTrigger>
+                        <TabsTrigger value="shipping"> <Truck className="h-2 w-2" /> Fretes</TabsTrigger>
+                        <TabsTrigger value="addresses"> <LocationEdit className="h-2 w-2" /> Endereços</TabsTrigger>
+                        <TabsTrigger value="details"> <Info className="h-2 w-2" /> Detalhes</TabsTrigger>
                       </TabsList>
 
                       <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-xl border bg-background shadow-sm overflow-hidden">

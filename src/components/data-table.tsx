@@ -146,7 +146,7 @@ export function DataTable<T extends { id?: number | string }>({
         {enableReorder ? (
           <DndContext collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]} onDragStart={() => setIsDraggingTable(true)} onDragCancel={() => setIsDraggingTable(false)} onDragEnd={(e: DragEndEvent) => { setIsDraggingTable(false); handleDragEnd(e) }} sensors={sensors}>
           <div className="min-w-full inline-block align-middle">
-          <Table className='border-b table-fixed w-full'>
+          <Table className='border-b table-fixed w-max min-w-full'>
             <TableHeader className='sticky top-0 bg-neutral-50 z-10 border-b'>
               <TableRow className='bg-neutral-50'>
                 <TableHead className='border-r w-[50px]' />
@@ -308,7 +308,7 @@ export function DataTable<T extends { id?: number | string }>({
         </DndContext>
         ) : (
           <div className="min-w-full inline-block align-middle">
-          <Table className='border-b table-fixed w-full'>
+          <Table className='border-b table-fixed w-max min-w-full'>
             <TableHeader className='sticky top-0 bg-neutral-50 z-10 border-b'>
               <TableRow className='bg-neutral-50'>
                 {columns.map((col) => (

@@ -7,7 +7,7 @@ import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RefreshCw, ShoppingCart, Package, Trash } from 'lucide-react'
+import { RefreshCw, ShoppingCart, Package, Trash, Store } from 'lucide-react'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewCartSheet } from './-components/new-cart'
 import { EditCartSheet } from './-components/edit-cart'
@@ -42,7 +42,7 @@ type Cart = {
   createdAt: string
   updatedAt: string
   customer?: { id: number, name: string }
-  store?: { id: number, name: string }
+  store?: { id: number, name: string, color: string }
 }
 
 function RouteComponent() {
@@ -116,27 +116,43 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r',
-      className: 'font-medium border-r'
+      headerClassName: 'w-[60px] min-w-[60px] border-r',
+      className: 'w-[60px] min-w-[60px] font-medium border-r whitespace-nowrap'
     },
     {
       id: 'id',
       header: 'ID',
       width: '80px',
       cell: (c) => c.id,
-      className: 'border-r font-mono'
+      headerClassName: 'w-[80px] min-w-[80px] border-r',
+      className: 'w-[80px] min-w-[80px] border-r font-mono whitespace-nowrap'
     },
     {
       id: 'customer',
       header: 'Cliente',
-      cell: (c) => c.customer?.name || `Cliente #${c.customerId}`,
-      className: 'border-r'
+      width: '200px',
+      cell: (c) => {
+        const name = c.customer?.name || `Cliente #${c.customerId}`
+        return <span className="block min-w-0 whitespace-nowrap truncate" title={name}>{name}</span>
+      },
+      headerClassName: 'w-[200px] min-w-[200px] border-r',
+      className: 'w-[200px] min-w-[200px] max-w-[400px] border-r whitespace-nowrap'
     },
     {
       id: 'store',
       header: 'Loja',
-      cell: (c) => c.store?.name || `Loja #${c.storeId}`,
-      className: 'border-r'
+      width: 'fit-content',
+      cell: (c) => {
+        const name = c.store?.name || `Loja #${c.storeId}`
+        return <span className="flex gap-1 items-center truncate min-w-0 whitespace-nowrap" title={name}>
+          <div className='w-6 h-6 rounded-md flex items-center justify-center'>
+            <Store className="rounded-full w-4 h-4" style={{ stroke: c.store?.color || 'transparent' }} />
+          </div>
+          {name}
+        </span>
+      },
+      headerClassName: 'w border-r',
+      className: 'w border-r whitespace-nowrap'
     },
     {
       id: 'status',
@@ -150,25 +166,44 @@ function RouteComponent() {
         const status = statusMap[c.status] || { label: c.status, variant: 'secondary' }
         return <Badge variant={status.variant} className="text-[10px] h-5">{status.label}</Badge>
       },
-      className: 'w-[100px] border-r text-center'
+      headerClassName: 'w-[120px] min-w-[120px] border-r',
+      className: 'w-[120px] min-w-[120px] border-r text-center whitespace-nowrap'
     },
     {
       id: 'totalItems',
       header: 'Itens',
       cell: (c) => c.totalItems ?? 0,
-      className: 'w-[80px] border-r text-center'
+      headerClassName: 'w-[90px] min-w-[90px] border-r',
+      className: 'w-[90px] min-w-[90px] border-r text-center whitespace-nowrap'
     },
     {
       id: 'totalValue',
       header: 'Total',
       cell: (c) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((c.totalValue ?? 0) / 100),
-      className: 'w-[140px] border-r text-right font-medium'
+      headerClassName: 'w-[160px] min-w-[160px] border-r text-right',
+      className: 'w-[160px] min-w-[160px] border-r text-right font-medium whitespace-nowrap'
     },
     {
       id: 'createdAt',
       header: 'Criado em',
-      cell: (c) => new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      className: 'w-[180px] border-r'
+      cell: (c) => (
+        <span className="whitespace-nowrap">
+          {new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </span>
+      ),
+      headerClassName: 'w-[190px] min-w-[190px] border-r',
+      className: 'w-[190px] min-w-[190px] border-r whitespace-nowrap'
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (c) => (
+        <span className="whitespace-nowrap">
+          {new Date(c.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </span>
+      ),
+      headerClassName: 'w-[190px] min-w-[190px] border-r',
+      className: 'w-[190px] min-w-[190px] border-r whitespace-nowrap'
     }
   ]
 
@@ -192,9 +227,9 @@ function RouteComponent() {
             <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)} disabled={selectedCarts.length !== 1}>
               <Package className="size-[0.85rem]" /> Editar
             </Button>
-            <Button 
-              variant='outline' 
-              size='sm' 
+            <Button
+              variant='outline'
+              size='sm'
               className={`text-destructive hover:text-destructive ${selectedCarts.length !== 1 ? 'opacity-50 pointer-events-none' : ''}`}
               onClick={() => {
                 setCartToDelete(selectedCarts[0])
@@ -205,18 +240,18 @@ function RouteComponent() {
               <Trash className="size-[0.85rem]" /> Excluir
             </Button>
           </div>
-          <NewCartSheet 
+          <NewCartSheet
             onCreated={() => {
               refetch()
-              setIsEditSheetOpen(false) 
-            }} 
+              setIsEditSheetOpen(false)
+            }}
             onOpenChange={(open) => {
-               if (!open) refetch()
+              if (!open) refetch()
             }}
           />
         </div>
 
-        <div className='flex-1 overflow-hidden'>
+        <div className='flex-1 overflow-hidden px-2'>
           <DataTable
             columns={columns}
             data={carts}
@@ -250,12 +285,12 @@ function RouteComponent() {
       </div>
 
       {selectedCarts.length === 1 && isEditSheetOpen && (
-        <EditCartSheet 
-          cartId={selectedCarts[0]} 
+        <EditCartSheet
+          cartId={selectedCarts[0]}
           onOpenChange={(open) => {
             setIsEditSheetOpen(open)
             if (!open) refetch()
-          }} 
+          }}
         />
       )}
 
@@ -269,7 +304,7 @@ function RouteComponent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
                 handleDelete()

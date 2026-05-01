@@ -24,7 +24,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import { GripVertical, Loader, Plus, Save, Trash2 } from 'lucide-react'
+import { ChevronLeft, GripVertical, Loader, Plus, Save, Trash2 } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { parseUnitValue, ThemeFieldBooleanToggle, ThemeFieldLongText, ThemeFieldNumberInput, ThemeFieldTextInput, ThemeFieldUnitInput, type UnitOption } from '@/components/theme-field-inputs'
@@ -669,27 +669,27 @@ export function PageContentSheet({
           isDragging ? 'opacity-60' : ''
         )}
       >
-        <div className="flex items-start gap-2 px-3 py-2">
-          <button
-            type="button"
-            className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+        <button
+          type="button"
+          className="w-full flex items-start gap-2 px-3 py-2 text-left"
+          onClick={() => setSelectedBlockKey((cur) => (cur === item.key ? null : item.key))}
+        >
+          <span
+            className="h-7 w-7 inline-flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground shrink-0"
             aria-label="Reordenar"
             {...attributes}
             {...listeners}
+            onClick={(e) => e.stopPropagation()}
           >
             <GripVertical className="size-4" />
-          </button>
+          </span>
 
-          <button
-            type="button"
-            className="flex-1 min-w-0 text-left"
-            onClick={() => setSelectedBlockKey((cur) => (cur === item.key ? null : item.key))}
-          >
-            <div className="text-sm font-medium truncate">
+          <span className="flex-1 min-w-0">
+            <span className="text-sm font-medium truncate block">
               {item.pageBlock?.name ?? `#${item.pageBlockId}`}
-            </div>
-          </button>
-        </div>
+            </span>
+          </span>
+        </button>
       </div>
     )
   }
@@ -775,14 +775,16 @@ export function PageContentSheet({
         <div className="h-full flex flex-col">
           <SheetHeader className="p-4 border-b">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <SheetTitle className="truncate">Conteúdo • {page?.title ?? `#${pageId}`}</SheetTitle>
-                {page?.path ? <div className="text-xs text-muted-foreground truncate">{page.path}</div> : null}
+              <div className="flex items-start gap-2 min-w-0">
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0" disabled={isSaving} onClick={requestClose}>
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <div className="min-w-0">
+                  <SheetTitle className="truncate">Conteúdo • {page?.title ?? `#${pageId}`}</SheetTitle>
+                  {page?.path ? <div className="text-xs text-muted-foreground truncate">{page.path}</div> : null}
+                </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" size="sm" variant="outline" className="h-8" disabled={isSaving} onClick={requestClose}>
-                  Fechar
-                </Button>
                 <Button
                   type="button"
                   size="sm"

@@ -40,7 +40,7 @@ import { Route as DashboardSettingsTeamsIndexRouteImport } from './routes/dashbo
 import { Route as DashboardSettingsStoresIndexRouteImport } from './routes/dashboard/settings/stores/index'
 import { Route as DashboardSettingsProfilesIndexRouteImport } from './routes/dashboard/settings/profiles/index'
 import { Route as DashboardSettingsPriceTablesIndexRouteImport } from './routes/dashboard/settings/price-tables/index'
-import { Route as DashboardSettingsPaymentIntegrationsIndexRouteImport } from './routes/dashboard/settings/payment-integrations/index'
+import { Route as DashboardSettingsPaymentMethodsIndexRouteImport } from './routes/dashboard/settings/payment-methods/index'
 import { Route as DashboardSettingsMenusIndexRouteImport } from './routes/dashboard/settings/menus/index'
 import { Route as DashboardSettingsMediaSizesIndexRouteImport } from './routes/dashboard/settings/media-sizes/index'
 import { Route as DashboardSettingsIntegrationsIndexRouteImport } from './routes/dashboard/settings/integrations/index'
@@ -213,10 +213,10 @@ const DashboardSettingsPriceTablesIndexRoute =
     path: '/price-tables/',
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
-const DashboardSettingsPaymentIntegrationsIndexRoute =
-  DashboardSettingsPaymentIntegrationsIndexRouteImport.update({
-    id: '/payment-integrations/',
-    path: '/payment-integrations/',
+const DashboardSettingsPaymentMethodsIndexRoute =
+  DashboardSettingsPaymentMethodsIndexRouteImport.update({
+    id: '/payment-methods/',
+    path: '/payment-methods/',
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
 const DashboardSettingsMenusIndexRoute =
@@ -288,7 +288,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/menus': typeof DashboardSettingsMenusIndexRoute
-  '/dashboard/settings/payment-integrations': typeof DashboardSettingsPaymentIntegrationsIndexRoute
+  '/dashboard/settings/payment-methods': typeof DashboardSettingsPaymentMethodsIndexRoute
   '/dashboard/settings/price-tables': typeof DashboardSettingsPriceTablesIndexRoute
   '/dashboard/settings/profiles': typeof DashboardSettingsProfilesIndexRoute
   '/dashboard/settings/stores': typeof DashboardSettingsStoresIndexRoute
@@ -326,7 +326,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/menus': typeof DashboardSettingsMenusIndexRoute
-  '/dashboard/settings/payment-integrations': typeof DashboardSettingsPaymentIntegrationsIndexRoute
+  '/dashboard/settings/payment-methods': typeof DashboardSettingsPaymentMethodsIndexRoute
   '/dashboard/settings/price-tables': typeof DashboardSettingsPriceTablesIndexRoute
   '/dashboard/settings/profiles': typeof DashboardSettingsProfilesIndexRoute
   '/dashboard/settings/stores': typeof DashboardSettingsStoresIndexRoute
@@ -367,7 +367,7 @@ export interface FileRoutesById {
   '/dashboard/settings/integrations/': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes/': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/menus/': typeof DashboardSettingsMenusIndexRoute
-  '/dashboard/settings/payment-integrations/': typeof DashboardSettingsPaymentIntegrationsIndexRoute
+  '/dashboard/settings/payment-methods/': typeof DashboardSettingsPaymentMethodsIndexRoute
   '/dashboard/settings/price-tables/': typeof DashboardSettingsPriceTablesIndexRoute
   '/dashboard/settings/profiles/': typeof DashboardSettingsProfilesIndexRoute
   '/dashboard/settings/stores/': typeof DashboardSettingsStoresIndexRoute
@@ -409,7 +409,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/menus'
-    | '/dashboard/settings/payment-integrations'
+    | '/dashboard/settings/payment-methods'
     | '/dashboard/settings/price-tables'
     | '/dashboard/settings/profiles'
     | '/dashboard/settings/stores'
@@ -447,7 +447,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/menus'
-    | '/dashboard/settings/payment-integrations'
+    | '/dashboard/settings/payment-methods'
     | '/dashboard/settings/price-tables'
     | '/dashboard/settings/profiles'
     | '/dashboard/settings/stores'
@@ -487,7 +487,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/integrations/'
     | '/dashboard/settings/media-sizes/'
     | '/dashboard/settings/menus/'
-    | '/dashboard/settings/payment-integrations/'
+    | '/dashboard/settings/payment-methods/'
     | '/dashboard/settings/price-tables/'
     | '/dashboard/settings/profiles/'
     | '/dashboard/settings/stores/'
@@ -726,11 +726,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsPriceTablesIndexRouteImport
       parentRoute: typeof DashboardSettingsRouteRoute
     }
-    '/dashboard/settings/payment-integrations/': {
-      id: '/dashboard/settings/payment-integrations/'
-      path: '/payment-integrations'
-      fullPath: '/dashboard/settings/payment-integrations'
-      preLoaderRoute: typeof DashboardSettingsPaymentIntegrationsIndexRouteImport
+    '/dashboard/settings/payment-methods/': {
+      id: '/dashboard/settings/payment-methods/'
+      path: '/payment-methods'
+      fullPath: '/dashboard/settings/payment-methods'
+      preLoaderRoute: typeof DashboardSettingsPaymentMethodsIndexRouteImport
       parentRoute: typeof DashboardSettingsRouteRoute
     }
     '/dashboard/settings/menus/': {
@@ -786,7 +786,7 @@ interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsIntegrationsIndexRoute: typeof DashboardSettingsIntegrationsIndexRoute
   DashboardSettingsMediaSizesIndexRoute: typeof DashboardSettingsMediaSizesIndexRoute
   DashboardSettingsMenusIndexRoute: typeof DashboardSettingsMenusIndexRoute
-  DashboardSettingsPaymentIntegrationsIndexRoute: typeof DashboardSettingsPaymentIntegrationsIndexRoute
+  DashboardSettingsPaymentMethodsIndexRoute: typeof DashboardSettingsPaymentMethodsIndexRoute
   DashboardSettingsPriceTablesIndexRoute: typeof DashboardSettingsPriceTablesIndexRoute
   DashboardSettingsProfilesIndexRoute: typeof DashboardSettingsProfilesIndexRoute
   DashboardSettingsStoresIndexRoute: typeof DashboardSettingsStoresIndexRoute
@@ -807,8 +807,8 @@ const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
     DashboardSettingsMediaSizesIndexRoute:
       DashboardSettingsMediaSizesIndexRoute,
     DashboardSettingsMenusIndexRoute: DashboardSettingsMenusIndexRoute,
-    DashboardSettingsPaymentIntegrationsIndexRoute:
-      DashboardSettingsPaymentIntegrationsIndexRoute,
+    DashboardSettingsPaymentMethodsIndexRoute:
+      DashboardSettingsPaymentMethodsIndexRoute,
     DashboardSettingsPriceTablesIndexRoute:
       DashboardSettingsPriceTablesIndexRoute,
     DashboardSettingsProfilesIndexRoute: DashboardSettingsProfilesIndexRoute,

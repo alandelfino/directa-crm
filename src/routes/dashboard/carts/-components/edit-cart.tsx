@@ -1,17 +1,18 @@
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { privateInstance } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight } from "lucide-react"
+import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { AddProductsToCartSheet } from "./add-products-to-cart-sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Checkbox } from "@/components/ui/checkbox"
 
 type DerivatedProduct = {
   id: number
@@ -36,10 +37,39 @@ type ProductGroup = {
   derivatedProducts: DerivatedProduct[]
 }
 
+type ShippingQuote = {
+  id: number
+  carrierName: string
+  serviceName: string
+  price: number
+  deadline: number
+  isSelected: boolean
+}
+
+type CartAddress = {
+  id: number
+  name: string
+  streetName: string
+  number: number
+  neighborhood: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+  complement: string
+  isDefault: boolean
+}
+
+type CustomerAddress = CartAddress & {
+  createdAt: string
+  updatedAt: string
+}
+
 type Cart = {
   id: number
   customer: { id: number, name: string }
   store: { id: number, name: string }
+  address?: CartAddress | null
   status: 'open' | 'abandoned' | 'finished'
   totalItems: number
   totalAdditions: number
@@ -50,12 +80,17 @@ type Cart = {
   additions: { id: number, name: string, value: number }[]
   discounts: { id: number, name: string, value: number }[]
   products: ProductGroup[]
+  shippingQuote?: ShippingQuote[]
 }
 
 export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(true)
   const [addProductOpen, setAddProductOpen] = useState(false)
   const [openProducts, setOpenProducts] = useState<string[]>([])
+  const [activeTab, setActiveTab] = useState<'items' | 'shipping' | 'addresses' | 'details'>('items')
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null)
+  const [isUpdatingCartAfterShippingSelect, setIsUpdatingCartAfterShippingSelect] = useState(false)
+  const [isUpdatingCartAfterAddressSelect, setIsUpdatingCartAfterAddressSelect] = useState(false)
   const queryClient = useQueryClient()
 
   // Fetch Cart Details (Store, Status, etc.)
@@ -66,6 +101,92 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       return response.data as Cart
     },
     enabled: !!cartId
+  })
+
+  const customerId = cart?.customer?.id
+
+  useEffect(() => {
+    const next = cart?.address?.id
+    if (typeof next === 'number') setSelectedAddressId(next)
+    else setSelectedAddressId(null)
+  }, [cart?.address?.id])
+
+  const { data: customerAddresses, isLoading: isLoadingAddresses, isRefetching: isRefetchingAddresses, refetch: refetchAddresses } = useQuery({
+    queryKey: ['customer-addresses', customerId],
+    queryFn: async () => {
+      const response = await privateInstance.get(`/tenant/customers/${customerId}/address`)
+      const raw = response.data as any
+      return Array.isArray(raw) ? (raw as CustomerAddress[]) : []
+    },
+    enabled: activeTab === 'addresses' && !!customerId,
+    refetchOnWindowFocus: false,
+  })
+
+  const { mutate: selectShippingQuote, isPending: isSelectingShippingQuote } = useMutation({
+    mutationFn: async (shippingQuoteId: number) => {
+      const response = await privateInstance.put(`/tenant/carts/${cartId}/shipping-quote/${shippingQuoteId}/select`)
+      return response.data as { id: number; cartId: number; price: number; deadline: number; isSelected: boolean; updatedAt: string }
+    },
+    onMutate: async (shippingQuoteId: number) => {
+      const previousCart = queryClient.getQueryData(['cart', cartId]) as Cart | undefined
+      queryClient.setQueryData(['cart', cartId], (old: Cart | undefined) => {
+        if (!old) return old
+        const nextQuotes = (old.shippingQuote ?? []).map((q) => ({
+          ...q,
+          isSelected: q.id === shippingQuoteId,
+        }))
+        return { ...old, shippingQuote: nextQuotes }
+      })
+      return { previousCart }
+    },
+    onSuccess: async () => {
+      setIsUpdatingCartAfterShippingSelect(true)
+      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
+      setIsUpdatingCartAfterShippingSelect(false)
+    },
+    onError: (error: any, _shippingQuoteId: number, context: any) => {
+      const previousCart = context?.previousCart as Cart | undefined
+      if (previousCart) {
+        queryClient.setQueryData(['cart', cartId], previousCart)
+      }
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao selecionar frete', {
+        description: errorData?.detail || 'Não foi possível selecionar a cotação de frete.'
+      })
+      setIsUpdatingCartAfterShippingSelect(false)
+    },
+    onSettled: () => {
+      setIsUpdatingCartAfterShippingSelect(false)
+    }
+  })
+
+  const { mutate: selectCartAddress, isPending: isSelectingAddress } = useMutation({
+    mutationFn: async (addressId: number) => {
+      const response = await privateInstance.put(`/tenant/carts/${cartId}/address`, { addressId })
+      return response.data as { cartId: number; address: CartAddress }
+    },
+    onMutate: async (addressId: number) => {
+      const prev = selectedAddressId
+      setSelectedAddressId(addressId)
+      return { prevSelectedAddressId: prev }
+    },
+    onSuccess: async () => {
+      setIsUpdatingCartAfterAddressSelect(true)
+      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
+      setIsUpdatingCartAfterAddressSelect(false)
+    },
+    onError: (error: any, _addressId: number, context: any) => {
+      const prev = context?.prevSelectedAddressId
+      if (typeof prev === 'number' || prev === null) setSelectedAddressId(prev ?? null)
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao selecionar endereço', {
+        description: errorData?.detail || 'Não foi possível atualizar o endereço do carrinho.'
+      })
+      setIsUpdatingCartAfterAddressSelect(false)
+    },
+    onSettled: () => {
+      setIsUpdatingCartAfterAddressSelect(false)
+    }
   })
 
   // Add items mutation
@@ -222,6 +343,10 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   }
 
   const isReadOnly = cart?.status !== 'open'
+  const selectedShippingQuote = (cart?.shippingQuote ?? []).find((q) => q.isSelected) ?? null
+  const selectedShippingPrice = selectedShippingQuote?.price ?? 0
+  const addresses = useMemo(() => (customerAddresses ?? []) as CustomerAddress[], [customerAddresses])
+  const isBusy = isLoadingCart || isAddingItems || isUpdatingItem || isDeletingItem || isUpdatingCartAfterAddressSelect || isUpdatingCartAfterShippingSelect
 
   return (
     <>
@@ -256,16 +381,18 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
             </SheetHeader>
           </div>
 
-          {isLoadingCart || isAddingItems || isUpdatingItem || isDeletingItem ? (
+          {isBusy ? (
             <div className="flex flex-col h-full flex-1 items-center justify-center space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Carregando informações...</p>
             </div>
           ) : (
-            <Tabs defaultValue="items" className="flex-1 flex flex-col overflow-hidden">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="items">Itens do Carrinho</TabsTrigger>
+                  <TabsTrigger value="shipping">Fretes</TabsTrigger>
+                  <TabsTrigger value="addresses">Endereços</TabsTrigger>
                   <TabsTrigger value="details">Detalhes</TabsTrigger>
                 </TabsList>
               </div>
@@ -422,6 +549,181 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                 </div>
               </TabsContent>
 
+              <TabsContent value="shipping" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Truck className="h-4 w-4" /> Cotação de Frete
+                  </h3>
+
+                  {Array.isArray(cart?.shippingQuote) && cart.shippingQuote.length > 0 ? (
+                    <div className="space-y-3">
+                      {cart.shippingQuote.map((q) => (
+                        <button
+                          key={q.id}
+                          type="button"
+                          className="w-full text-left border rounded-lg p-4 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                          disabled={isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect}
+                          onClick={() => {
+                            if (q.isSelected) return
+                            selectShippingQuote(q.id)
+                          }}
+                        >
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={q.isSelected}
+                                onCheckedChange={() => {
+                                  if (isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) return
+                                  if (q.isSelected) return
+                                  selectShippingQuote(q.id)
+                                }}
+                                aria-label="Selecionar cotação de frete"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1 min-w-0">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm font-semibold truncate">
+                                  {q.carrierName}
+                                </span>
+                                {q.isSelected && (
+                                  <Badge className="h-5 px-2 text-[10px]" variant="default">
+                                    Selecionado
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {q.serviceName}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className="text-sm font-semibold tabular-nums">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((q.price || 0) / 100)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {q.deadline} {q.deadline === 1 ? 'dia' : 'dias'}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <Truck className="h-6 w-6 opacity-50" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Nenhuma cotação disponível</p>
+                      <p className="text-xs text-muted-foreground">
+                        Este carrinho ainda não possui opções de frete cotadas.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="addresses" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4" /> Endereços
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!customerId || isLoadingAddresses || isRefetchingAddresses || isSelectingAddress || isUpdatingCartAfterAddressSelect}
+                      onClick={() => { refetchAddresses() }}
+                      title="Atualizar"
+                      aria-label="Atualizar"
+                    >
+                      <RefreshCw className={`size-[0.85rem] ${isLoadingAddresses || isRefetchingAddresses || isUpdatingCartAfterAddressSelect ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+
+                  {!customerId ? (
+                    <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <MapPin className="h-6 w-6 opacity-50" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Nenhum cliente vinculado</p>
+                      <p className="text-xs text-muted-foreground">
+                        Selecione um cliente para visualizar os endereços.
+                      </p>
+                    </div>
+                  ) : (isLoadingAddresses || isRefetchingAddresses) ? (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando endereços...
+                    </div>
+                  ) : addresses.length > 0 ? (
+                    <div className="space-y-3">
+                      {addresses.map((a) => {
+                        const isSelected = selectedAddressId === a.id
+                        const selectionLocked = isReadOnly || isSelectingAddress || isUpdatingCartAfterAddressSelect
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            className={`w-full text-left border rounded-lg p-4 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none ${isSelected ? 'border-primary ring-1 ring-primary/20' : ''}`}
+                            disabled={selectionLocked}
+                            onClick={() => {
+                              if (selectionLocked) return
+                              if (isSelected) return
+                              selectCartAddress(a.id)
+                            }}
+                          >
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => {
+                                    if (selectionLocked) return
+                                    if (isSelected) return
+                                    selectCartAddress(a.id)
+                                  }}
+                                  aria-label="Selecionar endereço"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-sm font-semibold truncate">{a.name}</span>
+                                  {a.isDefault && (
+                                    <Badge variant="secondary" className="h-5 px-2 text-[10px]">
+                                      Padrão
+                                    </Badge>
+                                  )}
+                                  {isSelected && (
+                                    <Badge className="h-5 px-2 text-[10px]" variant="default">
+                                      Selecionado
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {a.streetName}, {a.number} • {a.neighborhood}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {a.city} - {a.state} • {a.zipCode}
+                                  {a.complement ? ` • ${a.complement}` : ''}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <MapPin className="h-6 w-6 opacity-50" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Nenhum endereço cadastrado</p>
+                      <p className="text-xs text-muted-foreground">
+                        Este cliente ainda não possui endereços.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
               <TabsContent value="details" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -461,9 +763,18 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground font-medium">Subtotal</span>
                   <span className="font-medium text-foreground/80">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(((cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)) / 100)}
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((((cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)) + selectedShippingPrice) / 100)}
                   </span>
                 </div>
+
+                {selectedShippingQuote && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground font-medium">Frete</span>
+                    <span className="font-medium text-foreground/80">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedShippingPrice || 0) / 100)}
+                    </span>
+                  </div>
+                )}
 
                 {cart?.additions && cart.additions.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-dashed">

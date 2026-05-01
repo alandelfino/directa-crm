@@ -1,14 +1,13 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { privateInstance } from "@/lib/auth"
 import { useQuery } from "@tanstack/react-query"
-import { Search, Filter, X } from "lucide-react"
+import { Search, Funnel, RefreshCw } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { DataTable, type ColumnDef } from "@/components/data-table"
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -20,6 +19,11 @@ type Customer = {
     cpfOrCnpj: string
     email: string
     phone: string
+    store?: {
+        id: number
+        name: string
+        color?: string
+    }
 }
 
 interface CustomerListResponse {
@@ -78,25 +82,24 @@ export function CustomerSelectInput({ value, onChange, disabled, placeholder = "
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
             </SheetTrigger>
-            <SheetContent className="sm:max-w-3xl w-full p-0 flex flex-col gap-0">
-                <div className="p-6 border-b">
+            <SheetContent className="sm:max-w-5xl w-full p-0 flex flex-col gap-0">
+                <div className="border-b">
                     <SheetHeader>
                         <SheetTitle>Selecionar Cliente</SheetTitle>
-                        <SheetDescription>Busque e selecione um cliente para vincular.</SheetDescription>
                     </SheetHeader>
                 </div>
                 
-                <div className="flex-1 overflow-hidden">
-                    <CustomerList onSelect={handleSelect} selectedId={value} />
+                <div className="flex-1 overflow-hidden p-2">
+                    <CustomerList onSelect={handleSelect} onClose={() => setOpen(false)} selectedId={value} />
                 </div>
             </SheetContent>
         </Sheet>
     )
 }
 
-function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => void, selectedId?: number }) {
+function CustomerList({ onSelect, onClose, selectedId }: { onSelect: (c: Customer) => void, onClose: () => void, selectedId?: number }) {
     const [page, setPage] = useState(1)
-    const [perPage, setPerPage] = useState(10)
+    const [perPage, setPerPage] = useState(20)
     const [filterName, setFilterName] = useState('')
     const [filterNameOperator, setFilterNameOperator] = useState('cont')
     const [filterCompanyName, setFilterCompanyName] = useState('')
@@ -124,7 +127,7 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
     // Derived selected ID for visual feedback
     const currentSelectedId = tempSelectedCustomer?.id ?? selectedId
 
-    const { data, isLoading } = useQuery<CustomerListResponse>({
+    const { data, isLoading, isRefetching, refetch } = useQuery<CustomerListResponse>({
         queryKey: ['customers-select-list', page, perPage, filterName, filterNameOperator, filterCompanyName, filterCompanyNameOperator, filterCpf, filterCpfOperator, filterEmail, filterEmailOperator],
         queryFn: async () => {
             const params = new URLSearchParams()
@@ -147,7 +150,29 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
             }
 
             const response = await privateInstance.get(`/tenant/customers?${params.toString()}`)
-            return response.data
+            const raw = response.data as any
+            const items = Array.isArray(raw?.items) ? (raw.items as Customer[]) : []
+            const totalItems =
+                typeof raw?.totalItems === 'number'
+                    ? raw.totalItems
+                    : typeof raw?.total === 'number'
+                        ? raw.total
+                        : 0
+            const totalPages =
+                typeof raw?.totalPages === 'number'
+                    ? raw.totalPages
+                    : 1
+            const currentPage =
+                typeof raw?.page === 'number'
+                    ? raw.page
+                    : page
+
+            return {
+                items,
+                totalItems,
+                totalPages,
+                page: currentPage
+            }
         }
     })
 
@@ -164,16 +189,39 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
     const columns = useMemo<ColumnDef<Customer>[]>(() => [
         {
             id: 'select',
-            header: '',
-            width: '50px',
+            header: () => (<div className="flex items-center justify-center text-xs text-muted-foreground">Sel.</div>),
+            width: '60px',
             cell: (customer) => (
-                <div className="flex justify-center items-center">
+                <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
                     <Checkbox 
                         checked={currentSelectedId === customer.id}
                         onCheckedChange={() => setTempSelectedCustomer(customer)}
                     />
                 </div>
-            )
+            ),
+            headerClassName: 'w-[60px] min-w-[60px] border-r px-4 py-2.5',
+            className: 'w-[60px] min-w-[60px] border-r !px-4 py-3'
+        },
+        {
+            id: 'store',
+            header: 'Loja',
+            cell: (customer) => (
+                <div className="flex items-center gap-2 min-w-0">
+                    {customer.store?.color && (
+                        <div
+                            className="size-2 rounded-full shrink-0"
+                            style={{ backgroundColor: customer.store.color }}
+                            title={`Cor: ${customer.store.color}`}
+                        />
+                    )}
+                    <span className="truncate text-sm text-muted-foreground">
+                        {customer.store?.name ?? '—'}
+                    </span>
+                </div>
+            ),
+            width: '220px',
+            headerClassName: 'w-[220px] min-w-[220px] border-r px-4 py-2.5',
+            className: 'w-[220px] min-w-[220px] border-r !px-4 py-3'
         },
         {
             id: 'name',
@@ -185,7 +233,9 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                         <span className="text-xs text-muted-foreground">{customer.companyName}</span>
                     )}
                 </div>
-            )
+            ),
+            headerClassName: 'min-w-[22rem] border-r px-4 py-2.5',
+            className: 'min-w-[22rem] border-r !px-4 py-3'
         },
         {
             id: 'document',
@@ -194,7 +244,10 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                 <span className="text-muted-foreground text-sm">
                     {customer.cpfOrCnpj}
                 </span>
-            )
+            ),
+            width: '200px',
+            headerClassName: 'w-[200px] min-w-[200px] border-r px-4 py-2.5',
+            className: 'w-[200px] min-w-[200px] border-r !px-4 py-3'
         },
         {
             id: 'email',
@@ -203,104 +256,75 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                 <span className="text-muted-foreground text-sm">
                     {customer.email}
                 </span>
-            )
+            ),
+            headerClassName: 'min-w-[18rem] border-r px-4 py-2.5',
+            className: 'min-w-[18rem] border-r !px-4 py-3'
         }
     ], [currentSelectedId])
 
     return (
         <div className="flex flex-col h-full">
-            <div className="p-4 border-b space-y-4 bg-muted/20 flex justify-between items-center">
-                <div className="text-sm font-medium">Listagem de Clientes</div>
-                <Popover open={isFilterOpen} onOpenChange={(open) => {
-                    setIsFilterOpen(open)
-                    if (open) {
-                        setLocalFilterName(filterName)
-                        setLocalFilterNameOperator(filterNameOperator)
-                        setLocalFilterCompanyName(filterCompanyName)
-                        setLocalFilterCompanyNameOperator(filterCompanyNameOperator)
-                        setLocalFilterCpf(filterCpf)
-                        setLocalFilterCpfOperator(filterCpfOperator)
-                        setLocalFilterEmail(filterEmail)
-                        setLocalFilterEmailOperator(filterEmailOperator)
-                    }
-                }}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 border-dashed">
-                            <Filter className="mr-2 h-4 w-4" />
-                            Filtros
-                            {activeFilterCount > 0 && (
-                                <>
-                                    <span className="mx-2 h-4 w-[1px] bg-border" />
-                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
-                                        {activeFilterCount}
-                                    </Badge>
-                                    <div className="hidden space-x-1 lg:flex">
-                                        {activeFilterCount > 2 ? (
-                                            <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                                {activeFilterCount} selecionados
-                                            </Badge>
-                                        ) : (
-                                            <>
-                                                {filterName && (
-                                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                                        Nome
-                                                    </Badge>
-                                                )}
-                                                {filterCompanyName && (
-                                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                                        Razão Social
-                                                    </Badge>
-                                                )}
-                                                {filterCpf && (
-                                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                                        CPF/CNPJ
-                                                    </Badge>
-                                                )}
-                                                {filterEmail && (
-                                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                                        Email
-                                                    </Badge>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[340px] p-4" align="end">
-                        <div className="grid gap-4">
-                            <div className="flex items-center justify-between">
-                                <h4 className="font-medium leading-none">Filtros</h4>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsFilterOpen(false)}>
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
+            <div className="flex items-center justify-end p-2 gap-4">
+                <div className="flex items-center gap-2">
+                    <Popover open={isFilterOpen} onOpenChange={(open) => {
+                        setIsFilterOpen(open)
+                        if (open) {
+                            setLocalFilterName(filterName)
+                            setLocalFilterNameOperator(filterNameOperator)
+                            setLocalFilterCompanyName(filterCompanyName)
+                            setLocalFilterCompanyNameOperator(filterCompanyNameOperator)
+                            setLocalFilterCpf(filterCpf)
+                            setLocalFilterCpfOperator(filterCpfOperator)
+                            setLocalFilterEmail(filterEmail)
+                            setLocalFilterEmailOperator(filterEmailOperator)
+                        }
+                    }}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="relative"
+                                disabled={isLoading || isRefetching}
+                                aria-label="Filtros"
+                                title="Filtros"
+                            >
+                                <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} /> Filtros
+                                {activeFilterCount > 0 && (
+                                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                    </span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[360px] p-5" align="end">
                             <div className="grid gap-4">
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome / Fantasia</Label>
-                                    <div className="flex gap-2">
-                                        <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
-                                            <SelectTrigger className="w-[130px] h-9">
-                                                <SelectValue placeholder="Op." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="cont">Contém</SelectItem>
-                                                <SelectItem value="eq">Igual</SelectItem>
-                                                <SelectItem value="ne">Diferente</SelectItem>
-                                                <SelectItem value="sw">Começa com</SelectItem>
-                                                <SelectItem value="ew">Termina com</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <Input
-                                            id="name"
-                                            value={localFilterName}
-                                            onChange={(e) => setLocalFilterName(e.target.value)}
-                                            className="h-9 flex-1"
-                                            placeholder="Filtrar por nome..."
-                                        />
+                                <h4 className="font-semibold leading-none">Filtros</h4>
+                                <div className="grid gap-4">
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome / Fantasia</Label>
+                                        <div className="flex gap-2">
+                                            <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                                                <SelectTrigger className="w-[130px] h-9">
+                                                    <SelectValue placeholder="Op." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="cont">Contém</SelectItem>
+                                                    <SelectItem value="eq">Igual</SelectItem>
+                                                    <SelectItem value="ne">Diferente</SelectItem>
+                                                    <SelectItem value="sw">Começa com</SelectItem>
+                                                    <SelectItem value="ew">Termina com</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Input
+                                                id="name"
+                                                value={localFilterName}
+                                                onChange={(e) => setLocalFilterName(e.target.value)}
+                                                className="h-9 flex-1"
+                                                placeholder="Filtrar por nome..."
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="companyName" className="text-xs font-medium text-muted-foreground">Razão Social</Label>
@@ -378,7 +402,7 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                                 </div>
                             </div>
                             <div className="flex gap-2 pt-2">
-                                <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                                <Button variant="outline" size="default" className="flex-1" onClick={() => {
                                     setLocalFilterName('')
                                     setLocalFilterNameOperator('cont')
                                     setLocalFilterCompanyName('')
@@ -401,7 +425,7 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                                 }}>
                                     Limpar
                                 </Button>
-                                <Button size="sm" className="flex-1" onClick={() => {
+                                <Button size="default" className="flex-1" onClick={() => {
                                     setFilterName(localFilterName)
                                     setFilterNameOperator(localFilterNameOperator)
                                     setFilterCompanyName(localFilterCompanyName)
@@ -418,23 +442,38 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                             </div>
                         </div>
                     </PopoverContent>
-                </Popover>
+                    </Popover>
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isLoading || isRefetching}
+                        onClick={() => { refetch() }}
+                        aria-label="Atualizar"
+                        title="Atualizar"
+                    >
+                        {(isLoading || isRefetching) ? <RefreshCw className="animate-spin size-[0.85rem]" /> : <RefreshCw className="size-[0.85rem]" />}
+                        Atualizar
+                    </Button>
+                </div>
             </div>
 
-            <div className="flex-1 overflow-hidden p-2">
+            <div className="flex-1 overflow-hidden">
                 <DataTable
                     columns={columns}
                     data={data?.items || []}
-                    loading={isLoading}
+                    loading={isLoading || isRefetching}
                     page={page}
                     perPage={perPage}
                     totalItems={data?.totalItems || 0}
                     onChange={(vals) => {
-                        if (vals.page) setPage(vals.page)
-                        if (vals.perPage) setPerPage(vals.perPage)
+                        if (typeof vals.page === 'number') setPage(vals.page)
+                        if (typeof vals.perPage === 'number') {
+                            setPerPage(vals.perPage)
+                            setPage(1)
+                        }
                     }}
                     onRowClick={(item) => {
-                        console.log('Row clicked:', item)
                         setTempSelectedCustomer(item)
                     }}
                     emptyMessage="Nenhum cliente encontrado."
@@ -443,11 +482,11 @@ function CustomerList({ onSelect, selectedId }: { onSelect: (c: Customer) => voi
                 />
             </div>
 
-            <div className="p-4 border-t bg-background flex justify-end">
-                <Button 
-                    onClick={() => tempSelectedCustomer && onSelect(tempSelectedCustomer)} 
-                    disabled={!tempSelectedCustomer}
-                >
+            <div className="p-2 border-t bg-background flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={onClose}>
+                    Cancelar
+                </Button>
+                <Button onClick={() => tempSelectedCustomer && onSelect(tempSelectedCustomer)} disabled={!tempSelectedCustomer}>
                     Selecionar
                 </Button>
             </div>

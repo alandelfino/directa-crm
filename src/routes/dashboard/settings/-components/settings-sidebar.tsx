@@ -21,7 +21,7 @@ export function SettingsSidebar() {
     { label: 'Integrações', href: '/dashboard/settings/integrations' },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks' },
     { label: 'Transportadoras', href: '/dashboard/settings/carrier-integrations' },
-    { label: 'Pagamento', href: '/dashboard/settings/payment-integrations' },
+    { label: 'Métodos de pagamento', href: '/dashboard/settings/payment-methods' },
   ]
   return (
     <aside className='min-w-48 max-w-48 w-fit pr-2 shrink-0  p-4 h-full overflow-y-auto'>

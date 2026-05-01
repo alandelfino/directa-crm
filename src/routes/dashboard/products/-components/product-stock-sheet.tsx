@@ -8,6 +8,7 @@ import { privateInstance } from '@/lib/auth'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatStockQuantity, normalizeStockNumberType } from '@/lib/format'
 
 type ProductStockSimpleItem = {
   id: string | number
@@ -22,7 +23,9 @@ type ProductStockWithDerivationsItem = {
   derivatedProductName: string
   warehouseId: number
   warehouseName: string
-  amount: number
+  physicalStock: number
+  reservedStock: number
+  available: number
 }
 
 type ProductStockResponse = {
@@ -30,14 +33,17 @@ type ProductStockResponse = {
     id: number
     sku: string
     name: string
-    type: 'simple' | 'with_derivations'
+    type?: string
   }
   unitOfMeasurement?: {
     id: number
     name: string
     numberType: 'integer' | 'decimal'
   }
-  total: number
+  total?: number
+  totalPhysicalStock?: number
+  totalReservedStock?: number
+  totalAvailable?: number
   items: Array<ProductStockSimpleItem | ProductStockWithDerivationsItem>
 }
 
@@ -47,16 +53,6 @@ type ProductStockSheetProps = {
 
 export function ProductStockSheet({ productId }: ProductStockSheetProps) {
   const [open, setOpen] = useState(false)
-
-  const formatQuantityFromCents = (value: number) => {
-    const base = Number.isFinite(value) ? value / 100 : 0
-    const numberType = data?.unitOfMeasurement?.numberType ?? 'decimal'
-
-    return base.toLocaleString('pt-BR', {
-      minimumFractionDigits: numberType === 'integer' ? 0 : 2,
-      maximumFractionDigits: numberType === 'integer' ? 0 : 2,
-    })
-  }
 
   const { data, isLoading, isRefetching, refetch } = useQuery<ProductStockResponse>({
     queryKey: ['product-stock', productId],
@@ -71,6 +67,7 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
   })
 
   const product = data?.product
+  const qtyType = normalizeStockNumberType(data?.unitOfMeasurement?.numberType)
   
   const itemsRaw = useMemo(() => {
     if (!data) return []
@@ -81,13 +78,25 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
     return []
   }, [data])
 
-  const totalAmountCents = useMemo(() => {
-    if (typeof data?.total === 'number') return data.total
-    return itemsRaw.reduce(
-      (sum: number, item: any) => sum + Number(item?.amount ?? 0),
-      0,
-    )
-  }, [data?.total, itemsRaw])
+  const totals = useMemo(() => {
+    const physical =
+      typeof data?.totalPhysicalStock === 'number'
+        ? data.totalPhysicalStock
+        : itemsRaw.reduce((sum: number, item: any) => sum + Number(item?.physicalStock ?? item?.physical_stock ?? 0), 0)
+    const reserved =
+      typeof data?.totalReservedStock === 'number'
+        ? data.totalReservedStock
+        : itemsRaw.reduce((sum: number, item: any) => sum + Number(item?.reservedStock ?? item?.reserved_stock ?? 0), 0)
+    const available =
+      typeof data?.totalAvailable === 'number'
+        ? data.totalAvailable
+        : itemsRaw.reduce((sum: number, item: any) => sum + Number(item?.available ?? 0), 0)
+    const total =
+      typeof data?.total === 'number'
+        ? data.total
+        : physical
+    return { total, physical, reserved, available }
+  }, [data?.total, data?.totalPhysicalStock, data?.totalReservedStock, data?.totalAvailable, itemsRaw])
 
   const derivationItems: ProductStockWithDerivationsItem[] = useMemo(() => {
     return itemsRaw.map((item: any, index: number) => {
@@ -107,7 +116,9 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
       const warehouseName = String(
         item.warehouseName ?? item.warehouse_name ?? '—',
       )
-      const amount = Number(item.amount ?? 0)
+      const physicalStock = Number(item.physicalStock ?? item.physical_stock ?? item.amount ?? 0)
+      const reservedStock = Number(item.reservedStock ?? item.reserved_stock ?? 0)
+      const available = Number(item.available ?? 0)
 
       return {
         id: `${derivatedProductId}-${warehouseId}-${index}`,
@@ -115,7 +126,9 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
         derivatedProductName,
         warehouseId,
         warehouseName,
-        amount,
+        physicalStock,
+        reservedStock,
+        available,
       }
     })
   }, [itemsRaw])
@@ -154,11 +167,11 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
           className: 'w-[260px] min-w-[260px] !px-4',
         },
         {
-          id: 'amount',
-          header: 'Quantidade',
+          id: 'physicalStock',
+          header: 'Físico',
           cell: (item) => (
             <span className="font-medium text-right block">
-              {formatQuantityFromCents(item.amount)}
+              {formatStockQuantity(qtyType, item.physicalStock)}
             </span>
           ),
           width: '140px',
@@ -167,16 +180,43 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
           className:
             'w-[140px] min-w-[140px] !px-4 text-right',
         },
+        {
+          id: 'reservedStock',
+          header: 'Reservado',
+          cell: (item) => (
+            <span className="text-right block text-muted-foreground">
+              {formatStockQuantity(qtyType, item.reservedStock)}
+            </span>
+          ),
+          width: '140px',
+          headerClassName:
+            'w-[140px] min-w-[140px] border-r text-right',
+          className:
+            'w-[140px] min-w-[140px] !px-4 text-right',
+        },
+        {
+          id: 'available',
+          header: 'Disponível',
+          cell: (item) => (
+            <span className="font-semibold text-right block">
+              {formatStockQuantity(qtyType, item.available)}
+            </span>
+          ),
+          width: '150px',
+          headerClassName:
+            'w-[150px] min-w-[150px] text-right',
+          className:
+            'w-[150px] min-w-[150px] !px-4 text-right',
+        },
       ],
-      [data?.unitOfMeasurement],
+      [qtyType],
     )
 
   const itemsCount = derivationItems.length
-
-  const formattedTotal =
-    typeof totalAmountCents === 'number'
-      ? formatQuantityFromCents(totalAmountCents)
-      : '0,00'
+  const formattedTotal = formatStockQuantity(qtyType, totals.total)
+  const formattedPhysical = formatStockQuantity(qtyType, totals.physical)
+  const formattedReserved = formatStockQuantity(qtyType, totals.reserved)
+  const formattedAvailable = formatStockQuantity(qtyType, totals.available)
 
   return (
     <Sheet
@@ -193,42 +233,49 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
           <Archive className="size-[0.85rem]" /> Estoque
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-4xl sm:max-w-[900px] p-0">
-        <SheetHeader className="px-4 py-4">
-          <SheetTitle>Estoque do Produto</SheetTitle>
-          <SheetDescription>
-            Visualize a distribuição de estoque deste produto por
-            depósito.
-          </SheetDescription>
-        </SheetHeader>
+      <SheetContent className="w-[80vw] sm:max-w-none p-0">
+        <div className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <SheetHeader className="px-6 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-1 min-w-0">
+                <SheetTitle>Estoque do Produto</SheetTitle>
+                <SheetDescription>
+                  Distribuição por depósito e variação.
+                </SheetDescription>
+              </div>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon" aria-label="Fechar" title="Fechar">
+                  <span className="text-lg leading-none">×</span>
+                </Button>
+              </SheetClose>
+            </div>
+          </SheetHeader>
+        </div>
 
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="px-4 pb-3 space-y-3">
-            <div className="rounded-lg border bg-muted/40 px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex flex-col flex-1 overflow-hidden bg-muted/20">
+          <div className="mx-auto flex h-full w-full max-w-[1100px] flex-col px-6 py-3">
+            <div className="rounded-xl border bg-background shadow-sm px-4 py-4 flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-full bg-neutral-900/5 dark:bg-neutral-50/5 flex items-center justify-center">
-                  <Archive className="h-4 w-4 text-muted-foreground" />
+                <div className="h-10 w-10 rounded-full bg-primary/5 border flex items-center justify-center shrink-0">
+                  <Archive className="h-4 w-4 text-primary/70" />
                 </div>
                 {product ? (
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-medium text-sm truncate">
+                      <span className="font-semibold text-sm truncate">
                         {product.name}
                       </span>
-                      <Badge
-                        variant="outline"
-                        className="font-mono text-[10px]"
-                      >
+                      <Badge variant="secondary" className="font-mono text-[10px] h-5 px-2 shrink-0">
                         {product.sku}
                       </Badge>
+                      {data?.unitOfMeasurement?.name ? (
+                        <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0">
+                          {data.unitOfMeasurement.name}
+                        </Badge>
+                      ) : null}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {itemsCount}{' '}
-                        {itemsCount === 1
-                          ? 'registro de estoque'
-                          : 'registros de estoque'}
-                      </span>
+                    <div className="text-xs text-muted-foreground">
+                      {itemsCount === 1 ? '1 registro' : `${itemsCount} registros`}
                     </div>
                   </div>
                 ) : (
@@ -238,62 +285,60 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
                   </div>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-xs text-muted-foreground">
-                  Estoque total
-                </span>
-                <span className="text-lg font-semibold tabular-nums">
-                  {formattedTotal}
-                </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => refetch()}
+                  disabled={isLoading || isRefetching}
+                  aria-label="Atualizar"
+                  title="Atualizar"
+                >
+                  <RefreshCw
+                    className={cn(
+                      'size-[0.85rem]',
+                      isRefetching && 'animate-spin',
+                    )}
+                  />
+                </Button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Valores em quantidade padrão do produto.</span>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border bg-background px-4 py-3 shadow-sm">
+                <div className="text-xs text-muted-foreground">Total</div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">{formattedTotal}</div>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => refetch()}
-                disabled={isLoading || isRefetching}
-              >
-                <RefreshCw
-                  className={cn(
-                    'size-[0.85rem]',
-                    isRefetching && 'animate-spin',
-                  )}
-                />
-              </Button>
+              <div className="rounded-xl border bg-background px-4 py-3 shadow-sm">
+                <div className="text-xs text-muted-foreground">Físico</div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">{formattedPhysical}</div>
+              </div>
+              <div className="rounded-xl border bg-background px-4 py-3 shadow-sm">
+                <div className="text-xs text-muted-foreground">Reservado</div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">{formattedReserved}</div>
+              </div>
+              <div className="rounded-xl border bg-background px-4 py-3 shadow-sm">
+                <div className="text-xs text-muted-foreground">Disponível</div>
+                <div className="mt-1 text-lg font-semibold tabular-nums">{formattedAvailable}</div>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-2 mb-0 flex-1 flex flex-col overflow-hidden border-t">
+            <div className="mt-4 flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm rounded-lg">
               <DataTable<ProductStockWithDerivationsItem>
                 columns={derivationColumns}
                 data={derivationItems}
                 loading={isLoading || isRefetching}
                 hideFooter={true}
-                rowClassName="h-8"
+                rowClassName="h-10"
               />
+            </div>
           </div>
         </div>
 
         <SheetFooter className="border-t">
-          <div className="flex w-full items-center justify-between px-4 py-3">
-            <span className="text-sm text-muted-foreground">
-              {itemsCount === 0
-                ? 'Nenhum registro de estoque para este produto'
-                : `${itemsCount} ${
-                    itemsCount === 1
-                      ? 'registro de estoque'
-                      : 'registros de estoque'
-                  } • Total: ${formattedTotal}`}
-            </span>
+          <div className="flex w-full items-center justify-end px-6 py-4">
             <SheetClose asChild>
-              <Button variant="outline" className="w-fit">
-                Fechar
-              </Button>
+              <Button variant="outline" className="w-fit">Fechar</Button>
             </SheetClose>
           </div>
         </SheetFooter>

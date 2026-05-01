@@ -139,7 +139,7 @@ export function DataTable<T extends { id?: number | string }>({
   }
 
   return (
-    <div className='flex flex-col w-full h-full min-h-0 overflow-y-auto overflow-x-hidden px-2 rounded '>
+    <div className='flex flex-col w-full h-full min-h-0 overflow-y-auto overflow-x-hidden rounded '>
 
       <div className='relative flex-1 border rounded-lg overflow-hidden min-h-0 flex flex-col'>
         <div className={`w-full flex-1 overflow-auto ${isDraggingTable ? 'overflow-y-hidden' : 'overflow-y-auto'}`} data-slot='datatable-scroller' ref={mainScrollerRef}>

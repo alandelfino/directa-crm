@@ -139,6 +139,29 @@ export function formatNumberByCompany(n?: number): string {
   try { return new Intl.NumberFormat(locale).format(n) } catch { return n.toLocaleString(locale) }
 }
 
+export type StockNumberType = 'int' | 'decimal'
+
+export function normalizeStockNumberType(type: unknown): StockNumberType {
+  const t = String(type ?? '').toLowerCase().trim()
+  if (t === 'int' || t === 'integer') return 'int'
+  return 'decimal'
+}
+
+export function formatStockQuantity(type: StockNumberType, value: unknown, locale: string = 'pt-BR'): string {
+  const cents = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(cents)) return '-'
+  const n = cents / 100
+  const digits = type === 'int' ? 0 : 2
+  try {
+    return new Intl.NumberFormat(locale, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(n)
+  } catch {
+    return n.toFixed(digits)
+  }
+}
+
 export function getCompanyTimeZone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'

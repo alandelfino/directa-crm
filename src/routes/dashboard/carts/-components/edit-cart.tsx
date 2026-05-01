@@ -210,8 +210,11 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       // const newNames = new Set(variables.map(v => v.productName))
       // setOpenProducts(prev => Array.from(new Set([...prev, ...newNames])))
     },
-    onError: () => {
-      toast.error('Erro ao adicionar produtos.')
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao adicionar produtos', {
+        description: errorData?.detail || 'Não foi possível adicionar os produtos ao carrinho.'
+      })
     }
   })
 
@@ -347,482 +350,490 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const selectedShippingPrice = selectedShippingQuote?.price ?? 0
   const addresses = useMemo(() => (customerAddresses ?? []) as CustomerAddress[], [customerAddresses])
   const isBusy = isLoadingCart || isAddingItems || isUpdatingItem || isDeletingItem || isUpdatingCartAfterAddressSelect || isUpdatingCartAfterShippingSelect
+  const subtotalCents = (cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)
+  const totalWithShippingCents = (cart?.totalValue || 0) + selectedShippingPrice
+  const formatBRL = (valueInCents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((valueInCents || 0) / 100)
 
   return (
     <>
       <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent className="sm:max-w-xl w-full flex flex-col h-full p-0 gap-0">
-          <div className="p-6 border-b bg-background z-10">
-            <SheetHeader className="gap-0 p-0 flex flex-row justify-between items-start">
-              <div className="flex gap-4 items-center">
-                <Avatar className="h-12 w-12 border bg-primary/5">
-                  <AvatarFallback className="bg-primary/5 text-primary">
-                    <ShoppingCart className="h-5 w-5" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col gap-1">
-                  <SheetTitle className="text-xl">{cart?.customer?.name || `Carrinho #${cartId}`}</SheetTitle>
-                  <SheetDescription className="flex items-center gap-2">
-                    <span className="flex items-center gap-1.5 bg-muted px-2 py-0.5 rounded text-xs font-medium text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {cart?.createdAt ? new Date(cart.createdAt).toLocaleDateString('pt-BR') : '...'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {cart?.createdAt ? new Date(cart.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                    </span>
-                  </SheetDescription>
+        <SheetContent className="w-[80vw] sm:max-w-none flex flex-col h-full p-0 gap-0">
+          <div className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="mx-auto flex max-w-[1400px] items-start justify-between gap-4 px-6 py-4">
+              <SheetHeader className="gap-0 p-0 flex flex-row items-start">
+                <div className="flex gap-3 items-center min-w-0">
+                  <Avatar className="h-10 w-10 border bg-primary/5 shrink-0">
+                    <AvatarFallback className="bg-primary/5 text-primary">
+                      <ShoppingCart className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <SheetTitle className="text-lg leading-snug truncate">{cart?.customer?.name || `Carrinho #${cartId}`}</SheetTitle>
+                    <SheetDescription className="flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 bg-muted px-2 py-0.5 rounded text-xs font-medium text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {cart?.createdAt ? new Date(cart.createdAt).toLocaleDateString('pt-BR') : '...'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {cart?.createdAt ? new Date(cart.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </SheetDescription>
+                  </div>
                 </div>
-              </div>
-              {cart && (
-                <Badge className="h-fit px-2.5 py-0.5 text-xs font-medium" variant={cart.status === 'open' ? 'outline' : cart.status === 'abandoned' ? 'destructive' : 'default'}>
-                  {cart.status === 'open' ? 'Aberto' : cart.status === 'abandoned' ? 'Abandonado' : 'Finalizado'}
-                </Badge>
-              )}
-            </SheetHeader>
+              </SheetHeader>
+
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon" aria-label="Fechar" title="Fechar">
+                  <span className="text-lg leading-none">×</span>
+                </Button>
+              </SheetClose>
+            </div>
           </div>
 
-          {isBusy ? (
-            <div className="flex flex-col h-full flex-1 items-center justify-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Carregando informações...</p>
-            </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="items">Itens do Carrinho</TabsTrigger>
-                  <TabsTrigger value="shipping">Fretes</TabsTrigger>
-                  <TabsTrigger value="addresses">Endereços</TabsTrigger>
-                  <TabsTrigger value="details">Detalhes</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="items" className="flex-1 overflow-hidden flex flex-col m-0 p-0">
-
-                <div className="flex items-center justify-between px-6">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4" /> Itens ({cart?.totalItems || 0})
-                  </h3>
-                  <Button size="sm" variant="outline" onClick={() => setAddProductOpen(true)} disabled={isReadOnly}>
-                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
-                  </Button>
+          <div className="flex-1 overflow-hidden bg-muted/20">
+            <div className="mx-auto flex h-full max-w-[1400px] flex-col px-6 py-6">
+              {isBusy ? (
+                <div className="flex flex-col h-full flex-1 items-center justify-center space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Carregando informações...</p>
                 </div>
+              ) : (
+                <div className="grid flex-1 min-h-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+                  <div className="flex min-h-0 flex-col">
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex min-h-0 flex-1 flex-col">
+                      <TabsList className="grid w-full grid-cols-4 h-10 p-1 rounded-xl bg-muted/60">
+                        <TabsTrigger value="items">Itens do Carrinho</TabsTrigger>
+                        <TabsTrigger value="shipping">Fretes</TabsTrigger>
+                        <TabsTrigger value="addresses">Endereços</TabsTrigger>
+                        <TabsTrigger value="details">Detalhes</TabsTrigger>
+                      </TabsList>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {(cart?.products || []).length === 0 ? (
-                    isLoadingCart || isRefetchingCart || isAddingItems ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <div className="flex-1 flex items-center justify-center p-8">
-                        <Empty className="gap-2">
-                          <EmptyMedia variant="icon">
-                            <ShoppingCart className="h-6 w-6 text-muted-foreground" />
-                          </EmptyMedia>
-                          <EmptyTitle className="mt-0">Carrinho vazio</EmptyTitle>
-                          <EmptyDescription className="mt-0">
-                            Adicione produtos para começar o atendimento.
-                          </EmptyDescription>
-                          <Button size="sm" variant="outline" onClick={() => setAddProductOpen(true)} disabled={isReadOnly} className="mt-2">
-                            <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar Produtos
-                          </Button>
-                        </Empty>
-                      </div>
-                    )
-                  ) : (
-                    <div className="space-y-4">
-                      {cart?.products.map((product) => {
-                        const isOpen = openProducts.includes(product.name)
-                        const productTotalItems = product.totalItems || product.derivatedProducts.reduce((acc, item) => acc + item.amount, 0)
+                      <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-xl border bg-background shadow-sm overflow-hidden">
+                        <TabsContent value="items" className="m-0 flex min-h-0 flex-1 flex-col">
+                          <div className="flex items-center justify-between border-b px-4 py-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2">
+                              <ShoppingCart className="h-4 w-4" /> Itens ({cart?.totalItems || 0})
+                            </h3>
+                            <Button size="sm" variant="outline" onClick={() => setAddProductOpen(true)} disabled={isReadOnly}>
+                              <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
+                            </Button>
+                          </div>
 
-                        return (
-                          <Collapsible
-                            key={product.id}
-                            open={isOpen}
-                            onOpenChange={() => toggleProductOpen(product.name)}
-                            className="border rounded-lg bg-card shadow-sm transition-all hover:shadow-md"
-                          >
-                            <div className="flex items-center justify-between p-4">
-                              <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent flex-1 justify-start gap-4">
-                                  <div className="h-10 w-10 rounded-lg bg-primary/5 border flex items-center justify-center shrink-0">
-                                    <Package className="h-5 w-5 text-primary/70" />
-                                  </div>
-                                  <div className="flex flex-col items-start text-left gap-1">
-                                    <div className="flex items-center gap-2">
-                                      {product.sku && (
-                                        <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5 leading-none rounded-sm text-muted-foreground">
-                                          {product.sku}
-                                        </Badge>
-                                      )}
-                                      <span className="text-sm font-semibold text-foreground/90">{product.name}</span>
+                          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {(cart?.products || []).length === 0 ? (
+                              <div className="flex-1 flex items-center justify-center p-8">
+                                <Empty className="gap-2">
+                                  <EmptyMedia variant="icon">
+                                    <ShoppingCart className="h-6 w-6 text-muted-foreground" />
+                                  </EmptyMedia>
+                                  <EmptyTitle className="mt-0">Carrinho vazio</EmptyTitle>
+                                  <EmptyDescription className="mt-0">
+                                    Adicione produtos para começar o atendimento.
+                                  </EmptyDescription>
+                                  <Button size="sm" variant="outline" onClick={() => setAddProductOpen(true)} disabled={isReadOnly} className="mt-2">
+                                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar Produtos
+                                  </Button>
+                                </Empty>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {cart?.products.map((product) => {
+                                  const isOpen = openProducts.includes(product.name)
+                                  const productTotalItems = product.totalItems || product.derivatedProducts.reduce((acc, item) => acc + item.amount, 0)
+
+                                  return (
+                                    <Collapsible
+                                      key={product.id}
+                                      open={isOpen}
+                                      onOpenChange={() => toggleProductOpen(product.name)}
+                                      className="border rounded-lg bg-card shadow-sm transition-all hover:shadow-md"
+                                    >
+                                      <div className="flex items-center justify-between p-3">
+                                        <CollapsibleTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent flex-1 justify-start gap-3 min-w-0">
+                                            <div className="h-9 w-9 rounded-lg bg-primary/5 border flex items-center justify-center shrink-0">
+                                              <Package className="h-4 w-4 text-primary/70" />
+                                            </div>
+                                            <div className="flex flex-col items-start text-left gap-1 min-w-0">
+                                              <div className="flex items-center gap-2 min-w-0">
+                                                {product.sku && (
+                                                  <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5 leading-none rounded-sm text-muted-foreground shrink-0">
+                                                    {product.sku}
+                                                  </Badge>
+                                                )}
+                                                <span className="text-sm font-semibold text-foreground/90 truncate">{product.name}</span>
+                                              </div>
+                                              <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none font-normal border-muted-foreground/20">
+                                                  {productTotalItems} {productTotalItems === 1 ? 'item' : 'itens'}
+                                                </Badge>
+                                              </span>
+                                            </div>
+                                            {isOpen ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground/50" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground/50" />}
+                                          </Button>
+                                        </CollapsibleTrigger>
+                                      </div>
+
+                                      <CollapsibleContent>
+                                        <div className="border-t divide-y bg-muted/30">
+                                          {product.derivatedProducts.map((item) => (
+                                            <div key={item.id} className="flex items-center justify-between py-3 pl-14 pr-4 hover:bg-muted/50 transition-colors group">
+                                              <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Variação</span>
+                                                </div>
+                                                <div className="flex flex-col">
+                                                  <span className="text-sm font-medium text-foreground/80">{item.name}</span>
+                                                  <div className="flex items-center gap-2 text-xs mt-0.5">
+                                                    {item.oldPrice > item.price && (
+                                                      <span className="text-muted-foreground/60 line-through">
+                                                        {formatBRL(item.oldPrice)}
+                                                      </span>
+                                                    )}
+                                                    <span className={item.oldPrice > item.price ? "text-green-600 font-semibold bg-green-50 px-1.5 rounded-sm" : "text-muted-foreground font-medium"}>
+                                                      {formatBRL(item.price)}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div className="flex items-center gap-6">
+                                                {!isReadOnly ? (
+                                                  <div className="flex items-center border rounded-md bg-background shadow-sm h-8 overflow-hidden group-hover:border-primary/20 transition-colors">
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="icon"
+                                                      className="h-8 w-8 rounded-none border-r hover:bg-muted active:bg-muted/80"
+                                                      onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: Math.max(0, item.amount - 1) })}
+                                                      disabled={item.amount <= 1}
+                                                    >
+                                                      <Minus className="h-3 w-3" />
+                                                    </Button>
+                                                    <div className="w-10 text-center text-sm font-medium tabular-nums h-full flex items-center justify-center bg-transparent">
+                                                      {item.amount}
+                                                    </div>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="icon"
+                                                      className="h-8 w-8 rounded-none border-l hover:bg-muted active:bg-muted/80"
+                                                      onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: item.amount + 1 })}
+                                                    >
+                                                      <Plus className="h-3 w-3" />
+                                                    </Button>
+                                                  </div>
+                                                ) : (
+                                                  <Badge variant="outline" className="text-sm px-3 py-1 font-mono">{item.amount} un</Badge>
+                                                )}
+
+                                                <div className="text-right min-w-[90px]">
+                                                  <span className="text-sm font-bold text-foreground">
+                                                    {formatBRL(item.amount * item.price)}
+                                                  </span>
+                                                </div>
+
+                                                {!isReadOnly && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                                                    onClick={() => deleteItem(item.id)}
+                                                  >
+                                                    <Trash2 className="h-4 w-4" />
+                                                  </Button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </CollapsibleContent>
+                                    </Collapsible>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="shipping" className="m-0 flex min-h-0 flex-1 flex-col">
+                          <div className="flex items-center justify-between border-b px-4 py-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2">
+                              <Truck className="h-4 w-4" /> Cotação de Frete
+                            </h3>
+                          </div>
+
+                          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {Array.isArray(cart?.shippingQuote) && cart.shippingQuote.length > 0 ? (
+                              cart.shippingQuote.map((q) => (
+                                <button
+                                  key={q.id}
+                                  type="button"
+                                  className="w-full text-left border rounded-lg p-3 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                                  disabled={isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect}
+                                  onClick={() => {
+                                    if (q.isSelected) return
+                                    selectShippingQuote(q.id)
+                                  }}
+                                >
+                                  <div className="flex items-start gap-3 min-w-0">
+                                    <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <Checkbox
+                                        checked={q.isSelected}
+                                        onCheckedChange={() => {
+                                          if (isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) return
+                                          if (q.isSelected) return
+                                          selectShippingQuote(q.id)
+                                        }}
+                                        aria-label="Selecionar cotação de frete"
+                                      />
                                     </div>
-                                    <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none font-normal border-muted-foreground/20">
-                                        {productTotalItems} {productTotalItems === 1 ? 'item' : 'itens'}
-                                      </Badge>
+                                    <div className="flex flex-col gap-1 min-w-0">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-sm font-semibold truncate">{q.carrierName}</span>
+                                        {q.isSelected && (
+                                          <Badge className="h-5 px-2 text-[10px]" variant="default">
+                                            Selecionado
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {q.serviceName}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span className="text-sm font-semibold tabular-nums">
+                                      {formatBRL(q.price)}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {q.deadline} {q.deadline === 1 ? 'dia' : 'dias'}
                                     </span>
                                   </div>
-                                  {isOpen ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground/50" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground/50" />}
-                                </Button>
-                              </CollapsibleTrigger>
-                            </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                                  <Truck className="h-6 w-6 opacity-50" />
+                                </div>
+                                <p className="text-sm font-medium text-foreground">Nenhuma cotação disponível</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Este carrinho ainda não possui opções de frete cotadas.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
 
-                            <CollapsibleContent>
-                              <div className="border-t divide-y bg-muted/30">
-                                {product.derivatedProducts.map((item) => (
-                                  <div key={item.id} className="flex items-center justify-between p-3 pl-16 pr-4 hover:bg-muted/50 transition-colors group">
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Variação</span>
+                        <TabsContent value="addresses" className="m-0 flex min-h-0 flex-1 flex-col">
+                          <div className="flex items-center justify-between border-b px-4 py-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2">
+                              <MapPin className="h-4 w-4" /> Endereços
+                            </h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={!customerId || isLoadingAddresses || isRefetchingAddresses || isSelectingAddress || isUpdatingCartAfterAddressSelect}
+                              onClick={() => { refetchAddresses() }}
+                              title="Atualizar"
+                              aria-label="Atualizar"
+                            >
+                              <RefreshCw className={`size-[0.85rem] ${isLoadingAddresses || isRefetchingAddresses || isUpdatingCartAfterAddressSelect ? 'animate-spin' : ''}`} />
+                            </Button>
+                          </div>
+
+                          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {!customerId ? (
+                              <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                                  <MapPin className="h-6 w-6 opacity-50" />
+                                </div>
+                                <p className="text-sm font-medium text-foreground">Nenhum cliente vinculado</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Selecione um cliente para visualizar os endereços.
+                                </p>
+                              </div>
+                            ) : (isLoadingAddresses || isRefetchingAddresses) ? (
+                              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" /> Carregando endereços...
+                              </div>
+                            ) : addresses.length > 0 ? (
+                              addresses.map((a) => {
+                                const isSelected = selectedAddressId === a.id
+                                const selectionLocked = isReadOnly || isSelectingAddress || isUpdatingCartAfterAddressSelect
+                                return (
+                                  <button
+                                    key={a.id}
+                                    type="button"
+                                    className={`w-full text-left border rounded-lg p-3 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none ${isSelected ? 'border-primary ring-1 ring-primary/20' : ''}`}
+                                    disabled={selectionLocked}
+                                    onClick={() => {
+                                      if (selectionLocked) return
+                                      if (isSelected) return
+                                      selectCartAddress(a.id)
+                                    }}
+                                  >
+                                    <div className="flex items-start gap-3 min-w-0">
+                                      <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                        <Checkbox
+                                          checked={isSelected}
+                                          onCheckedChange={() => {
+                                            if (selectionLocked) return
+                                            if (isSelected) return
+                                            selectCartAddress(a.id)
+                                          }}
+                                          aria-label="Selecionar endereço"
+                                        />
                                       </div>
-                                      <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-foreground/80">{item.name}</span>
-                                        <div className="flex items-center gap-2 text-xs mt-0.5">
-                                          {item.oldPrice > item.price && (
-                                            <span className="text-muted-foreground/60 line-through">
-                                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.oldPrice / 100)}
-                                            </span>
+                                      <div className="flex flex-col gap-1 min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="text-sm font-semibold truncate">{a.name}</span>
+                                          {a.isDefault && (
+                                            <Badge variant="secondary" className="h-5 px-2 text-[10px]">
+                                              Padrão
+                                            </Badge>
                                           )}
-                                          <span className={item.oldPrice > item.price ? "text-green-600 font-semibold bg-green-50 px-1.5 rounded-sm" : "text-muted-foreground font-medium"}>
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price / 100)}
-                                          </span>
+                                          {isSelected && (
+                                            <Badge className="h-5 px-2 text-[10px]" variant="default">
+                                              Selecionado
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground truncate">
+                                          {a.streetName}, {a.number} • {a.neighborhood}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground truncate">
+                                          {a.city} - {a.state} • {a.zipCode}
+                                          {a.complement ? ` • ${a.complement}` : ''}
                                         </div>
                                       </div>
                                     </div>
-
-                                    <div className="flex items-center gap-6">
-                                      {!isReadOnly ? (
-                                        <div className="flex items-center border rounded-md bg-background shadow-sm h-8 overflow-hidden group-hover:border-primary/20 transition-colors">
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 rounded-none border-r hover:bg-muted active:bg-muted/80"
-                                            onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: Math.max(0, item.amount - 1) })}
-                                            disabled={item.amount <= 1}
-                                          >
-                                            <Minus className="h-3 w-3" />
-                                          </Button>
-                                          <div className="w-10 text-center text-sm font-medium tabular-nums h-full flex items-center justify-center bg-transparent">
-                                            {item.amount}
-                                          </div>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 rounded-none border-l hover:bg-muted active:bg-muted/80"
-                                            onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: item.amount + 1 })}
-                                          >
-                                            <Plus className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      ) : (
-                                        <Badge variant="outline" className="text-sm px-3 py-1 font-mono">{item.amount} un</Badge>
-                                      )}
-
-                                      <div className="text-right min-w-[90px]">
-                                        <span className="text-sm font-bold text-foreground">
-                                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((item.amount * item.price) / 100)}
-                                        </span>
-                                      </div>
-
-                                      {!isReadOnly && (
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-                                          onClick={() => deleteItem(item.id)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
+                                  </button>
+                                )
+                              })
+                            ) : (
+                              <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                                  <MapPin className="h-6 w-6 opacity-50" />
+                                </div>
+                                <p className="text-sm font-medium text-foreground">Nenhum endereço cadastrado</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Este cliente ainda não possui endereços.
+                                </p>
                               </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                            )}
+                          </div>
+                        </TabsContent>
 
-              <TabsContent value="shipping" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <Truck className="h-4 w-4" /> Cotação de Frete
-                  </h3>
+                        <TabsContent value="details" className="m-0 flex min-h-0 flex-1 flex-col">
+                          <div className="flex items-center justify-between border-b px-4 py-3">
+                            <h3 className="text-sm font-semibold flex items-center gap-2">
+                              <Info className="h-4 w-4" /> Detalhes
+                            </h3>
+                          </div>
 
-                  {Array.isArray(cart?.shippingQuote) && cart.shippingQuote.length > 0 ? (
-                    <div className="space-y-3">
-                      {cart.shippingQuote.map((q) => (
-                        <button
-                          key={q.id}
-                          type="button"
-                          className="w-full text-left border rounded-lg p-4 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none"
-                          disabled={isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect}
-                          onClick={() => {
-                            if (q.isSelected) return
-                            selectShippingQuote(q.id)
-                          }}
-                        >
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-                              <Checkbox
-                                checked={q.isSelected}
-                                onCheckedChange={() => {
-                                  if (isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) return
-                                  if (q.isSelected) return
-                                  selectShippingQuote(q.id)
-                                }}
-                                aria-label="Selecionar cotação de frete"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1 min-w-0">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-semibold truncate">
-                                  {q.carrierName}
-                                </span>
-                                {q.isSelected && (
-                                  <Badge className="h-5 px-2 text-[10px]" variant="default">
-                                    Selecionado
-                                  </Badge>
-                                )}
+                          <div className="flex-1 overflow-y-auto p-4">
+                            <div className="grid grid-cols-1 gap-4 border rounded-lg p-4 bg-muted/10">
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Cliente</span>
+                                <p className="text-sm font-medium" title={cart?.customer?.name}>{cart?.customer?.name || '—'}</p>
                               </div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {q.serviceName}
+                              <Separator />
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1"><Store className="h-3 w-3" /> Loja</span>
+                                <p className="text-sm font-medium" title={cart?.store?.name}>{cart?.store?.name || '—'}</p>
+                              </div>
+                              <Separator />
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Criado em</span>
+                                <p className="text-sm font-medium">
+                                  {cart?.createdAt ? new Date(cart.createdAt).toLocaleDateString('pt-BR') : '—'} às {cart?.createdAt ? new Date(cart.createdAt).toLocaleTimeString('pt-BR') : '—'}
+                                </p>
+                              </div>
+                              <Separator />
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1"><Package className="h-3 w-3" /> Total de Itens</span>
+                                <p className="text-sm font-medium">{cart?.totalItems || 0}</p>
                               </div>
                             </div>
                           </div>
+                        </TabsContent>
+                      </div>
+                    </Tabs>
+                  </div>
 
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className="text-sm font-semibold tabular-nums">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((q.price || 0) / 100)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {q.deadline} {q.deadline === 1 ? 'dia' : 'dias'}
-                            </span>
+                  <div className="lg:pl-0">
+                    <div className="rounded-xl border bg-background shadow-sm p-4 lg:sticky lg:top-6">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-semibold">Resumo</span>
+                          <span className="text-xs text-muted-foreground">
+                            {cart?.totalItems || 0} {(cart?.totalItems || 0) === 1 ? 'item' : 'itens'} no carrinho
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {cart && (
+                            <Badge className="h-6 px-2 text-[11px]" variant={cart.status === 'open' ? 'outline' : cart.status === 'abandoned' ? 'destructive' : 'default'}>
+                              {cart.status === 'open' ? 'Aberto' : cart.status === 'abandoned' ? 'Abandonado' : 'Finalizado'}
+                            </Badge>
+                          )}
+                          {selectedShippingQuote ? (
+                            <Badge variant="secondary" className="h-6 px-2 text-[11px]">
+                              {selectedShippingQuote.carrierName}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="h-6 px-2 text-[11px]">
+                              Sem frete
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Produtos</span>
+                          <span className="font-medium tabular-nums">{formatBRL(subtotalCents)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Frete</span>
+                          <span className="font-medium tabular-nums">{formatBRL(selectedShippingPrice)}</span>
+                        </div>
+
+                        {(cart?.additions || []).length > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Adicionais</span>
+                            <span className="font-medium tabular-nums">{formatBRL(cart?.totalAdditions || 0)}</span>
                           </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                        <Truck className="h-6 w-6 opacity-50" />
-                      </div>
-                      <p className="text-sm font-medium text-foreground">Nenhuma cotação disponível</p>
-                      <p className="text-xs text-muted-foreground">
-                        Este carrinho ainda não possui opções de frete cotadas.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                        )}
+                        {(cart?.discounts || []).length > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Descontos</span>
+                            <span className="font-medium tabular-nums">-{formatBRL(cart?.totalDiscounts || 0)}</span>
+                          </div>
+                        )}
 
-              <TabsContent value="addresses" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <MapPin className="h-4 w-4" /> Endereços
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={!customerId || isLoadingAddresses || isRefetchingAddresses || isSelectingAddress || isUpdatingCartAfterAddressSelect}
-                      onClick={() => { refetchAddresses() }}
-                      title="Atualizar"
-                      aria-label="Atualizar"
-                    >
-                      <RefreshCw className={`size-[0.85rem] ${isLoadingAddresses || isRefetchingAddresses || isUpdatingCartAfterAddressSelect ? 'animate-spin' : ''}`} />
-                    </Button>
-                  </div>
+                        <Separator className="my-3" />
 
-                  {!customerId ? (
-                    <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                        <MapPin className="h-6 w-6 opacity-50" />
+                        <div className="flex items-end justify-between gap-2">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold">Total</span>
+                            <span className="text-xs text-muted-foreground">Inclui frete selecionado</span>
+                          </div>
+                          <span className="text-2xl font-semibold tracking-tight tabular-nums text-primary">
+                            {formatBRL(totalWithShippingCents)}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm font-medium text-foreground">Nenhum cliente vinculado</p>
-                      <p className="text-xs text-muted-foreground">
-                        Selecione um cliente para visualizar os endereços.
-                      </p>
-                    </div>
-                  ) : (isLoadingAddresses || isRefetchingAddresses) ? (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando endereços...
-                    </div>
-                  ) : addresses.length > 0 ? (
-                    <div className="space-y-3">
-                      {addresses.map((a) => {
-                        const isSelected = selectedAddressId === a.id
-                        const selectionLocked = isReadOnly || isSelectingAddress || isUpdatingCartAfterAddressSelect
-                        return (
-                          <button
-                            key={a.id}
-                            type="button"
-                            className={`w-full text-left border rounded-lg p-4 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none ${isSelected ? 'border-primary ring-1 ring-primary/20' : ''}`}
-                            disabled={selectionLocked}
-                            onClick={() => {
-                              if (selectionLocked) return
-                              if (isSelected) return
-                              selectCartAddress(a.id)
-                            }}
-                          >
-                            <div className="flex items-start gap-3 min-w-0">
-                              <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => {
-                                    if (selectionLocked) return
-                                    if (isSelected) return
-                                    selectCartAddress(a.id)
-                                  }}
-                                  aria-label="Selecionar endereço"
-                                />
-                              </div>
-                              <div className="flex flex-col gap-1 min-w-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-sm font-semibold truncate">{a.name}</span>
-                                  {a.isDefault && (
-                                    <Badge variant="secondary" className="h-5 px-2 text-[10px]">
-                                      Padrão
-                                    </Badge>
-                                  )}
-                                  {isSelected && (
-                                    <Badge className="h-5 px-2 text-[10px]" variant="default">
-                                      Selecionado
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {a.streetName}, {a.number} • {a.neighborhood}
-                                </div>
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {a.city} - {a.state} • {a.zipCode}
-                                  {a.complement ? ` • ${a.complement}` : ''}
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                        <MapPin className="h-6 w-6 opacity-50" />
-                      </div>
-                      <p className="text-sm font-medium text-foreground">Nenhum endereço cadastrado</p>
-                      <p className="text-xs text-muted-foreground">
-                        Este cliente ainda não possui endereços.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
 
-              <TabsContent value="details" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <Info className="h-4 w-4" /> Informações do Atendimento
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4 border rounded-lg p-4">
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Cliente</span>
-                      <p className="text-sm font-medium" title={cart?.customer?.name}>{cart?.customer?.name || '—'}</p>
-                    </div>
-                    <Separator />
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Store className="h-3 w-3" /> Loja</span>
-                      <p className="text-sm font-medium" title={cart?.store?.name}>{cart?.store?.name || '—'}</p>
-                    </div>
-                    <Separator />
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Criado em</span>
-                      <p className="text-sm font-medium">
-                        {cart?.createdAt ? new Date(cart.createdAt).toLocaleDateString('pt-BR') : '—'} às {cart?.createdAt ? new Date(cart.createdAt).toLocaleTimeString('pt-BR') : '—'}
-                      </p>
-                    </div>
-                    <Separator />
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Package className="h-3 w-3" /> Total de Itens</span>
-                      <p className="text-sm font-medium">{cart?.totalItems || 0}</p>
+                      <div className="mt-4">
+                        <Button disabled={isReadOnly || !cart?.totalItems || cart?.totalItems === 0} className="w-full h-10 font-semibold gap-2">
+                          Finalizar Pedido <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          )}
-
-          <div className="border-t bg-background z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            <div className="p-6 space-y-6">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground font-medium">Subtotal</span>
-                  <span className="font-medium text-foreground/80">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((((cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)) + selectedShippingPrice) / 100)}
-                  </span>
-                </div>
-
-                {selectedShippingQuote && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground font-medium">Frete</span>
-                    <span className="font-medium text-foreground/80">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedShippingPrice || 0) / 100)}
-                    </span>
-                  </div>
-                )}
-
-                {cart?.additions && cart.additions.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-dashed">
-                    {cart.additions.map((addition) => (
-                      <div key={addition.id} className="flex justify-between items-center text-xs text-green-600 bg-green-50/50 p-1.5 rounded">
-                        <span className="flex items-center gap-1.5"><Plus className="h-3 w-3" /> {addition.name}</span>
-                        <span className="font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(addition.value / 100)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {cart?.discounts && cart.discounts.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-dashed">
-                    {cart.discounts.map((discount) => (
-                      <div key={discount.id} className="flex justify-between items-center text-xs text-red-600 bg-red-50/50 p-1.5 rounded">
-                        <span className="flex items-center gap-1.5"><Minus className="h-3 w-3" /> {discount.name}</span>
-                        <span className="font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(discount.value / 100)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <Separator className="my-2" />
-
-                <div className="flex justify-between items-end">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-base font-bold">Total</span>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      {cart?.totalItems || 0} {(cart?.totalItems || 0) === 1 ? 'item' : 'itens'} no carrinho
-                    </span>
-                  </div>
-                  <span className="text-2xl font-bold tracking-tight text-primary">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((cart?.totalValue || 0) / 100)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <SheetClose asChild>
-                  <Button variant="outline" className="w-full h-11 font-medium border-muted-foreground/20 hover:bg-muted/50">
-                    Fechar
-                  </Button>
-                </SheetClose>
-                <Button disabled={isReadOnly || !cart?.totalItems || cart?.totalItems === 0} className="w-full h-11 font-bold shadow-sm gap-2">
-                  Finalizar Pedido <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
+              )}
             </div>
           </div>
         </SheetContent>

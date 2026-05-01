@@ -12,6 +12,7 @@ import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewStockMovementSheet } from './-components/new-stock-movement-sheet'
 import { Badge } from '@/components/ui/badge'
+import { formatStockQuantity } from '@/lib/format'
 
 
 export const Route = createFileRoute('/dashboard/stock/')({
@@ -181,9 +182,10 @@ function RouteComponent() {
     {
       id: 'amount',
       header: 'Quantidade',
-      cell: (item) => (
-        <span className='font-medium'>{item.amount}</span>
-      ),
+      cell: (item) => {
+        const qtyType = item.amount % 100 === 0 ? 'int' : 'decimal'
+        return <span className='font-medium tabular-nums'>{formatStockQuantity(qtyType, item.amount)}</span>
+      },
       width: '100px',
       headerClassName: 'w-[100px] min-w-[100px] border-r',
       className: 'w-[100px] min-w-[100px] border-r text-center font-medium'

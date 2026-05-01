@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { formatStockQuantity } from '@/lib/format'
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: RouteComponent,
@@ -171,9 +172,9 @@ function RouteComponent() {
     { id: 'managedInventory', header: 'Ger. estoque', width: '100px', maxWidth: '100px', cell: (p) => (<span className='block truncate px-2' title={p.managedInventory ? 'Sim' : 'Não'}>{p.managedInventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
     { id: 'stock', header: 'Estoque', width: '120px', maxWidth: '120px', cell: (p) => {
       const raw = (p as any)?.stock
-      const cents = (typeof raw === 'string' || typeof raw === 'number') ? Number(raw) : 0
-      const value = Number.isFinite(cents) ? cents / 100 : 0
-      const formatted = value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      const cents = (typeof raw === 'string' || typeof raw === 'number') ? Number(raw) : NaN
+      const qtyType = Number.isFinite(cents) && cents % 100 === 0 ? 'int' : 'decimal'
+      const formatted = formatStockQuantity(qtyType, cents)
       return (<span className='block px-2 text-right tabular-nums' title={formatted}>{formatted}</span>)
     }, headerClassName: 'w-[140px] min-w-[140px] border-r text-right', className: 'w-[140px] min-w-[140px] p-2! text-right' },
     { id: 'active', header: 'Status', width: '80px', maxWidth: '80px', cell: (p) => {

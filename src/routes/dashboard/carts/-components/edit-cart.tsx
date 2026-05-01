@@ -1,13 +1,12 @@
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { privateInstance } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, Circle, CheckCircle2 } from "lucide-react"
+import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 import { AddProductsToCartSheet } from "./add-products-to-cart-sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -28,27 +27,13 @@ type DerivatedProduct = {
 
 type ProductGroup = {
   id: number
-  productId?: number
+  productId: number
   name: string
   sku?: string
   cartId: number
   totalItems: number
   totalValue: number
-  amount?: number
-  price?: number
-  oldPrice?: number
   derivatedProducts: DerivatedProduct[]
-}
-
-type ShippingQuote = {
-  id?: number
-  cartId?: number
-  serviceId?: number
-  carrierName: string
-  serviceName: string
-  price: number
-  deadline: number
-  isSelected?: boolean
 }
 
 type Cart = {
@@ -65,163 +50,22 @@ type Cart = {
   additions: { id: number, name: string, value: number }[]
   discounts: { id: number, name: string, value: number }[]
   products: ProductGroup[]
-  shippingQuote?: ShippingQuote[]
 }
 
 export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(true)
   const [addProductOpen, setAddProductOpen] = useState(false)
   const [openProducts, setOpenProducts] = useState<string[]>([])
-  const [selectedShippingQuoteId, setSelectedShippingQuoteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
-
-  const normalizeCart = (raw: any): Cart => {
-    const products: ProductGroup[] = (raw?.products || []).map((p: any) => {
-      const rawDerivatedProducts = Array.isArray(p?.derivatedProducts) ? p.derivatedProducts : []
-
-      const normalizedDerivatedProducts: DerivatedProduct[] = rawDerivatedProducts.length > 0
-        ? rawDerivatedProducts.map((dp: any) => {
-          const amount = Number(dp?.amount ?? 0)
-          const price = Number(dp?.price ?? 0)
-          return {
-            id: Number(dp?.id),
-            name: String(dp?.name ?? ''),
-            price,
-            oldPrice: Number(dp?.oldPrice ?? price),
-            amount,
-            productId: Number(dp?.productId ?? p?.productId ?? p?.id ?? 0),
-            cartId: Number(raw?.id ?? cartId),
-            totalValue: Number(dp?.totalValue ?? amount * price),
-            derivatedProductId: Number(dp?.derivatedProductId ?? dp?.id ?? 0),
-          }
-        })
-        : (
-          typeof p?.amount === 'number' && typeof p?.price === 'number'
-            ? (() => {
-              const amount = Number(p.amount)
-              const price = Number(p.price)
-              return [{
-                id: Number(p.id),
-                name: String(p?.name ?? ''),
-                price,
-                oldPrice: Number(p?.oldPrice ?? price),
-                amount,
-                productId: Number(p?.productId ?? p?.id ?? 0),
-                cartId: Number(raw?.id ?? cartId),
-                totalValue: Number(p?.totalValue ?? amount * price),
-                derivatedProductId: Number(p?.derivatedProductId ?? p?.id ?? 0),
-              }]
-            })()
-            : []
-        )
-
-      const totalItems = Number(p?.totalItems ?? normalizedDerivatedProducts.reduce((acc, curr) => acc + (curr.amount ?? 0), 0))
-      const totalValue = Number(p?.totalValue ?? normalizedDerivatedProducts.reduce((acc, curr) => acc + (curr.totalValue ?? 0), 0))
-
-      return {
-        ...p,
-        id: Number(p?.id),
-        productId: p?.productId,
-        name: String(p?.name ?? ''),
-        sku: p?.sku ? String(p.sku) : undefined,
-        cartId: Number(raw?.id ?? cartId),
-        totalItems,
-        totalValue,
-        derivatedProducts: normalizedDerivatedProducts,
-      }
-    })
-
-    const shippingQuote: ShippingQuote[] = (Array.isArray(raw?.shippingQuote) ? raw.shippingQuote : []).map((q: any) => ({
-      id: typeof q?.id === 'number' ? q.id : (typeof q?.shippingQuoteId === 'number' ? q.shippingQuoteId : undefined),
-      cartId: typeof q?.cartId === 'number' ? q.cartId : undefined,
-      serviceId: typeof q?.serviceId === 'number' ? q.serviceId : undefined,
-      carrierName: String(q?.carrierName ?? ''),
-      serviceName: String(q?.serviceName ?? ''),
-      price: Number(q?.price ?? 0),
-      deadline: Number(q?.deadline ?? 0),
-      isSelected: Boolean(q?.isSelected),
-    }))
-
-    return {
-      ...raw,
-      id: Number(raw?.id ?? cartId),
-      products,
-      shippingQuote,
-    }
-  }
 
   // Fetch Cart Details (Store, Status, etc.)
   const { data: cart, isLoading: isLoadingCart, isRefetching: isRefetchingCart } = useQuery({
     queryKey: ['cart', cartId],
     queryFn: async () => {
       const response = await privateInstance.get(`/tenant/carts/${cartId}`)
-      return normalizeCart(response.data) as Cart
+      return response.data as Cart
     },
     enabled: !!cartId
-  })
-
-  useEffect(() => {
-    const quotes = cart?.shippingQuote || []
-    const serverSelected = quotes.find((q) => q.isSelected)
-    const serverSelectedId = typeof serverSelected?.id === 'number' ? serverSelected.id : null
-
-    if (serverSelectedId !== null) {
-      if (selectedShippingQuoteId !== serverSelectedId) setSelectedShippingQuoteId(serverSelectedId)
-      return
-    }
-
-    if (selectedShippingQuoteId !== null) {
-      const exists = quotes.some((q) => typeof q.id === 'number' && q.id === selectedShippingQuoteId)
-      if (!exists) setSelectedShippingQuoteId(null)
-    }
-  }, [cart?.shippingQuote, selectedShippingQuoteId])
-
-  const { mutateAsync: selectShippingQuote, isPending: isSelectingShippingQuote } = useMutation({
-    mutationFn: async (shippingQuoteId: number) => {
-      const response = await privateInstance.put(`/tenant/carts/${cartId}/shipping-quote/${shippingQuoteId}/select`)
-      return response.data
-    },
-    onMutate: async (shippingQuoteId: number) => {
-      await queryClient.cancelQueries({ queryKey: ['cart', cartId] })
-
-      const previousCart = queryClient.getQueryData(['cart', cartId])
-      const previousSelectedId = selectedShippingQuoteId
-
-      setSelectedShippingQuoteId(shippingQuoteId)
-      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
-        if (!oldData) return oldData
-        const nextQuotes = (oldData.shippingQuote || []).map((q) => ({
-          ...q,
-          isSelected: typeof q.id === 'number' && q.id === shippingQuoteId,
-        }))
-        return { ...oldData, shippingQuote: nextQuotes }
-      })
-
-      return { previousCart, previousSelectedId }
-    },
-    onError: (error: any, _shippingQuoteId: number, context: any) => {
-      if (context?.previousCart) queryClient.setQueryData(['cart', cartId], context.previousCart)
-      setSelectedShippingQuoteId(context?.previousSelectedId ?? null)
-      const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao selecionar frete', {
-        description: errorData?.detail || 'Não foi possível selecionar a cotação de frete.'
-      })
-    },
-    onSuccess: (data: any) => {
-      const selectedId = typeof data?.id === 'number' ? data.id : null
-      if (selectedId !== null) setSelectedShippingQuoteId(selectedId)
-      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
-        if (!oldData) return oldData
-        const nextQuotes = (oldData.shippingQuote || []).map((q) => ({
-          ...q,
-          isSelected: typeof q.id === 'number' && (selectedId !== null ? q.id === selectedId : q.isSelected),
-        }))
-        return { ...oldData, shippingQuote: nextQuotes }
-      })
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart', cartId] })
-    }
   })
 
   // Add items mutation
@@ -378,10 +222,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   }
 
   const isReadOnly = cart?.status !== 'open'
-  const selectedShippingQuote =
-    (selectedShippingQuoteId === null ? null : cart?.shippingQuote?.find((q) => typeof q.id === 'number' && q.id === selectedShippingQuoteId) ?? null) ||
-    (cart?.shippingQuote?.find((q) => q.isSelected) ?? null)
-  const selectedShippingPrice = selectedShippingQuote?.price ?? 0
 
   return (
     <>
@@ -424,9 +264,8 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
           ) : (
             <Tabs defaultValue="items" className="flex-1 flex flex-col overflow-hidden">
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="items">Itens do Carrinho</TabsTrigger>
-                  <TabsTrigger value="shipping">Cotações de frete</TabsTrigger>
                   <TabsTrigger value="details">Detalhes</TabsTrigger>
                 </TabsList>
               </div>
@@ -533,43 +372,30 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 rounded-none border-r hover:bg-muted active:bg-muted/80"
-                                            onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: Math.max(1, (item.amount ?? 1) - 1) })}
-                                            disabled={(item.amount ?? 1) <= 1}
+                                            onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: Math.max(0, item.amount - 1) })}
+                                            disabled={item.amount <= 1}
                                           >
                                             <Minus className="h-3 w-3" />
                                           </Button>
-                                          <Input
-                                            type="number"
-                                            min={1}
-                                            defaultValue={item.amount ?? 1}
-                                            className="h-8 w-14 border-0 rounded-none text-center text-sm font-medium tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
-                                            onBlur={(e) => {
-                                              const next = Number(e.target.value)
-                                              if (!Number.isFinite(next) || next < 1) {
-                                                e.target.value = String(item.amount ?? 1)
-                                                return
-                                              }
-                                              if (next !== (item.amount ?? 1)) {
-                                                updateItem({ cartDerivatedProductId: item.id, amount: next })
-                                              }
-                                            }}
-                                          />
+                                          <div className="w-10 text-center text-sm font-medium tabular-nums h-full flex items-center justify-center bg-transparent">
+                                            {item.amount}
+                                          </div>
                                           <Button
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 rounded-none border-l hover:bg-muted active:bg-muted/80"
-                                            onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: (item.amount ?? 1) + 1 })}
+                                            onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: item.amount + 1 })}
                                           >
                                             <Plus className="h-3 w-3" />
                                           </Button>
                                         </div>
                                       ) : (
-                                        <Badge variant="outline" className="text-sm px-3 py-1 font-mono">{item.amount ?? 0} un</Badge>
+                                        <Badge variant="outline" className="text-sm px-3 py-1 font-mono">{item.amount} un</Badge>
                                       )}
 
                                       <div className="text-right min-w-[90px]">
                                         <span className="text-sm font-bold text-foreground">
-                                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(((item.amount ?? 0) * item.price) / 100)}
+                                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((item.amount * item.price) / 100)}
                                         </span>
                                       </div>
 
@@ -594,83 +420,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                     </div>
                   )}
                 </div>
-              </TabsContent>
-
-              <TabsContent value="shipping" className="flex-1 overflow-y-auto m-0 p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <Truck className="h-4 w-4" /> Cotações ({cart?.shippingQuote?.length || 0})
-                  </h3>
-                </div>
-
-                {(cart?.shippingQuote || []).length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center p-8">
-                    <Empty className="gap-2">
-                      <EmptyMedia variant="icon">
-                        <Truck className="h-6 w-6 text-muted-foreground" />
-                      </EmptyMedia>
-                      <EmptyTitle className="mt-0">Nenhuma cotação disponível</EmptyTitle>
-                      <EmptyDescription className="mt-0">
-                        Este carrinho ainda não possui cotações de frete.
-                      </EmptyDescription>
-                    </Empty>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {(cart?.shippingQuote || []).map((quote, idx) => {
-                      const quoteId = typeof quote.id === 'number' ? quote.id : null
-                      const isSelected = quoteId !== null ? selectedShippingQuoteId === quoteId : Boolean(quote.isSelected)
-                      return (
-                        <button
-                          key={quoteId !== null ? `shipping-quote-${quoteId}` : `${quote.carrierName}-${quote.serviceName}-${idx}`}
-                          type="button"
-                          disabled={isReadOnly || isSelectingShippingQuote}
-                          className={`w-full text-left border rounded-lg p-4 transition-colors ${isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'} ${(isReadOnly || isSelectingShippingQuote) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                          onClick={async () => {
-                            if (isSelected) return
-                            if (quoteId === null) {
-                              toast.error('Cotação inválida', { description: 'Não foi possível identificar o ID da cotação.' })
-                              return
-                            }
-                            await selectShippingQuote(quoteId)
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-start gap-3">
-                              <div className="mt-0.5">
-                                {isSelected ? (
-                                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                                ) : (
-                                  <Circle className="h-5 w-5 text-muted-foreground/50" />
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-foreground/90">{quote.carrierName}</span>
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 leading-none rounded-sm text-muted-foreground">
-                                    {quote.serviceName}
-                                  </Badge>
-                                </div>
-                                <span className="text-xs text-muted-foreground font-medium">
-                                  Prazo: {quote.deadline} {quote.deadline === 1 ? 'dia' : 'dias'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <div className="text-sm font-bold text-foreground">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((quote.price || 0) / 100)}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">
-                                Clique para selecionar
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
               </TabsContent>
 
               <TabsContent value="details" className="flex-1 overflow-y-auto m-0 p-6 space-y-6">
@@ -716,15 +465,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                   </span>
                 </div>
 
-                {selectedShippingQuote && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground font-medium">Frete</span>
-                    <span className="font-medium text-foreground/80">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((selectedShippingPrice || 0) / 100)}
-                    </span>
-                  </div>
-                )}
-
                 {cart?.additions && cart.additions.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-dashed">
                     {cart.additions.map((addition) => (
@@ -757,7 +497,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                     </span>
                   </div>
                   <span className="text-2xl font-bold tracking-tight text-primary">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(((cart?.totalValue || 0) + (selectedShippingPrice || 0)) / 100)}
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((cart?.totalValue || 0) / 100)}
                   </span>
                 </div>
               </div>

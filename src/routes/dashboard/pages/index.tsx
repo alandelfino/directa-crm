@@ -18,6 +18,7 @@ import { EditPageSheet } from './-components/edit-page'
 import { DeletePageDialog } from './-components/delete-page'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { PageContentSheet } from './-components/page-content-sheet'
+import { Topbar } from '../-components/topbar'
 
 type PageType = 'landingpage' | 'search' | 'product' | 'cart' | 'checkout' | 'login' | 'register' | 'my_account'
 
@@ -220,248 +221,260 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-4'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Páginas</h2>
-          <p className='text-sm text-muted-foreground'>Gerencie as páginas da loja.</p>
-        </div>
-        <div className='flex items-center gap-2'>
-          <Popover open={isFilterOpen} onOpenChange={(open) => {
-            if (open) {
-              setLocalSortBy(sortBy)
-              setLocalOrderBy(orderBy)
-              setLocalFilterTitle(filterTitle)
-              setLocalFilterTitleOperator(filterTitleOperator)
-              setLocalFilterPath(filterPath)
-              setLocalFilterPathOperator(filterPathOperator)
-              setLocalFilterActive(filterActive)
-              setLocalFilterStoreId(filterStoreId)
-              setLocalFilterType(filterType)
-            }
-            setIsFilterOpen(open)
-          }}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" disabled={isLoading || isRefetching}>
-                <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
-                {activeFilterCount > 0 && (
-                  <span className="absolute top-2 right-2 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[380px] p-5" align="end">
-              <div className="flex flex-col gap-5">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <ArrowUpDown className="h-4 w-4 text-primary" />
-                    </div>
-                    <h4 className="font-semibold leading-none">Ordenação</h4>
-                  </div>
-                  <div className="flex gap-2 w-full">
-                    <div className="flex-1">
-                      <Select value={localSortBy} onValueChange={setLocalSortBy}>
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="Campo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="id">ID</SelectItem>
-                          <SelectItem value="createdAt">Criado em</SelectItem>
-                          <SelectItem value="updatedAt">Atualizado em</SelectItem>
-                          <SelectItem value="title">Título</SelectItem>
-                          <SelectItem value="path">Path</SelectItem>
-                          <SelectItem value="active">Status</SelectItem>
-                          <SelectItem value="storeId">Loja</SelectItem>
-                          <SelectItem value="type">Tipo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
-                      title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
-                    >
-                      {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <Funnel className="h-4 w-4 text-primary" />
-                    </div>
-                    <h4 className="font-semibold leading-none">Filtros</h4>
-                  </div>
-
-                  <div className="grid gap-3">
-                    <div className="grid gap-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">Título</Label>
-                      <div className="flex gap-2">
-                        <Select value={localFilterTitleOperator} onValueChange={setLocalFilterTitleOperator}>
-                          <SelectTrigger className="w-[130px] h-9">
-                            <SelectValue placeholder="Op." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cont">Contém</SelectItem>
-                            <SelectItem value="eq">Igual</SelectItem>
-                            <SelectItem value="ne">Diferente</SelectItem>
-                            <SelectItem value="sw">Começa com</SelectItem>
-                            <SelectItem value="ew">Termina com</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input value={localFilterTitle} onChange={(e) => setLocalFilterTitle(e.target.value)} className="h-9 flex-1" placeholder="Filtrar..." />
+      <Topbar
+        title="Páginas"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard', isLast: false },
+          { label: 'Páginas', href: '/dashboard/pages', isLast: true },
+        ]}
+      />
+      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+        <div className='flex w-full items-center p-2 gap-4'>
+          <div className='flex items-center gap-2 flex-1'>
+            <Popover open={isFilterOpen} onOpenChange={(open) => {
+              if (open) {
+                setLocalSortBy(sortBy)
+                setLocalOrderBy(orderBy)
+                setLocalFilterTitle(filterTitle)
+                setLocalFilterTitleOperator(filterTitleOperator)
+                setLocalFilterPath(filterPath)
+                setLocalFilterPathOperator(filterPathOperator)
+                setLocalFilterActive(filterActive)
+                setLocalFilterStoreId(filterStoreId)
+                setLocalFilterType(filterType)
+              }
+              setIsFilterOpen(open)
+            }}>
+              <PopoverTrigger asChild>
+                <Button variant={'outline'} size="sm">
+                  <Funnel className="size-[0.85rem]" /> Filtros
+                  {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-5" align="start">
+                <div className="flex flex-col gap-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <ArrowUpDown className="h-4 w-4 text-primary" />
                       </div>
+                      <h4 className="font-semibold leading-none">Ordenação</h4>
                     </div>
-
-                    <div className="grid gap-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">Path</Label>
-                      <div className="flex gap-2">
-                        <Select value={localFilterPathOperator} onValueChange={setLocalFilterPathOperator}>
-                          <SelectTrigger className="w-[130px] h-9">
-                            <SelectValue placeholder="Op." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cont">Contém</SelectItem>
-                            <SelectItem value="eq">Igual</SelectItem>
-                            <SelectItem value="ne">Diferente</SelectItem>
-                            <SelectItem value="sw">Começa com</SelectItem>
-                            <SelectItem value="ew">Termina com</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input value={localFilterPath} onChange={(e) => setLocalFilterPath(e.target.value)} className="h-9 flex-1" placeholder="/home" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="grid gap-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">Status</Label>
-                        <Select value={localFilterActive} onValueChange={(v: any) => setLocalFilterActive(v)}>
+                    <div className="flex gap-2 w-full">
+                      <div className="flex-1">
+                        <Select value={localSortBy} onValueChange={setLocalSortBy}>
                           <SelectTrigger className="h-9 w-full">
-                            <SelectValue placeholder="Todos" />
+                            <SelectValue placeholder="Campo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="true">Ativa</SelectItem>
-                            <SelectItem value="false">Inativa</SelectItem>
+                            <SelectItem value="id">ID</SelectItem>
+                            <SelectItem value="createdAt">Criado em</SelectItem>
+                            <SelectItem value="updatedAt">Atualizado em</SelectItem>
+                            <SelectItem value="title">Título</SelectItem>
+                            <SelectItem value="path">Path</SelectItem>
+                            <SelectItem value="active">Status</SelectItem>
+                            <SelectItem value="storeId">Loja</SelectItem>
+                            <SelectItem value="type">Tipo</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setLocalOrderBy(prev => prev === 'asc' ? 'desc' : 'asc')}
+                        title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                      >
+                        {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Funnel className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Filtros</h4>
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Título</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterTitleOperator} onValueChange={setLocalFilterTitleOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input value={localFilterTitle} onChange={(e) => setLocalFilterTitle(e.target.value)} className="h-9 flex-1" placeholder="Filtrar..." />
+                        </div>
                       </div>
 
                       <div className="grid gap-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
-                        <Select value={localFilterType} onValueChange={setLocalFilterType}>
+                        <Label className="text-xs font-medium text-muted-foreground">Path</Label>
+                        <div className="flex gap-2">
+                          <Select value={localFilterPathOperator} onValueChange={setLocalFilterPathOperator}>
+                            <SelectTrigger className="w-[130px] h-9">
+                              <SelectValue placeholder="Op." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cont">Contém</SelectItem>
+                              <SelectItem value="eq">Igual</SelectItem>
+                              <SelectItem value="ne">Diferente</SelectItem>
+                              <SelectItem value="sw">Começa com</SelectItem>
+                              <SelectItem value="ew">Termina com</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input value={localFilterPath} onChange={(e) => setLocalFilterPath(e.target.value)} className="h-9 flex-1" placeholder="/home" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1.5">
+                          <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                          <Select value={localFilterActive} onValueChange={(v: any) => setLocalFilterActive(v)}>
+                            <SelectTrigger className="h-9 w-full">
+                              <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="true">Ativa</SelectItem>
+                              <SelectItem value="false">Inativa</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid gap-1.5">
+                          <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
+                          <Select value={localFilterType} onValueChange={setLocalFilterType}>
+                            <SelectTrigger className="h-9 w-full">
+                              <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              {pageTypes.map((t) => (
+                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Loja</Label>
+                        <Select value={localFilterStoreId} onValueChange={setLocalFilterStoreId}>
                           <SelectTrigger className="h-9 w-full">
-                            <SelectValue placeholder="Todos" />
+                            <SelectValue placeholder="Todas" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            {pageTypes.map((t) => (
-                              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {(stores ?? []).map((s: any) => (
+                              <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="grid gap-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">Loja</Label>
-                      <Select value={localFilterStoreId} onValueChange={setLocalFilterStoreId}>
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="Todas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {(stores ?? []).map((s: any) => (
-                            <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                      setLocalSortBy('createdAt')
+                      setLocalOrderBy('desc')
+                      setLocalFilterTitle('')
+                      setLocalFilterTitleOperator('cont')
+                      setLocalFilterPath('')
+                      setLocalFilterPathOperator('cont')
+                      setLocalFilterActive('all')
+                      setLocalFilterStoreId('all')
+                      setLocalFilterType('all')
+
+                      setSortBy('createdAt')
+                      setOrderBy('desc')
+                      setFilterTitle('')
+                      setFilterTitleOperator('cont')
+                      setFilterPath('')
+                      setFilterPathOperator('cont')
+                      setFilterActive('all')
+                      setFilterStoreId('all')
+                      setFilterType('all')
+                      setCurrentPage(1)
+                      setIsFilterOpen(false)
+                    }}>
+                      Limpar tudo
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => {
+                      setSortBy(localSortBy)
+                      setOrderBy(localOrderBy)
+                      setFilterTitle(localFilterTitle)
+                      setFilterTitleOperator(localFilterTitleOperator)
+                      setFilterPath(localFilterPath)
+                      setFilterPathOperator(localFilterPathOperator)
+                      setFilterActive(localFilterActive)
+                      setFilterStoreId(localFilterStoreId)
+                      setFilterType(localFilterType)
+                      setCurrentPage(1)
+                      setIsFilterOpen(false)
+                    }}>
+                      Aplicar
+                    </Button>
                   </div>
                 </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="default" className="flex-1" onClick={() => {
-                    setLocalSortBy('createdAt')
-                    setLocalOrderBy('desc')
-                    setLocalFilterTitle('')
-                    setLocalFilterTitleOperator('cont')
-                    setLocalFilterPath('')
-                    setLocalFilterPathOperator('cont')
-                    setLocalFilterActive('all')
-                    setLocalFilterStoreId('all')
-                    setLocalFilterType('all')
-                  }}>
-                    Limpar
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
+            </Button>
+
+            {selected.length === 1 ? (
+              <PageContentSheet
+                page={selectedPage}
+                trigger={(
+                  <Button variant="outline" size="sm">
+                    Conteúdo
                   </Button>
-                  <Button size="default" className="flex-1" onClick={() => {
-                    setSortBy(localSortBy)
-                    setOrderBy(localOrderBy)
-                    setFilterTitle(localFilterTitle)
-                    setFilterTitleOperator(localFilterTitleOperator)
-                    setFilterPath(localFilterPath)
-                    setFilterPathOperator(localFilterPathOperator)
-                    setFilterActive(localFilterActive)
-                    setFilterStoreId(localFilterStoreId)
-                    setFilterType(localFilterType)
-                    setIsFilterOpen(false)
-                  }}>
-                    Aplicar
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+                )}
+              />
+            ) : (
+              <Button variant={'outline'} disabled size="sm">
+                Conteúdo
+              </Button>
+            )}
 
-          <Button variant='ghost' onClick={() => { setSelected([]); refetch() }} disabled={isLoading || isRefetching}>
-            {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
-          </Button>
+            {selected.length === 1 ? (
+              <DeletePageDialog pageId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
+            ) : (
+              <Button variant={'outline'} disabled size="sm">
+                <Trash className="size-[0.85rem]" /> Excluir
+              </Button>
+            )}
 
-          {selected.length === 1 ? (
-            <PageContentSheet
-              page={selectedPage}
-              trigger={(
-                <Button variant="outline" size="sm">
-                  Conteúdo
-                </Button>
-              )}
-            />
-          ) : (
-            <Button variant={'outline'} size="sm" disabled>
-              Conteúdo
-            </Button>
-          )}
+            {selected.length === 1 ? (
+              <EditPageSheet pageId={selected[0]} onSaved={() => { setSelected([]); refetch() }} />
+            ) : (
+              <Button variant={'outline'} disabled size="sm">
+                <EditIcon className="size-[0.85rem]" /> Editar
+              </Button>
+            )}
 
-          {selected.length === 1 ? (
-            <DeletePageDialog pageId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
-          ) : (
-            <Button variant={'outline'} size="sm" disabled>
-              <Trash className="size-[0.85rem] mr-2" /> Excluir
-            </Button>
-          )}
-
-          {selected.length === 1 ? (
-            <EditPageSheet pageId={selected[0]} onSaved={() => { setSelected([]); refetch() }} />
-          ) : (
-            <Button variant={'outline'} size="sm" disabled>
-              <EditIcon className="size-[0.85rem]" /> Editar
-            </Button>
-          )}
-
-          <NewPageSheet onCreated={() => refetch()} />
+            <NewPageSheet onCreated={() => refetch()} />
+          </div>
         </div>
-      </div>
 
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden pl-4'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
-          <DataTable
+        <DataTable
             columns={columns}
             data={items}
             loading={isLoading || isRefetching}
@@ -501,7 +514,6 @@ function RouteComponent() {
             }}
             rowIsSelected={(row) => selected.includes(row.id)}
           />
-        </div>
       </div>
     </div>
   )

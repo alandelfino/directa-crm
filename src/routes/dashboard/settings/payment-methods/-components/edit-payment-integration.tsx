@@ -9,12 +9,50 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { privateInstance } from '@/lib/auth'
 import { toast } from 'sonner'
 import { Loader } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Switch } from '@/components/ui/switch'
+import { NumericFormat } from 'react-number-format'
+
+const discountAmountSchema = z
+  .preprocess((v) => (v === '' || v === null ? undefined : v), z.number())
+  .optional()
+  .refine((v) => v === undefined || Number.isInteger(v), { message: 'Valor deve ser um número inteiro' })
+  .refine((v) => v === undefined || v >= 0, { message: 'Valor mínimo é 0' })
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
-  paymentGatewayId: z.coerce.number().min(1, { message: 'Gateway é obrigatório' }),
+  paymentGatewayId: z.coerce.number().int().min(1, { message: 'Gateway é obrigatório' }),
+  activeDiscount: z.boolean().default(false),
+  discountType: z.enum(['percent', 'fixed']).optional(),
+  discountAmount: discountAmountSchema,
+}).superRefine((data, ctx) => {
+  if (!data.activeDiscount) return
+
+  if (!data.discountType) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['discountType'],
+      message: 'Tipo de desconto é obrigatório',
+    })
+  }
+
+  if (typeof data.discountAmount !== 'number' || !Number.isFinite(data.discountAmount)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['discountAmount'],
+      message: 'Valor do desconto é obrigatório',
+    })
+    return
+  }
+
+  if (data.discountType === 'percent' && data.discountAmount > 10000) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['discountAmount'],
+      message: 'Percentual máximo é 100,00%',
+    })
+  }
 })
 
 type PaymentGateway = {
@@ -24,10 +62,15 @@ type PaymentGateway = {
   updatedAt?: string
 }
 
-type PaymentIntegration = {
+type DiscountType = 'percent' | 'fixed'
+
+type PaymentMethod = {
   id: number
   name: string
   paymentGateway: { id: number, name: string }
+  activeDiscount: boolean
+  discountAmount: number
+  discountType: DiscountType
   createdAt: string
   updatedAt: string
 }
@@ -41,13 +84,19 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
     defaultValues: {
       name: '',
       paymentGatewayId: 0,
+      activeDiscount: false,
+      discountType: undefined,
+      discountAmount: undefined,
     },
   })
 
+  const activeDiscount = useWatch({ control: form.control, name: 'activeDiscount' })
+  const discountType = useWatch({ control: form.control, name: 'discountType' })
+
   const { data: gateways, isLoading: isLoadingGateways } = useQuery({
-    queryKey: ['payment-gateways-list-select'],
+    queryKey: ['payment-methods', 'payment-gateways', 'select'],
     queryFn: async () => {
-      const response = await privateInstance.get('/tenant/payment-integrations/payment-gateways', {
+      const response = await privateInstance.get('/tenant/payment-methods/payment-gateways', {
         params: {
           page: 1,
           limit: 100,
@@ -61,39 +110,49 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
     enabled: true,
   })
 
-  const { data: integration, isLoading } = useQuery({
-    queryKey: ['payment-integration', id],
+  const { data: paymentMethod, isLoading } = useQuery({
+    queryKey: ['payment-method', id],
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/payment-integrations/${id}`)
-      return response.data as PaymentIntegration
+      const response = await privateInstance.get(`/tenant/payment-methods/${id}`)
+      return response.data as PaymentMethod
     },
     enabled: !!id,
   })
 
   useEffect(() => {
-    if (!integration) return
+    if (!paymentMethod) return
     form.reset({
-      name: integration.name,
-      paymentGatewayId: integration.paymentGateway?.id ?? 0,
+      name: paymentMethod.name,
+      paymentGatewayId: paymentMethod.paymentGateway?.id ?? 0,
+      activeDiscount: !!paymentMethod.activeDiscount,
+      discountType: paymentMethod.discountType ?? undefined,
+      discountAmount: typeof paymentMethod.discountAmount === 'number' ? paymentMethod.discountAmount : undefined,
     })
     setLoading(false)
-  }, [integration, form])
+  }, [paymentMethod, form])
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await privateInstance.put(`/tenant/payment-integrations/${id}`, values)
-      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao atualizar integração')
+      const payload = {
+        name: values.name,
+        paymentGatewayId: values.paymentGatewayId,
+        activeDiscount: values.activeDiscount,
+        discountType: values.activeDiscount ? values.discountType : undefined,
+        discountAmount: values.activeDiscount ? values.discountAmount : undefined,
+      }
+      const response = await privateInstance.put(`/tenant/payment-methods/${id}`, payload)
+      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao atualizar método de pagamento')
       return response.data
     },
     onSuccess: () => {
-      toast.success('Integração atualizada com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['payment-integrations'] })
+      toast.success('Método de pagamento atualizado com sucesso!')
+      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       onOpenChange(false)
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao atualizar integração', {
-        description: errorData?.detail || 'Não foi possível atualizar a integração.'
+      toast.error(errorData?.title || 'Erro ao atualizar método de pagamento', {
+        description: errorData?.detail || 'Não foi possível atualizar o método de pagamento.'
       })
     }
   })
@@ -106,8 +165,8 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col h-full'>
             <SheetHeader>
-              <SheetTitle>Editar integração</SheetTitle>
-              <SheetDescription>Atualize os dados da integração de pagamento.</SheetDescription>
+              <SheetTitle>Editar método de pagamento</SheetTitle>
+              <SheetDescription>Atualize os dados do método de pagamento.</SheetDescription>
             </SheetHeader>
 
             {isLoading || loading ? (
@@ -121,7 +180,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
-                        <Input placeholder='Ex: Gateway principal' {...field} />
+                        <Input placeholder='Ex: Cartão de crédito' {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -145,6 +204,110 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                       <FormMessage />
                     </FormItem>
                   )} />
+
+                  <FormField
+                    control={form.control as any}
+                    name="activeDiscount"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>Ativar desconto</FormLabel>
+                          <div className="text-xs text-muted-foreground">
+                            Configure um desconto para este método de pagamento.
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch checked={!!field.value} onCheckedChange={field.onChange} disabled={isPending} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {activeDiscount && (
+                    <>
+                      <FormField
+                        control={form.control as any}
+                        name="discountType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo de desconto</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={isPending}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="percent">Percentual</SelectItem>
+                                <SelectItem value="fixed">Fixo</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control as any}
+                        name="discountAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor do desconto</FormLabel>
+                            <FormControl>
+                              {!discountType ? (
+                                <Input disabled placeholder="Selecione o tipo primeiro" />
+                              ) : discountType === 'percent' ? (
+                                <NumericFormat
+                                  customInput={Input}
+                                  value={typeof field.value === 'number' ? field.value / 100 : undefined}
+                                  onValueChange={(v) => {
+                                    if (v.floatValue === undefined) {
+                                      field.onChange(undefined)
+                                      return
+                                    }
+                                    const next = Math.min(Math.round(v.floatValue * 100), 10000)
+                                    field.onChange(next)
+                                  }}
+                                  isAllowed={(v) => v.floatValue === undefined || v.floatValue <= 100}
+                                  decimalScale={2}
+                                  fixedDecimalScale
+                                  decimalSeparator=","
+                                  thousandSeparator="."
+                                  allowNegative={false}
+                                  suffix="%"
+                                  placeholder=""
+                                  inputMode="numeric"
+                                  disabled={isPending}
+                                />
+                              ) : (
+                                <NumericFormat
+                                  customInput={Input}
+                                  value={typeof field.value === 'number' ? field.value / 100 : undefined}
+                                  onValueChange={(v) => {
+                                    if (v.floatValue === undefined) {
+                                      field.onChange(undefined)
+                                      return
+                                    }
+                                    field.onChange(Math.round(v.floatValue * 100))
+                                  }}
+                                  decimalScale={2}
+                                  fixedDecimalScale
+                                  decimalSeparator=","
+                                  thousandSeparator="."
+                                  allowNegative={false}
+                                  prefix="R$ "
+                                  placeholder="R$ 0,00"
+                                  inputMode="numeric"
+                                  disabled={isPending}
+                                />
+                              )}
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
                 </div>
 
                 <div className='mt-auto border-t p-4'>
@@ -164,4 +327,8 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
       </SheetContent>
     </Sheet>
   )
+}
+
+export function EditPaymentMethodSheet({ id, onOpenChange }: { id: number, onOpenChange: (open: boolean) => void }) {
+  return <EditPaymentIntegrationSheet id={id} onOpenChange={onOpenChange} />
 }

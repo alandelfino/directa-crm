@@ -5,28 +5,35 @@ import { privateInstance } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Edit, Funnel, RefreshCw, Trash } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Edit, Funnel, RefreshCw, ShieldCheck, Trash } from 'lucide-react'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { NewPaymentIntegrationSheet } from './-components/new-payment-integration'
-import { EditPaymentIntegrationSheet } from './-components/edit-payment-integration'
-import { DeletePaymentIntegrationDialog } from './-components/delete-payment-integration'
+import { NewPaymentMethodSheet } from './-components/new-payment-integration'
+import { EditPaymentMethodSheet } from './-components/edit-payment-integration'
+import { DeletePaymentMethodDialog } from './-components/delete-payment-integration'
+import { formatMoneyFromCents } from '@/lib/utils'
+import { PaymentMethodInstallmentsSheet } from './-components/payment-method-installments-sheet'
 
 export const Route = createFileRoute('/dashboard/settings/payment-methods/')({
   component: RouteComponent,
 })
 
-type PaymentIntegration = {
+type DiscountType = 'percent' | 'fixed'
+
+type PaymentMethod = {
   id: number
   name: string
   paymentGateway: {
     id: number
     name: string
   }
+  activeDiscount: boolean
+  discountAmount: number
+  discountType: DiscountType
   createdAt: string
   updatedAt: string
 }
@@ -52,7 +59,7 @@ function RouteComponent() {
   const activeFilterCount = (search ? 1 : 0)
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['payment-integrations', currentPage, perPage, sortBy, orderBy, search],
+    queryKey: ['payment-methods', currentPage, perPage, sortBy, orderBy, search],
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const params: any = {
@@ -64,7 +71,7 @@ function RouteComponent() {
 
       if (search) params.search = search
 
-      const response = await privateInstance.get('/tenant/payment-integrations', { params })
+      const response = await privateInstance.get('/tenant/payment-methods', { params })
       return response.data
     }
   })
@@ -103,7 +110,27 @@ function RouteComponent() {
     }
   }
 
-  const columns: ColumnDef<PaymentIntegration>[] = useMemo(() => [
+  const selectedPaymentMethod = useMemo(() => {
+    if (selectedItems.length !== 1) return null
+    const id = selectedItems[0]
+    const items = Array.isArray(data?.items) ? (data.items as PaymentMethod[]) : []
+    return items.find((x) => x.id === id) ?? null
+  }, [selectedItems, data?.items])
+
+  const formatDiscountValue = (type: DiscountType, amount: number) => {
+    if (type === 'percent') {
+      const n = (Number(amount) || 0) / 100
+      try {
+        const txt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+        return `${txt}%`
+      } catch {
+        return `${n.toFixed(2)}%`
+      }
+    }
+    return formatMoneyFromCents(Number(amount) || 0)
+  }
+
+  const columns: ColumnDef<PaymentMethod>[] = useMemo(() => [
     {
       id: 'select',
       width: '60px',
@@ -138,6 +165,17 @@ function RouteComponent() {
       ),
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'discount',
+      header: 'Desconto',
+      cell: (row) => (
+        <span className="text-muted-foreground">
+          {row.activeDiscount ? formatDiscountValue(row.discountType, row.discountAmount) : '-'}
+        </span>
+      ),
+      headerClassName: 'w-[10rem] min-w-[10rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[10rem] min-w-[10rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'createdAt',
@@ -262,6 +300,16 @@ function RouteComponent() {
             {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
           </Button>
 
+          <PaymentMethodInstallmentsSheet
+            paymentMethodId={selectedPaymentMethod?.id ?? 0}
+            paymentMethodName={selectedPaymentMethod?.name ?? null}
+            trigger={(
+              <Button variant={'outline'} size="sm" disabled={selectedItems.length !== 1}>
+                <ShieldCheck className="size-[0.85rem]" /> Condições de pagamento
+              </Button>
+            )}
+          />
+
           {selectedItems.length === 1 ? (
             <Button variant={'outline'} size="sm" onClick={() => setDeleteId(selectedItems[0])}>
               <Trash className="size-[0.85rem]" /> Excluir
@@ -282,13 +330,13 @@ function RouteComponent() {
             </Button>
           )}
 
-          <NewPaymentIntegrationSheet />
+          <NewPaymentMethodSheet />
         </div>
       </div>
 
       <DataTable
         columns={columns}
-        data={(data?.items || []) as PaymentIntegration[]}
+        data={(data?.items || []) as PaymentMethod[]}
         loading={isLoading || isRefetching}
         page={currentPage}
         perPage={perPage}
@@ -307,7 +355,7 @@ function RouteComponent() {
             </EmptyHeader>
             <EmptyContent>
               <div className='flex gap-2'>
-                <NewPaymentIntegrationSheet />
+                <NewPaymentMethodSheet />
                 <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedItems([]); refetch() }}>
                   {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                 </Button>
@@ -326,10 +374,10 @@ function RouteComponent() {
       />
 
       {editId && (
-        <EditPaymentIntegrationSheet id={editId} onOpenChange={(v) => { if (!v) setEditId(null) }} />
+        <EditPaymentMethodSheet id={editId} onOpenChange={(v) => { if (!v) setEditId(null) }} />
       )}
       {deleteId && (
-        <DeletePaymentIntegrationDialog id={deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null) }} />
+        <DeletePaymentMethodDialog id={deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null) }} />
       )}
     </div>
   )

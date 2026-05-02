@@ -10,17 +10,17 @@ export function DeletePaymentIntegrationDialog({ id, onOpenChange }: { id: numbe
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async () => {
-      await privateInstance.delete(`/tenant/payment-integrations/${id}`)
+      await privateInstance.delete(`/tenant/payment-methods/${id}`)
     },
     onSuccess: () => {
-      toast.success('Integração excluída com sucesso')
-      queryClient.invalidateQueries({ queryKey: ['payment-integrations'] })
+      toast.success('Método de pagamento excluído com sucesso')
+      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       onOpenChange(false)
     },
     onError: (error: any) => {
       const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao excluir integração', {
-        description: errorData?.detail || 'Não foi possível excluir a integração.'
+      toast.error(errorData?.title || 'Erro ao excluir método de pagamento', {
+        description: errorData?.detail || 'Não foi possível excluir o método de pagamento.'
       })
     }
   })
@@ -29,9 +29,9 @@ export function DeletePaymentIntegrationDialog({ id, onOpenChange }: { id: numbe
     <Dialog open={true} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>Excluir integração</DialogTitle>
+          <DialogTitle>Excluir método de pagamento</DialogTitle>
           <DialogDescription>
-            Tem certeza que deseja excluir esta integração? Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir este método de pagamento? Esta ação não pode ser desfeita.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -49,4 +49,8 @@ export function DeletePaymentIntegrationDialog({ id, onOpenChange }: { id: numbe
       </DialogContent>
     </Dialog>
   )
+}
+
+export function DeletePaymentMethodDialog({ id, onOpenChange }: { id: number, onOpenChange: (open: boolean) => void }) {
+  return <DeletePaymentIntegrationDialog id={id} onOpenChange={onOpenChange} />
 }

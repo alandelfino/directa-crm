@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react"
 import { privateInstance } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw, LocationEdit } from "lucide-react"
+import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw, LocationEdit, TicketPercent, X } from "lucide-react"
 import { toast } from "sonner"
 import { AddProductsToCartSheet } from "./add-products-to-cart-sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -79,6 +81,16 @@ type Cart = {
   updatedAt: string
   additions: { id: number, name: string, value: number }[]
   discounts: { id: number, name: string, value: number }[]
+  cupons?: {
+    id: number
+    code: string
+    description: string
+    customerMessage: string
+    type: string
+    value: number
+    storeId: number
+    discountApplied: number
+  }[]
   products: ProductGroup[]
   shippingQuote?: ShippingQuote[]
 }
@@ -91,6 +103,10 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null)
   const [isUpdatingCartAfterShippingSelect, setIsUpdatingCartAfterShippingSelect] = useState(false)
   const [isUpdatingCartAfterAddressSelect, setIsUpdatingCartAfterAddressSelect] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [isUpdatingCartAfterCouponChange, setIsUpdatingCartAfterCouponChange] = useState(false)
+  const [removeCouponOpen, setRemoveCouponOpen] = useState(false)
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   // Fetch Cart Details (Store, Status, etc.)
@@ -110,6 +126,12 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     if (typeof next === 'number') setSelectedAddressId(next)
     else setSelectedAddressId(null)
   }, [cart?.address?.id])
+
+  useEffect(() => {
+    setCouponCode('')
+    setRemoveCouponOpen(false)
+    setSelectedCouponCode(null)
+  }, [cartId])
 
   const { data: customerAddresses, isLoading: isLoadingAddresses, isRefetching: isRefetchingAddresses, refetch: refetchAddresses } = useQuery({
     queryKey: ['customer-addresses', customerId],
@@ -187,6 +209,81 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     onSettled: () => {
       setIsUpdatingCartAfterAddressSelect(false)
     }
+  })
+
+  const { mutate: applyCoupon, isPending: isApplyingCoupon } = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await privateInstance.post(`/tenant/carts/${cartId}/cupons/apply`, { code })
+      return response.data as {
+        cartId: number
+        cupon: {
+          id: number
+          code: string
+          description: string
+          customerMessage: string
+          type: string
+          value: number
+          storeId: number
+        }
+        totals: {
+          productsValue: number
+          shippingValue: number
+          totalValue: number
+          discountApplied: number
+          finalTotalValue: number
+        }
+        applied: null | {
+          id: number
+          cuponId: number
+          cuponValue: number
+          discountApplied: number
+          type: string
+        }
+      }
+    },
+    onSuccess: async () => {
+      toast.success('Cupom aplicado com sucesso!')
+      setCouponCode('')
+      setIsUpdatingCartAfterCouponChange(true)
+      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
+      setIsUpdatingCartAfterCouponChange(false)
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao aplicar cupom', {
+        description: errorData?.detail || 'Não foi possível aplicar o cupom no carrinho.',
+      })
+    },
+    onSettled: () => {
+      setIsUpdatingCartAfterCouponChange(false)
+    },
+  })
+
+  const { mutate: removeCoupon, isPending: isRemovingCoupon } = useMutation({
+    mutationFn: async () => {
+      const response = await privateInstance.delete(`/tenant/carts/${cartId}/cupons`)
+      return response.status
+    },
+    onSuccess: async () => {
+      setRemoveCouponOpen(false)
+      setSelectedCouponCode(null)
+      toast.success('Cupom removido.')
+      setCouponCode('')
+      setIsUpdatingCartAfterCouponChange(true)
+      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
+      setIsUpdatingCartAfterCouponChange(false)
+    },
+    onError: (error: any) => {
+      setRemoveCouponOpen(false)
+      setSelectedCouponCode(null)
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao remover cupom', {
+        description: errorData?.detail || 'Não foi possível remover o cupom do carrinho.',
+      })
+    },
+    onSettled: () => {
+      setIsUpdatingCartAfterCouponChange(false)
+    },
   })
 
   // Add items mutation
@@ -348,8 +445,16 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const isReadOnly = cart?.status !== 'open'
   const selectedShippingQuote = (cart?.shippingQuote ?? []).find((q) => q.isSelected) ?? null
   const selectedShippingPrice = selectedShippingQuote?.price ?? 0
+  const cupons = Array.isArray(cart?.cupons) ? cart!.cupons : []
   const addresses = useMemo(() => (customerAddresses ?? []) as CustomerAddress[], [customerAddresses])
-  const isBusy = isLoadingCart || isAddingItems || isUpdatingItem || isDeletingItem || isUpdatingCartAfterAddressSelect || isUpdatingCartAfterShippingSelect
+  const isBusy =
+    isLoadingCart ||
+    isAddingItems ||
+    isUpdatingItem ||
+    isDeletingItem ||
+    isUpdatingCartAfterAddressSelect ||
+    isUpdatingCartAfterShippingSelect ||
+    isUpdatingCartAfterCouponChange
   const subtotalCents = (cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)
   const totalWithShippingCents = (cart?.totalValue || 0) + selectedShippingPrice
   const formatBRL = (valueInCents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((valueInCents || 0) / 100)
@@ -542,6 +647,79 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                                 })}
                               </div>
                             )}
+
+                            <div className="rounded-lg border bg-muted/10 p-4">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="h-8 w-8 rounded-lg bg-primary/5 border flex items-center justify-center shrink-0">
+                                    <TicketPercent className="h-4 w-4 text-primary/70" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-sm font-semibold leading-none">Cupom de desconto</span>
+                                    <span className="text-xs text-muted-foreground truncate">
+                                      {cupons.length > 0 ? 'Cupons aplicados no carrinho.' : 'Digite o código para aplicar no carrinho.'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {cupons.length > 0 ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {cupons.map((c) => (
+                                    <Badge key={c.id} variant="secondary" className="font-mono gap-1 pr-1">
+                                      {String(c.code || '').toUpperCase()}
+                                      <button
+                                        type="button"
+                                        className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded-sm hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        disabled={isReadOnly || isRemovingCoupon || isApplyingCoupon}
+                                        onClick={() => {
+                                          setSelectedCouponCode(String(c.code || '').toUpperCase())
+                                          setRemoveCouponOpen(true)
+                                        }}
+                                        aria-label={`Remover cupom ${c.code}`}
+                                        title={`Remover cupom ${c.code}`}
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : null}
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <Input
+                                  value={couponCode}
+                                  onChange={(e) => {
+                                    setCouponCode(e.target.value.replace(/\s/g, '').toUpperCase())
+                                  }}
+                                  placeholder="XXX-XXX"
+                                  disabled={isReadOnly || isApplyingCoupon || isRemovingCoupon}
+                                  onKeyDown={(e) => {
+                                    if (e.key !== 'Enter') return
+                                    e.preventDefault()
+                                    const nextCode = couponCode.trim()
+                                    if (!nextCode) return
+                                    if (isReadOnly || isApplyingCoupon || isRemovingCoupon) return
+                                    applyCoupon(nextCode)
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  disabled={isReadOnly || !couponCode.trim() || isApplyingCoupon || isRemovingCoupon}
+                                  onClick={() => {
+                                    const nextCode = couponCode.trim()
+                                    if (!nextCode) return
+                                    applyCoupon(nextCode)
+                                  }}
+                                  aria-label="Aplicar cupom"
+                                  title="Aplicar cupom"
+                                >
+                                  {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketPercent className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         </TabsContent>
 
@@ -835,6 +1013,29 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
         onOpenChange={setAddProductOpen}
         onAddItems={(items) => addItems(items)}
       />
+
+      <AlertDialog open={removeCouponOpen} onOpenChange={setRemoveCouponOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover cupom?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedCouponCode ? `Tem certeza que deseja remover o cupom ${selectedCouponCode} do carrinho?` : 'Tem certeza que deseja remover o cupom do carrinho?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRemovingCoupon}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                removeCoupon()
+              }}
+              disabled={isRemovingCoupon || isReadOnly}
+            >
+              {isRemovingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

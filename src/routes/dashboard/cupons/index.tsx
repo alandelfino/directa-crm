@@ -18,6 +18,7 @@ import { formatMoneyFromCents } from '@/lib/utils'
 import { NewCouponSheet } from './-components/new-coupon'
 import { EditCouponSheet } from './-components/edit-coupon'
 import { DeleteCoupon } from './-components/delete-coupon'
+import { CouponRulesSheet } from './-components/coupon-rules-sheet'
 import {
   ArrowDownAZ,
   ArrowUpDown,
@@ -25,6 +26,7 @@ import {
   Edit,
   Funnel,
   RefreshCw,
+  ShieldCheck,
   TicketPercent,
   Trash,
 } from 'lucide-react'
@@ -192,21 +194,21 @@ function RouteComponent() {
         </div>
       ),
       headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] font-medium border-r p-2!',
+      className: 'w-[60px] min-w-[60px] font-medium border-r',
     },
     {
       id: 'code',
       header: 'Código',
       cell: (row) => <span className="block truncate min-w-0" title={row.code}>{row.code}</span>,
       headerClassName: 'min-w-[180px] border-r',
-      className: 'min-w-[180px] p-2!',
+      className: 'min-w-[180px]',
     },
     {
       id: 'name',
       header: 'Nome',
       cell: (row) => <span className="block truncate min-w-0" title={row.customerMessage}>{row.customerMessage}</span>,
       headerClassName: 'min-w-[240px] border-r',
-      className: 'min-w-[240px] p-2!',
+      className: 'min-w-[240px]',
     },
     {
       id: 'type',
@@ -217,14 +219,14 @@ function RouteComponent() {
         </Badge>
       ),
       headerClassName: 'min-w-[200px] border-r',
-      className: 'min-w-[200px] p-2!',
+      className: 'min-w-[200px]',
     },
     {
       id: 'value',
       header: 'Valor',
       cell: (row) => <span className="tabular-nums">{formatCouponValue(row.type, row.value)}</span>,
       headerClassName: 'w-[170px] min-w-[170px] border-r text-right',
-      className: 'w-[170px] min-w-[170px] p-2! text-right',
+      className: 'w-[170px] min-w-[170px] text-right',
     },
     {
       id: 'store',
@@ -235,7 +237,7 @@ function RouteComponent() {
         return <span className="block truncate min-w-0" title={label}>{label}</span>
       },
       headerClassName: 'min-w-[220px] border-r',
-      className: 'min-w-[220px] p-2!',
+      className: 'min-w-[220px]',
     },
     {
       id: 'createdAt',
@@ -243,7 +245,15 @@ function RouteComponent() {
       cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString('pt-BR') : '-'}</span>,
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
-      className: 'w-[180px] min-w-[180px] p-2!',
+      className: 'w-[180px] min-w-[180px]',
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (row) => <span className="text-sm">{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString('pt-BR') : '-'}</span>,
+      width: '180px',
+      headerClassName: 'w-[180px] min-w-[180px] border-r',
+      className: 'w-[180px] min-w-[180px]',
     },
   ]
 
@@ -342,6 +352,7 @@ function RouteComponent() {
                           <SelectContent>
                             <SelectItem value="id">ID</SelectItem>
                             <SelectItem value="createdAt">Criado em</SelectItem>
+                            <SelectItem value="updatedAt">Atualizado em</SelectItem>
                             <SelectItem value="code">Código</SelectItem>
                             <SelectItem value="customerMessage">Nome</SelectItem>
                             <SelectItem value="type">Tipo</SelectItem>
@@ -533,6 +544,14 @@ function RouteComponent() {
             </Button>
 
             {selectedIds.length === 1 ? (
+              <CouponRulesSheet cuponId={selectedIds[0]} />
+            ) : (
+              <Button variant="outline" disabled size="sm">
+                <ShieldCheck className="size-[0.85rem]" /> Regras de aplicação
+              </Button>
+            )}
+
+            {selectedIds.length === 1 ? (
               <DeleteCoupon couponId={selectedIds[0]} />
             ) : (
               <Button variant="outline" disabled size="sm">
@@ -552,51 +571,53 @@ function RouteComponent() {
           </div>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={items}
-          loading={isLoading || isRefetching}
-          page={currentPage}
-          perPage={perPage}
-          totalItems={totalItems}
-          emptyMessage="Nenhum cupom encontrado"
-          emptySlot={
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <TicketPercent className="h-6 w-6" />
-                </EmptyMedia>
-                <EmptyTitle>Nenhum cupom ainda</EmptyTitle>
-                <EmptyDescription>Você ainda não criou nenhum cupom. Comece criando seu primeiro cupom.</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <div className="flex gap-2">
-                  <NewCouponSheet />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={isLoading || isRefetching}
-                    onClick={() => {
-                      setSelectedIds([])
-                      refetch()
-                    }}
-                  >
-                    {(isLoading || isRefetching) ? (
-                      <RefreshCw className="animate-spin size-[0.85rem]" />
-                    ) : (
-                      <RefreshCw className="size-[0.85rem]" />
-                    )}
-                  </Button>
-                </div>
-              </EmptyContent>
-            </Empty>
-          }
-          onChange={({ page, perPage }) => {
-            if (typeof page === 'number') setCurrentPage(page)
-            if (typeof perPage === 'number') setPerPage(perPage)
-            refetch()
-          }}
-        />
+        <div className="px-2 h-full">
+          <DataTable
+            columns={columns}
+            data={items}
+            loading={isLoading || isRefetching}
+            page={currentPage}
+            perPage={perPage}
+            totalItems={totalItems}
+            emptyMessage="Nenhum cupom encontrado"
+            emptySlot={
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <TicketPercent className="h-6 w-6" />
+                  </EmptyMedia>
+                  <EmptyTitle>Nenhum cupom ainda</EmptyTitle>
+                  <EmptyDescription>Você ainda não criou nenhum cupom. Comece criando seu primeiro cupom.</EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <div className="flex gap-2">
+                    <NewCouponSheet />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isLoading || isRefetching}
+                      onClick={() => {
+                        setSelectedIds([])
+                        refetch()
+                      }}
+                    >
+                      {(isLoading || isRefetching) ? (
+                        <RefreshCw className="animate-spin size-[0.85rem]" />
+                      ) : (
+                        <RefreshCw className="size-[0.85rem]" />
+                      )}
+                    </Button>
+                  </div>
+                </EmptyContent>
+              </Empty>
+            }
+            onChange={({ page, perPage }) => {
+              if (typeof page === 'number') setCurrentPage(page)
+              if (typeof perPage === 'number') setPerPage(perPage)
+              refetch()
+            }}
+          />
+        </div>
       </div>
     </div>
   )

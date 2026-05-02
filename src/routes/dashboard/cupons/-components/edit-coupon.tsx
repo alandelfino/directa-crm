@@ -222,7 +222,7 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
           <Edit className="size-[0.85rem]" /> Editar
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="flex flex-col overflow-hidden">
         <Form {...form}>
           <form {...props} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <SheetHeader>
@@ -239,7 +239,7 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
               </SheetDescription>
             </SheetHeader>
 
-            <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4">
+            <div className="flex-1 overflow-y-auto grid auto-rows-min gap-6 px-4 py-4">
               <FormField
                 control={form.control}
                 name="code"

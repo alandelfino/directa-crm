@@ -188,7 +188,7 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="flex flex-col overflow-hidden">
         <Form {...form}>
           <form {...props} onSubmit={(e) => { e.stopPropagation(); form.handleSubmit(onSubmit)(e) }} className="flex flex-col h-full">
             <SheetHeader>
@@ -196,7 +196,7 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
               <SheetDescription>Preencha os campos abaixo para cadastrar.</SheetDescription>
             </SheetHeader>
 
-            <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4">
+            <div className="flex-1 overflow-y-auto grid auto-rows-min gap-6 px-4 py-4">
               <FormField
                 control={form.control}
                 name="code"

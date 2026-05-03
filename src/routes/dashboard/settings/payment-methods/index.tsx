@@ -16,7 +16,7 @@ import { NewPaymentMethodSheet } from './-components/new-payment-integration'
 import { EditPaymentMethodSheet } from './-components/edit-payment-integration'
 import { DeletePaymentMethodDialog } from './-components/delete-payment-integration'
 import { formatMoneyFromCents } from '@/lib/utils'
-import { PaymentMethodInstallmentsSheet } from './-components/payment-method-installments-sheet'
+import { PayInsSheet } from './-components/pay-ins-sheet'
 
 export const Route = createFileRoute('/dashboard/settings/payment-methods/')({
   component: RouteComponent,
@@ -300,7 +300,7 @@ function RouteComponent() {
             {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
           </Button>
 
-          <PaymentMethodInstallmentsSheet
+          <PayInsSheet
             paymentMethodId={selectedPaymentMethod?.id ?? 0}
             paymentMethodName={selectedPaymentMethod?.name ?? null}
             trigger={(

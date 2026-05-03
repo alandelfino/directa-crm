@@ -9,24 +9,29 @@ import { privateInstance } from '@/lib/auth'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Funnel, RefreshCw, ShieldCheck } from 'lucide-react'
-import { PaymentMethodInstallmentCreateSheet } from './payment-method-installment-create-sheet'
-import { PaymentMethodInstallmentEditSheet } from './payment-method-installment-edit-sheet'
-import { PaymentMethodInstallmentDeleteDialog } from './payment-method-installment-delete-dialog'
+import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Funnel, ListOrdered, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { PayInCreateSheet } from './pay-in-create-sheet'
+import { PayInEditSheet } from './pay-in-edit-sheet'
+import { PayInDeleteDialog } from './pay-in-delete-dialog'
+import { PayInInstallmentsSheet } from './pay-in-installments-sheet'
 
-type PaymentMethodInstallment = {
+type PayIn = {
   id: number
+  name: string
+  numberOfInstallments: number
+  active: boolean
   paymentMethodId: number
   paymentMethod: { id: number; name: string }
-  installments: number
-  label: string
   createdAt: string
   updatedAt: string
 }
 
-export function PaymentMethodInstallmentsSheet({
+type SortBy = 'id' | 'createdAt' | 'name' | 'numberOfInstallments'
+
+export function PayInsSheet({
   paymentMethodId,
   paymentMethodName,
   trigger,
@@ -39,13 +44,15 @@ export function PaymentMethodInstallmentsSheet({
   const [open, setOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const [sortBy, setSortBy] = useState<'id' | 'createdAt' | 'installments' | 'label'>('createdAt')
+  const [sortBy, setSortBy] = useState<SortBy>('createdAt')
   const [orderBy, setOrderBy] = useState<'asc' | 'desc'>('desc')
   const [search, setSearch] = useState('')
-  const [localSortBy, setLocalSortBy] = useState<'id' | 'createdAt' | 'installments' | 'label'>('createdAt')
+
+  const [localSortBy, setLocalSortBy] = useState<SortBy>('createdAt')
   const [localOrderBy, setLocalOrderBy] = useState<'asc' | 'desc'>('desc')
   const [localSearch, setLocalSearch] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [totalItems, setTotalItems] = useState(0)
@@ -54,25 +61,25 @@ export function PaymentMethodInstallmentsSheet({
   const activeFilterCount = (search ? 1 : 0) + (sortBy !== 'createdAt' ? 1 : 0) + (orderBy !== 'desc' ? 1 : 0)
 
   const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({
-    queryKey: ['payment-method-installments', paymentMethodId, currentPage, perPage, sortBy, orderBy, search],
-    enabled: open && Number(paymentMethodId) > 0,
+    queryKey: ['pay-ins', paymentMethodId, currentPage, perPage, sortBy, orderBy, search],
+    enabled: open,
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const params: any = {
         page: currentPage,
         limit: perPage,
-        paymentMethodId,
         sortBy,
         orderBy,
       }
       if (search) params.search = search
-      const response = await privateInstance.get('/tenant/payment-method-installments', { params })
+      if (Number(paymentMethodId) > 0) params.paymentMethodId = paymentMethodId
+      const response = await privateInstance.get('/tenant/pay-ins', { params })
       return response.data as {
         page: number
         limit: number
         totalPages: number
         total: number
-        items: PaymentMethodInstallment[]
+        items: PayIn[]
       }
     },
   })
@@ -108,6 +115,10 @@ export function PaymentMethodInstallmentsSheet({
   }, [isError, error])
 
   const items = useMemo(() => (Array.isArray(data?.items) ? data.items : []), [data?.items])
+  const selectedPayIn = useMemo(() => {
+    if (!selectedId) return null
+    return items.find((x) => x.id === selectedId) ?? null
+  }, [items, selectedId])
 
   const toggleSelect = (id: number) => {
     if (selectedIds.includes(id)) setSelectedIds([])
@@ -130,7 +141,7 @@ export function PaymentMethodInstallmentsSheet({
     }
   }
 
-  const columns: ColumnDef<PaymentMethodInstallment>[] = [
+  const columns: ColumnDef<PayIn>[] = [
     {
       id: 'select',
       width: '60px',
@@ -144,18 +155,29 @@ export function PaymentMethodInstallmentsSheet({
       className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3',
     },
     {
-      id: 'label',
-      header: 'Label',
-      cell: (row) => <span className="font-medium">{row.label}</span>,
+      id: 'name',
+      header: 'Nome',
+      cell: (row) => <span className="font-medium">{row.name}</span>,
       headerClassName: 'min-w-[18rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'min-w-[18rem] border-r border-neutral-200 !px-4 py-3',
     },
     {
-      id: 'installments',
+      id: 'numberOfInstallments',
       header: 'Parcelas',
-      cell: (row) => <span className="tabular-nums text-muted-foreground">{row.installments ?? '-'}</span>,
+      cell: (row) => <span className="tabular-nums text-muted-foreground">{row.numberOfInstallments ?? '-'}</span>,
       headerClassName: 'w-[9rem] min-w-[9rem] border-r border-neutral-200 px-4 py-2.5 text-right',
       className: 'w-[9rem] min-w-[9rem] border-r border-neutral-200 !px-4 py-3 text-right',
+    },
+    {
+      id: 'active',
+      header: 'Status',
+      cell: (row) => (
+        <Badge variant={row.active ? 'default' : 'secondary'} className="text-xs">
+          {row.active ? 'Ativo' : 'Inativo'}
+        </Badge>
+      ),
+      headerClassName: 'w-[9rem] min-w-[9rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[9rem] min-w-[9rem] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'createdAt',
@@ -166,15 +188,15 @@ export function PaymentMethodInstallmentsSheet({
     },
   ]
 
-  const { isPending: isDeleting, mutate: deleteInstallment } = useMutation({
-    mutationFn: async (paymentMethodInstallmentId: number) => {
-      const response = await privateInstance.delete(`/tenant/payment-method-installments/${paymentMethodInstallmentId}`)
-      if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao excluir parcelamento')
+  const { isPending: isDeleting, mutate: deletePayIn } = useMutation({
+    mutationFn: async (payInId: number) => {
+      const response = await privateInstance.delete(`/tenant/pay-ins/${payInId}`)
+      if (response.status !== 200 && response.status !== 204) throw new Error('Erro ao excluir pay in')
       return true
     },
     onSuccess: () => {
       toast.success('Condição de pagamento excluída com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['payment-method-installments', paymentMethodId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
       setSelectedIds([])
       setDeleteOpen(false)
     },
@@ -200,7 +222,7 @@ export function PaymentMethodInstallmentsSheet({
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent className="flex flex-col overflow-hidden w-full sm:w-[min(1960px,calc(100vw-2rem))]">
+      <SheetContent className="flex flex-col overflow-hidden w-full min-w-4xl">
         <SheetHeader>
           <SheetTitle>Condições de pagamento</SheetTitle>
           <SheetDescription>
@@ -242,15 +264,15 @@ export function PaymentMethodInstallmentsSheet({
                   </div>
                   <div className="flex gap-2 w-full">
                     <div className="flex-1">
-                      <Select value={localSortBy} onValueChange={(v) => setLocalSortBy(v as any)}>
+                      <Select value={localSortBy} onValueChange={(v) => setLocalSortBy(v as SortBy)}>
                         <SelectTrigger className="h-9 w-full">
                           <SelectValue placeholder="Campo" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="id">ID</SelectItem>
                           <SelectItem value="createdAt">Criado em</SelectItem>
-                          <SelectItem value="installments">Parcelas</SelectItem>
-                          <SelectItem value="label">Label</SelectItem>
+                          <SelectItem value="name">Nome</SelectItem>
+                          <SelectItem value="numberOfInstallments">Parcelas</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -277,15 +299,15 @@ export function PaymentMethodInstallmentsSheet({
                   </div>
                   <div className="grid gap-3">
                     <div className="grid gap-1.5">
-                      <Label htmlFor="installments-search" className="text-xs font-medium text-muted-foreground">
+                      <Label htmlFor="pay-ins-search" className="text-xs font-medium text-muted-foreground">
                         Busca
                       </Label>
                       <Input
-                        id="installments-search"
+                        id="pay-ins-search"
                         value={localSearch}
                         onChange={(e) => setLocalSearch(e.target.value)}
                         className="h-9"
-                        placeholder="Buscar por label..."
+                        placeholder="Buscar por nome..."
                       />
                     </div>
                   </div>
@@ -335,34 +357,41 @@ export function PaymentMethodInstallmentsSheet({
           </Button>
 
           <div className="ml-auto flex items-center gap-2">
-            <PaymentMethodInstallmentDeleteDialog
+            <PayInInstallmentsSheet
+              payInId={selectedId ?? 0}
+              payInName={selectedPayIn?.name ?? null}
+              trigger={(
+                <Button variant="outline" size="sm" disabled={!selectedId}>
+                  <ListOrdered className="size-[0.85rem]" /> Parcelas
+                </Button>
+              )}
+            />
+
+            <PayInDeleteDialog
               open={deleteOpen}
               onOpenChange={(next) => {
                 setDeleteOpen(next)
                 if (!next) setSelectedIds([])
               }}
-              paymentMethodInstallmentId={selectedId}
+              payInId={selectedId}
               disabled={!selectedId}
               isDeleting={isDeleting}
-              onConfirm={(id) => deleteInstallment(id)}
+              onConfirm={(id) => deletePayIn(id)}
             />
 
-            <PaymentMethodInstallmentEditSheet
+            <PayInEditSheet
               paymentMethodId={paymentMethodId}
               paymentMethodName={paymentMethodName}
-              paymentMethodInstallmentId={selectedId}
+              payInId={selectedId}
               disabled={!selectedId}
-              onSaved={() => {
-                setSelectedIds([])
-              }}
+              onSaved={() => setSelectedIds([])}
             />
 
-            <PaymentMethodInstallmentCreateSheet
+            <PayInCreateSheet
               paymentMethodId={paymentMethodId}
               paymentMethodName={paymentMethodName}
-              onCreated={() => {
-                setSelectedIds([])
-              }}
+              disabled={disabled}
+              onCreated={() => setSelectedIds([])}
             />
           </div>
         </div>

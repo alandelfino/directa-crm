@@ -2,20 +2,20 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Loader, Trash } from 'lucide-react'
 
-export function PaymentMethodInstallmentDeleteDialog({
+export function PayInDeleteDialog({
   open,
   onOpenChange,
-  paymentMethodInstallmentId,
+  payInId,
   disabled,
   isDeleting,
   onConfirm,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  paymentMethodInstallmentId: number | null
+  payInId: number | null
   disabled: boolean
   isDeleting: boolean
-  onConfirm: (paymentMethodInstallmentId: number) => void
+  onConfirm: (payInId: number) => void
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -23,9 +23,9 @@ export function PaymentMethodInstallmentDeleteDialog({
         <Button
           variant="outline"
           size="sm"
-          disabled={disabled || !paymentMethodInstallmentId || isDeleting}
+          disabled={disabled || !payInId || isDeleting}
           onClick={() => {
-            if (!paymentMethodInstallmentId) return
+            if (!payInId) return
             onOpenChange(true)
           }}
         >
@@ -34,7 +34,7 @@ export function PaymentMethodInstallmentDeleteDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Excluir parcelamento?</DialogTitle>
+          <DialogTitle>Excluir condição?</DialogTitle>
           <DialogDescription>Essa ação não pode ser desfeita.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -44,10 +44,10 @@ export function PaymentMethodInstallmentDeleteDialog({
           <Button
             variant="destructive"
             size="sm"
-            disabled={disabled || !paymentMethodInstallmentId || isDeleting}
+            disabled={disabled || !payInId || isDeleting}
             onClick={() => {
-              if (!paymentMethodInstallmentId) return
-              onConfirm(paymentMethodInstallmentId)
+              if (!payInId) return
+              onConfirm(payInId)
             }}
           >
             {isDeleting ? <Loader className="animate-spin size-[0.85rem]" /> : 'Excluir'}
@@ -57,3 +57,4 @@ export function PaymentMethodInstallmentDeleteDialog({
     </Dialog>
   )
 }
+

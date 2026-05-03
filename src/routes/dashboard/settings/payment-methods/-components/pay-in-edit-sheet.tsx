@@ -10,33 +10,36 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
 import { Edit, Loader } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 
 const formSchema = z.object({
-  installments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
-  label: z.string().min(1, { message: 'Label é obrigatório' }),
+  name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  numberOfInstallments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
+  active: z.boolean().optional(),
 })
 
-type PaymentMethodInstallment = {
+type PayIn = {
   id: number
+  name: string
+  numberOfInstallments: number
+  active: boolean
   paymentMethodId: number
   paymentMethod: { id: number; name: string }
-  installments: number
-  label: string
   createdAt: string
   updatedAt: string
 }
 
-export function PaymentMethodInstallmentEditSheet({
+export function PayInEditSheet({
   paymentMethodId,
   paymentMethodName,
-  paymentMethodInstallmentId,
+  payInId,
   disabled,
   onSaved,
   trigger,
 }: {
   paymentMethodId: number
   paymentMethodName?: string | null
-  paymentMethodInstallmentId: number | null
+  payInId: number | null
   disabled: boolean
   onSaved?: () => void
   trigger?: React.ReactNode
@@ -47,18 +50,19 @@ export function PaymentMethodInstallmentEditSheet({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      installments: 1,
-      label: '',
+      name: '',
+      numberOfInstallments: 1,
+      active: true,
     },
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['payment-method-installment', paymentMethodInstallmentId],
-    enabled: open && !!paymentMethodInstallmentId,
+    queryKey: ['pay-in', payInId],
+    enabled: open && !!payInId,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/payment-method-installments/${paymentMethodInstallmentId}`)
-      return response.data as PaymentMethodInstallment
+      const response = await privateInstance.get(`/tenant/pay-ins/${payInId}`)
+      return response.data as PayIn
     },
   })
 
@@ -66,26 +70,28 @@ export function PaymentMethodInstallmentEditSheet({
     if (!open) return
     if (!data) return
     form.reset({
-      installments: data.installments ?? 1,
-      label: data.label ?? '',
+      name: data.name ?? '',
+      numberOfInstallments: data.numberOfInstallments ?? 1,
+      active: typeof data.active === 'boolean' ? data.active : true,
     })
   }, [open, data, form])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      if (!paymentMethodInstallmentId) throw new Error('Parcelamento inválido')
+      if (!payInId) throw new Error('Pay in inválido')
       const payload = {
+        name: values.name,
+        numberOfInstallments: values.numberOfInstallments,
         paymentMethodId,
-        installments: values.installments,
-        label: values.label,
+        active: values.active,
       }
-      const response = await privateInstance.put(`/tenant/payment-method-installments/${paymentMethodInstallmentId}`, payload)
-      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao atualizar parcelamento')
+      const response = await privateInstance.put(`/tenant/pay-ins/${payInId}`, payload)
+      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao atualizar pay in')
       return response.data
     },
     onSuccess: () => {
       toast.success('Condição de pagamento atualizada com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['payment-method-installments', paymentMethodId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
       setOpen(false)
       onSaved?.()
     },
@@ -108,7 +114,7 @@ export function PaymentMethodInstallmentEditSheet({
       open={open}
       onOpenChange={(v) => {
         setOpen(v)
-        if (!v) form.reset({ installments: 1, label: '' })
+        if (!v) form.reset({ name: '', numberOfInstallments: 1, active: true })
       }}
     >
       <SheetTrigger asChild>
@@ -132,9 +138,9 @@ export function PaymentMethodInstallmentEditSheet({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <SheetHeader>
-              <SheetTitle>Editar parcelamento</SheetTitle>
+              <SheetTitle>Editar condição</SheetTitle>
               <SheetDescription>
-                {methodName ? `Vinculado a: ${methodName}.` : 'Atualize os dados do parcelamento.'}
+                {methodName ? `Vinculado a: ${methodName}.` : 'Atualize os dados da condição de pagamento.'}
               </SheetDescription>
             </SheetHeader>
 
@@ -154,7 +160,21 @@ export function PaymentMethodInstallmentEditSheet({
 
                   <FormField
                     control={form.control as any}
-                    name="installments"
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Até 6x sem juros" {...field} disabled={isPending} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control as any}
+                    name="numberOfInstallments"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Parcelas</FormLabel>
@@ -176,14 +196,16 @@ export function PaymentMethodInstallmentEditSheet({
 
                   <FormField
                     control={form.control as any}
-                    name="label"
+                    name="active"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Label</FormLabel>
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>Ativo</FormLabel>
+                          <div className="text-xs text-muted-foreground">Controla se a condição pode ser usada.</div>
+                        </div>
                         <FormControl>
-                          <Input placeholder="Ex: Até 6x sem juros" {...field} disabled={isPending} />
+                          <Switch checked={!!field.value} onCheckedChange={field.onChange} disabled={isPending} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -209,3 +231,4 @@ export function PaymentMethodInstallmentEditSheet({
     </Sheet>
   )
 }
+

@@ -10,20 +10,24 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
 import { Loader, Plus } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 
 const formSchema = z.object({
-  installments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
-  label: z.string().min(1, { message: 'Label é obrigatório' }),
+  name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  numberOfInstallments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
+  active: z.boolean().optional(),
 })
 
-export function PaymentMethodInstallmentCreateSheet({
+export function PayInCreateSheet({
   paymentMethodId,
   paymentMethodName,
+  disabled,
   onCreated,
   trigger,
 }: {
   paymentMethodId: number
   paymentMethodName?: string | null
+  disabled?: boolean
   onCreated?: () => void
   trigger?: React.ReactNode
 }) {
@@ -33,27 +37,29 @@ export function PaymentMethodInstallmentCreateSheet({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      installments: 1,
-      label: '',
+      name: '',
+      numberOfInstallments: 1,
+      active: true,
     },
   })
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const payload = {
+        name: values.name,
+        numberOfInstallments: values.numberOfInstallments,
         paymentMethodId,
-        installments: values.installments,
-        label: values.label,
+        active: values.active,
       }
-      const response = await privateInstance.post('/tenant/payment-method-installments', payload)
-      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao criar parcelamento')
+      const response = await privateInstance.post('/tenant/pay-ins', payload)
+      if (response.status !== 200 && response.status !== 201) throw new Error('Erro ao criar pay in')
       return response.data
     },
     onSuccess: () => {
       toast.success('Condição de pagamento criada com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['payment-method-installments', paymentMethodId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
       setOpen(false)
-      form.reset({ installments: 1, label: '' })
+      form.reset({ name: '', numberOfInstallments: 1, active: true })
       onCreated?.()
     },
     onError: (err: any) => {
@@ -64,7 +70,6 @@ export function PaymentMethodInstallmentCreateSheet({
     },
   })
 
-  const disabled = Number(paymentMethodId) <= 0
   const methodName = (paymentMethodName ?? '').trim()
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -76,15 +81,15 @@ export function PaymentMethodInstallmentCreateSheet({
       open={open}
       onOpenChange={(v) => {
         setOpen(v)
-        if (!v) form.reset({ installments: 1, label: '' })
+        if (!v) form.reset({ name: '', numberOfInstallments: 1, active: true })
       }}
     >
       <SheetTrigger asChild>
         {trigger ? (
           trigger
         ) : (
-          <Button variant="default" size="sm" disabled={disabled}>
-            <Plus className="size-[0.85rem]" /> Novo parcelamento
+          <Button variant="default" size="sm" disabled={disabled || Number(paymentMethodId) <= 0}>
+            <Plus className="size-[0.85rem]" /> Novo
           </Button>
         )}
       </SheetTrigger>
@@ -92,7 +97,7 @@ export function PaymentMethodInstallmentCreateSheet({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <SheetHeader>
-              <SheetTitle>Novo parcelamento</SheetTitle>
+              <SheetTitle>Nova condição</SheetTitle>
               <SheetDescription>
                 {methodName ? `Vinculado a: ${methodName}.` : 'Cadastre uma nova condição de pagamento.'}
               </SheetDescription>
@@ -108,7 +113,21 @@ export function PaymentMethodInstallmentCreateSheet({
 
               <FormField
                 control={form.control as any}
-                name="installments"
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Até 6x sem juros" {...field} disabled={isPending} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="numberOfInstallments"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Parcelas</FormLabel>
@@ -130,14 +149,16 @@ export function PaymentMethodInstallmentCreateSheet({
 
               <FormField
                 control={form.control as any}
-                name="label"
+                name="active"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Label</FormLabel>
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel>Ativo</FormLabel>
+                      <div className="text-xs text-muted-foreground">Controla se a condição pode ser usada.</div>
+                    </div>
                     <FormControl>
-                      <Input placeholder="Ex: Até 6x sem juros" {...field} disabled={isPending} />
+                      <Switch checked={!!field.value} onCheckedChange={field.onChange} disabled={isPending} />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -161,3 +182,4 @@ export function PaymentMethodInstallmentCreateSheet({
     </Sheet>
   )
 }
+

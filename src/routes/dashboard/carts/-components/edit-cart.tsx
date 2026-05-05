@@ -1,143 +1,20 @@
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { privateInstance } from "@/lib/auth"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw, LocationEdit, TicketPercent, X } from "lucide-react"
+import { ShoppingCart, Package, Info, Loader2, Truck, LocationEdit } from "lucide-react"
 import { toast } from "sonner"
 import { AddProductsToCartSheet } from "./add-products-to-cart-sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Checkbox } from "@/components/ui/checkbox"
-
-type DerivatedProduct = {
-  id: number
-  name: string
-  price: number
-  oldPrice: number
-  amount: number
-  productId: number
-  cartId: number
-  totalValue: number
-  derivatedProductId: number
-}
-
-type ProductGroup = {
-  id: number
-  productId: number
-  name: string
-  sku?: string
-  cartId: number
-  totalItems: number
-  totalValue: number
-  derivatedProducts: DerivatedProduct[]
-}
-
-type ShippingQuote = {
-  id: number
-  carrierName: string
-  serviceName: string
-  price: number
-  deadline: number
-  isSelected: boolean
-}
-
-type CartAddress = {
-  id: number
-  name: string
-  streetName: string
-  number: number
-  neighborhood: string
-  city: string
-  state: string
-  zipCode: string
-  country: string
-  complement: string
-  isDefault: boolean
-}
-
-type CustomerAddress = CartAddress & {
-  createdAt: string
-  updatedAt: string
-}
-
-type Cart = {
-  id: number
-  customer: { id: number, name: string }
-  store: { id: number, name: string }
-  address?: CartAddress | null
-  status: 'open' | 'abandoned' | 'finished'
-  totalItems: number
-  totalAdditions: number
-  totalDiscounts: number
-  totalValue: number
-  createdAt: string
-  updatedAt: string
-  additions: { id: number, name: string, value: number }[]
-  discounts: { id: number, name: string, value: number }[]
-  cupons?: {
-    id: number
-    code: string
-    description: string
-    customerMessage: string
-    type: string
-    value: number
-    storeId: number
-    discountApplied: number
-  }[]
-  products: ProductGroup[]
-  shippingQuote?: ShippingQuote[]
-}
-
-type PaymentMethod = {
-  id: number
-  name: string
-}
-
-type PaymentMethodQuote = {
-  cartId: number
-  paymentMethod: {
-    id: number
-    name: string
-    activeDiscount: boolean
-    discountAmount: number
-    discountType: string
-  }
-  shippingQuote: null | { id: number; price: number; deadline: number }
-  totals: {
-    productsValue: number
-    shippingValue: number
-    totalDiscounts: number
-    baseTotalValue: number
-    discountApplied: number
-    discountedTotalValue: number
-  }
-  payIns: Array<{
-    id: number
-    name: string
-    numberOfInstallments: number
-    paymentMethodId: number
-    active: boolean
-    createdAt: string
-    updatedAt: string
-    noInterestRate: boolean
-    totals: {
-      baseTotalValue: number
-      discountApplied: number
-      discountedTotalValue: number
-      totalValue: number
-      totalInterest: number
-    }
-    installmentValue: number
-  }>
-}
+import type { Cart, CartAddress, CustomerAddress, DerivatedProduct, ProductGroup } from "./edit-cart.types"
+import { CartItemsTab } from "./cart-items-tab"
+import { CartShippingTab } from "./cart-shipping-tab"
+import { CartAddressesTab } from "./cart-addresses-tab"
+import { CartDetailsTab } from "./cart-details-tab"
+import { CartSummaryCard } from "./cart-summary-card"
 
 export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(true)
@@ -151,9 +28,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const [isUpdatingCartAfterCouponChange, setIsUpdatingCartAfterCouponChange] = useState(false)
   const [removeCouponOpen, setRemoveCouponOpen] = useState(false)
   const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null)
-  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>('')
-  const [selectedInstallmentKey, setSelectedInstallmentKey] = useState<string>('')
-  const [paymentQuote, setPaymentQuote] = useState<PaymentMethodQuote | null>(null)
   const queryClient = useQueryClient()
 
   // Fetch Cart Details (Store, Status, etc.)
@@ -167,10 +41,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   })
 
   const customerId = cart?.customer?.id
-  const selectedShippingQuoteId = useMemo(() => {
-    const selected = (cart?.shippingQuote ?? []).find((q) => q.isSelected) ?? null
-    return selected?.id ?? null
-  }, [cart?.shippingQuote])
 
   useEffect(() => {
     const next = cart?.address?.id
@@ -182,9 +52,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     setCouponCode('')
     setRemoveCouponOpen(false)
     setSelectedCouponCode(null)
-    setSelectedPaymentMethodId('')
-    setSelectedInstallmentKey('')
-    setPaymentQuote(null)
   }, [cartId])
 
   const { data: customerAddresses, isLoading: isLoadingAddresses, isRefetching: isRefetchingAddresses, refetch: refetchAddresses } = useQuery({
@@ -205,12 +72,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     },
     onMutate: async (shippingQuoteId: number) => {
       const previousCart = queryClient.getQueryData(['cart', cartId]) as Cart | undefined
-      const previousPaymentQuote = paymentQuote
-      const previousSelectedInstallmentKey = selectedInstallmentKey
-
-      setPaymentQuote(null)
-      setSelectedInstallmentKey('')
-
       queryClient.setQueryData(['cart', cartId], (old: Cart | undefined) => {
         if (!old) return old
         const nextQuotes = (old.shippingQuote ?? []).map((q) => ({
@@ -219,7 +80,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
         }))
         return { ...old, shippingQuote: nextQuotes }
       })
-      return { previousCart, previousPaymentQuote, previousSelectedInstallmentKey }
+      return { previousCart }
     },
     onSuccess: async () => {
       setIsUpdatingCartAfterShippingSelect(true)
@@ -231,10 +92,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       if (previousCart) {
         queryClient.setQueryData(['cart', cartId], previousCart)
       }
-      const previousPaymentQuote = context?.previousPaymentQuote as PaymentMethodQuote | null | undefined
-      const previousSelectedInstallmentKey = context?.previousSelectedInstallmentKey as string | undefined
-      if (previousPaymentQuote) setPaymentQuote(previousPaymentQuote)
-      if (typeof previousSelectedInstallmentKey === 'string') setSelectedInstallmentKey(previousSelectedInstallmentKey)
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro ao selecionar frete', {
         description: errorData?.detail || 'Não foi possível selecionar a cotação de frete.'
@@ -322,63 +179,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       setIsUpdatingCartAfterCouponChange(false)
     },
   })
-
-  const { data: paymentMethods, isLoading: isLoadingPaymentMethods, isRefetching: isRefetchingPaymentMethods, refetch: refetchPaymentMethods } = useQuery({
-    queryKey: ['payment-methods', 'lookup'],
-    enabled: open,
-    refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const response = await privateInstance.get('/tenant/payment-methods', {
-        params: {
-          page: 1,
-          limit: 100,
-          sortBy: 'name',
-          orderBy: 'asc',
-        },
-      })
-      const items = (response.data as any)?.items
-      return Array.isArray(items) ? (items as PaymentMethod[]) : []
-    },
-  })
-
-  const { mutate: fetchPaymentMethodQuote, isPending: isFetchingPaymentQuote } = useMutation({
-    mutationFn: async (paymentMethodId: number) => {
-      const response = await privateInstance.post(`/tenant/carts/${cartId}/payment-method-quote`, {
-        paymentMethodId,
-      })
-      return response.data as PaymentMethodQuote
-    },
-    onSuccess: (data) => {
-      setPaymentQuote(data)
-      setSelectedInstallmentKey('')
-    },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
-      toast.error(errorData?.title || 'Erro ao buscar parcelamento', {
-        description: errorData?.detail || 'Não foi possível buscar as opções de parcelamento.',
-      })
-    },
-  })
-
-  const lastShippingQuoteIdRef = useRef<number | null | undefined>(undefined)
-  useEffect(() => {
-    if (isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) return
-    if (lastShippingQuoteIdRef.current === undefined) {
-      lastShippingQuoteIdRef.current = selectedShippingQuoteId
-      return
-    }
-    if (lastShippingQuoteIdRef.current === selectedShippingQuoteId) return
-    lastShippingQuoteIdRef.current = selectedShippingQuoteId
-
-    const nextId = Number(selectedPaymentMethodId)
-    if (Number.isFinite(nextId) && nextId > 0) fetchPaymentMethodQuote(nextId)
-  }, [
-    selectedShippingQuoteId,
-    selectedPaymentMethodId,
-    fetchPaymentMethodQuote,
-    isSelectingShippingQuote,
-    isUpdatingCartAfterShippingSelect,
-  ])
 
   const { mutate: removeCoupon, isPending: isRemovingCoupon } = useMutation({
     mutationFn: async () => {
@@ -579,19 +379,6 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const subtotalCents = (cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)
   const totalWithShippingCents = (cart?.totalValue || 0) + selectedShippingPrice
   const formatBRL = (valueInCents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((valueInCents || 0) / 100)
-  const paymentDiscountCents = Number(paymentQuote?.totals?.discountApplied ?? 0) || 0
-  const summaryTotalCents =
-    paymentDiscountCents > 0 ? (Number(paymentQuote?.totals?.discountedTotalValue ?? 0) || 0) : totalWithShippingCents
-  const installmentOptions = paymentQuote
-    ? paymentQuote.payIns
-        .filter((p) => p.active)
-        .map((p) => ({
-          key: String(p.id),
-          label: `${p.name} de ${formatBRL(Number(p.installmentValue ?? 0) || 0)} - ${formatBRL(Number(p.totals?.totalValue ?? 0) || 0)}`,
-          numberOfInstallments: typeof p.numberOfInstallments === 'number' ? p.numberOfInstallments : 0,
-        }))
-        .sort((a, b) => a.numberOfInstallments - b.numberOfInstallments)
-    : []
 
   return (
     <>
@@ -639,572 +426,65 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                       </TabsList>
 
                       <div className="mt-4 flex min-h-0 flex-1 flex-col rounded-xl border bg-background shadow-sm overflow-hidden">
-                        <TabsContent value="items" className="m-0 flex min-h-0 flex-1 flex-col">
-                          <div className="flex items-center justify-between border-b px-4 py-3">
-                            <h3 className="text-sm font-semibold flex items-center gap-2">
-                              <ShoppingCart className="h-4 w-4" /> Itens ({cart?.totalItems || 0})
-                            </h3>
-                            <Button size="sm" variant="outline" onClick={() => setAddProductOpen(true)} disabled={isReadOnly}>
-                              <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
-                            </Button>
-                          </div>
+                        <CartItemsTab
+                          cart={cart}
+                          openProducts={openProducts}
+                          toggleProductOpen={toggleProductOpen}
+                          setAddProductOpen={setAddProductOpen}
+                          isReadOnly={isReadOnly}
+                          formatBRL={formatBRL}
+                          updateItem={updateItem}
+                          deleteItem={deleteItem}
+                          cupons={cupons}
+                          couponCode={couponCode}
+                          setCouponCode={(next) => setCouponCode(next)}
+                          applyCoupon={applyCoupon}
+                          isApplyingCoupon={isApplyingCoupon}
+                          isRemovingCoupon={isRemovingCoupon}
+                          setSelectedCouponCode={(code) => setSelectedCouponCode(code)}
+                          setRemoveCouponOpen={(next) => setRemoveCouponOpen(next)}
+                        />
 
-                          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {(cart?.products || []).length === 0 ? (
-                              <div className="flex-1 flex items-center justify-center p-8">
-                                <Empty className="gap-2">
-                                  <EmptyMedia variant="icon">
-                                    <ShoppingCart className="h-6 w-6 text-muted-foreground" />
-                                  </EmptyMedia>
-                                  <EmptyTitle className="mt-0">Carrinho vazio</EmptyTitle>
-                                  <EmptyDescription className="mt-0">
-                                    Adicione produtos para começar o atendimento.
-                                  </EmptyDescription>
-                                  <Button size="sm" variant="outline" onClick={() => setAddProductOpen(true)} disabled={isReadOnly} className="mt-2">
-                                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar Produtos
-                                  </Button>
-                                </Empty>
-                              </div>
-                            ) : (
-                              <div className="space-y-4">
-                                {cart?.products.map((product) => {
-                                  const isOpen = openProducts.includes(product.name)
-                                  const productTotalItems = product.totalItems || product.derivatedProducts.reduce((acc, item) => acc + item.amount, 0)
+                        <CartShippingTab
+                          cart={cart}
+                          isReadOnly={isReadOnly}
+                          isSelectingShippingQuote={isSelectingShippingQuote}
+                          isUpdatingCartAfterShippingSelect={isUpdatingCartAfterShippingSelect}
+                          selectShippingQuote={selectShippingQuote}
+                          formatBRL={formatBRL}
+                        />
 
-                                  return (
-                                    <Collapsible
-                                      key={product.id}
-                                      open={isOpen}
-                                      onOpenChange={() => toggleProductOpen(product.name)}
-                                      className="border rounded-lg bg-card shadow-sm transition-all hover:shadow-md"
-                                    >
-                                      <div className="flex items-center justify-between p-3">
-                                        <CollapsibleTrigger asChild>
-                                          <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent flex-1 justify-start gap-3 min-w-0">
-                                            <div className="h-9 w-9 rounded-lg bg-primary/5 border flex items-center justify-center shrink-0">
-                                              <Package className="h-4 w-4 text-primary/70" />
-                                            </div>
-                                            <div className="flex flex-col items-start text-left gap-1 min-w-0">
-                                              <div className="flex items-center gap-2 min-w-0">
-                                                {product.sku && (
-                                                  <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5 leading-none rounded-sm text-muted-foreground shrink-0">
-                                                    {product.sku}
-                                                  </Badge>
-                                                )}
-                                                <span className="text-sm font-semibold text-foreground/90 truncate">{product.name}</span>
-                                              </div>
-                                              <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 leading-none font-normal border-muted-foreground/20">
-                                                  {productTotalItems} {productTotalItems === 1 ? 'item' : 'itens'}
-                                                </Badge>
-                                              </span>
-                                            </div>
-                                            {isOpen ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground/50" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground/50" />}
-                                          </Button>
-                                        </CollapsibleTrigger>
-                                      </div>
+                        <CartAddressesTab
+                          customerId={customerId}
+                          isReadOnly={isReadOnly}
+                          isLoadingAddresses={isLoadingAddresses}
+                          isRefetchingAddresses={isRefetchingAddresses}
+                          isSelectingAddress={isSelectingAddress}
+                          isUpdatingCartAfterAddressSelect={isUpdatingCartAfterAddressSelect}
+                          refetchAddresses={() => {
+                            refetchAddresses()
+                          }}
+                          addresses={addresses}
+                          selectedAddressId={selectedAddressId}
+                          selectCartAddress={selectCartAddress}
+                        />
 
-                                      <CollapsibleContent>
-                                        <div className="border-t divide-y bg-muted/30">
-                                          {product.derivatedProducts.map((item) => (
-                                            <div key={item.id} className="flex items-center justify-between py-3 pl-14 pr-4 hover:bg-muted/50 transition-colors group">
-                                              <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Variação</span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                  <span className="text-sm font-medium text-foreground/80">{item.name}</span>
-                                                  <div className="flex items-center gap-2 text-xs mt-0.5">
-                                                    {item.oldPrice > item.price && (
-                                                      <span className="text-muted-foreground/60 line-through">
-                                                        {formatBRL(item.oldPrice)}
-                                                      </span>
-                                                    )}
-                                                    <span className={item.oldPrice > item.price ? "text-green-600 font-semibold bg-green-50 px-1.5 rounded-sm" : "text-muted-foreground font-medium"}>
-                                                      {formatBRL(item.price)}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-
-                                              <div className="flex items-center gap-6">
-                                                {!isReadOnly ? (
-                                                  <div className="flex items-center border rounded-md bg-background shadow-sm h-8 overflow-hidden group-hover:border-primary/20 transition-colors">
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="icon"
-                                                      className="h-8 w-8 rounded-none border-r hover:bg-muted active:bg-muted/80"
-                                                      onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: Math.max(0, item.amount - 1) })}
-                                                      disabled={item.amount <= 1}
-                                                    >
-                                                      <Minus className="h-3 w-3" />
-                                                    </Button>
-                                                    <div className="w-10 text-center text-sm font-medium tabular-nums h-full flex items-center justify-center bg-transparent">
-                                                      {item.amount}
-                                                    </div>
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="icon"
-                                                      className="h-8 w-8 rounded-none border-l hover:bg-muted active:bg-muted/80"
-                                                      onClick={() => updateItem({ cartDerivatedProductId: item.id, amount: item.amount + 1 })}
-                                                    >
-                                                      <Plus className="h-3 w-3" />
-                                                    </Button>
-                                                  </div>
-                                                ) : (
-                                                  <Badge variant="outline" className="text-sm px-3 py-1 font-mono">{item.amount} un</Badge>
-                                                )}
-
-                                                <div className="text-right min-w-[90px]">
-                                                  <span className="text-sm font-bold text-foreground">
-                                                    {formatBRL(item.amount * item.price)}
-                                                  </span>
-                                                </div>
-
-                                                {!isReadOnly && (
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-                                                    onClick={() => deleteItem(item.id)}
-                                                  >
-                                                    <Trash2 className="h-4 w-4" />
-                                                  </Button>
-                                                )}
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                  )
-                                })}
-                              </div>
-                            )}
-
-                            <div className="rounded-lg border bg-muted/10 p-4">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <div className="h-8 w-8 rounded-lg bg-primary/5 border flex items-center justify-center shrink-0">
-                                    <TicketPercent className="h-4 w-4 text-primary/70" />
-                                  </div>
-                                  <div className="flex flex-col min-w-0">
-                                    <span className="text-sm font-semibold leading-none">Cupom de desconto</span>
-                                    <span className="text-xs text-muted-foreground truncate">
-                                      {cupons.length > 0 ? 'Cupons aplicados no carrinho.' : 'Digite o código para aplicar no carrinho.'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {cupons.length > 0 ? (
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {cupons.map((c) => (
-                                    <Badge key={c.id} variant="secondary" className="font-mono gap-1 pr-1">
-                                      {String(c.code || '').toUpperCase()}
-                                      <button
-                                        type="button"
-                                        className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded-sm hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                        disabled={isReadOnly || isRemovingCoupon || isApplyingCoupon}
-                                        onClick={() => {
-                                          setSelectedCouponCode(String(c.code || '').toUpperCase())
-                                          setRemoveCouponOpen(true)
-                                        }}
-                                        aria-label={`Remover cupom ${c.code}`}
-                                        title={`Remover cupom ${c.code}`}
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                      </button>
-                                    </Badge>
-                                  ))}
-                                </div>
-                              ) : null}
-
-                              <div className="mt-3 flex items-center gap-2">
-                                <Input
-                                  value={couponCode}
-                                  onChange={(e) => {
-                                    setCouponCode(e.target.value.replace(/\s/g, '').toUpperCase())
-                                  }}
-                                  placeholder="XXX-XXX"
-                                  disabled={isReadOnly || isApplyingCoupon || isRemovingCoupon}
-                                  onKeyDown={(e) => {
-                                    if (e.key !== 'Enter') return
-                                    e.preventDefault()
-                                    const nextCode = couponCode.trim()
-                                    if (!nextCode) return
-                                    if (isReadOnly || isApplyingCoupon || isRemovingCoupon) return
-                                    applyCoupon(nextCode)
-                                  }}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  disabled={isReadOnly || !couponCode.trim() || isApplyingCoupon || isRemovingCoupon}
-                                  onClick={() => {
-                                    const nextCode = couponCode.trim()
-                                    if (!nextCode) return
-                                    applyCoupon(nextCode)
-                                  }}
-                                  aria-label="Aplicar cupom"
-                                  title="Aplicar cupom"
-                                >
-                                  {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketPercent className="h-4 w-4" />}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="shipping" className="m-0 flex min-h-0 flex-1 flex-col">
-                          <div className="flex items-center justify-between border-b px-4 py-3">
-                            <h3 className="text-sm font-semibold flex items-center gap-2">
-                              <Truck className="h-4 w-4" /> Cotação de Frete
-                            </h3>
-                          </div>
-
-                          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {Array.isArray(cart?.shippingQuote) && cart.shippingQuote.length > 0 ? (
-                              cart.shippingQuote.map((q) => (
-                                <button
-                                  key={q.id}
-                                  type="button"
-                                  className="w-full text-left border rounded-lg p-3 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none"
-                                  disabled={isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect}
-                                  onClick={() => {
-                                    if (q.isSelected) return
-                                    selectShippingQuote(q.id)
-                                  }}
-                                >
-                                  <div className="flex items-start gap-3 min-w-0">
-                                    <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-                                      <Checkbox
-                                        checked={q.isSelected}
-                                        onCheckedChange={() => {
-                                          if (isReadOnly || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) return
-                                          if (q.isSelected) return
-                                          selectShippingQuote(q.id)
-                                        }}
-                                        aria-label="Selecionar cotação de frete"
-                                      />
-                                    </div>
-                                    <div className="flex flex-col gap-1 min-w-0">
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <span className="text-sm font-semibold truncate">{q.carrierName}</span>
-                                        {q.isSelected && (
-                                          <Badge className="h-5 px-2 text-[10px]" variant="default">
-                                            Selecionado
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground truncate">
-                                        {q.serviceName}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-col items-end gap-1 shrink-0">
-                                    <span className="text-sm font-semibold tabular-nums">
-                                      {formatBRL(q.price)}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {q.deadline} {q.deadline === 1 ? 'dia' : 'dias'}
-                                    </span>
-                                  </div>
-                                </button>
-                              ))
-                            ) : (
-                              <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                                  <Truck className="h-6 w-6 opacity-50" />
-                                </div>
-                                <p className="text-sm font-medium text-foreground">Nenhuma cotação disponível</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Este carrinho ainda não possui opções de frete cotadas.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="addresses" className="m-0 flex min-h-0 flex-1 flex-col">
-                          <div className="flex items-center justify-between border-b px-4 py-3">
-                            <h3 className="text-sm font-semibold flex items-center gap-2">
-                              <MapPin className="h-4 w-4" /> Endereços
-                            </h3>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={!customerId || isLoadingAddresses || isRefetchingAddresses || isSelectingAddress || isUpdatingCartAfterAddressSelect}
-                              onClick={() => { refetchAddresses() }}
-                              title="Atualizar"
-                              aria-label="Atualizar"
-                            >
-                              <RefreshCw className={`size-[0.85rem] ${isLoadingAddresses || isRefetchingAddresses || isUpdatingCartAfterAddressSelect ? 'animate-spin' : ''}`} />
-                            </Button>
-                          </div>
-
-                          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {!customerId ? (
-                              <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                                  <MapPin className="h-6 w-6 opacity-50" />
-                                </div>
-                                <p className="text-sm font-medium text-foreground">Nenhum cliente vinculado</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Selecione um cliente para visualizar os endereços.
-                                </p>
-                              </div>
-                            ) : (isLoadingAddresses || isRefetchingAddresses) ? (
-                              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" /> Carregando endereços...
-                              </div>
-                            ) : addresses.length > 0 ? (
-                              addresses.map((a) => {
-                                const isSelected = selectedAddressId === a.id
-                                const selectionLocked = isReadOnly || isSelectingAddress || isUpdatingCartAfterAddressSelect
-                                return (
-                                  <button
-                                    key={a.id}
-                                    type="button"
-                                    className={`w-full text-left border rounded-lg p-3 flex items-start justify-between gap-4 hover:bg-muted/30 transition-colors disabled:opacity-60 disabled:pointer-events-none ${isSelected ? 'border-primary ring-1 ring-primary/20' : ''}`}
-                                    disabled={selectionLocked}
-                                    onClick={() => {
-                                      if (selectionLocked) return
-                                      if (isSelected) return
-                                      selectCartAddress(a.id)
-                                    }}
-                                  >
-                                    <div className="flex items-start gap-3 min-w-0">
-                                      <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-                                        <Checkbox
-                                          checked={isSelected}
-                                          onCheckedChange={() => {
-                                            if (selectionLocked) return
-                                            if (isSelected) return
-                                            selectCartAddress(a.id)
-                                          }}
-                                          aria-label="Selecionar endereço"
-                                        />
-                                      </div>
-                                      <div className="flex flex-col gap-1 min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          <span className="text-sm font-semibold truncate">{a.name}</span>
-                                          {a.isDefault && (
-                                            <Badge variant="secondary" className="h-5 px-2 text-[10px]">
-                                              Padrão
-                                            </Badge>
-                                          )}
-                                          {isSelected && (
-                                            <Badge className="h-5 px-2 text-[10px]" variant="default">
-                                              Selecionado
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground truncate">
-                                          {a.streetName}, {a.number} • {a.neighborhood}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground truncate">
-                                          {a.city} - {a.state} • {a.zipCode}
-                                          {a.complement ? ` • ${a.complement}` : ''}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </button>
-                                )
-                              })
-                            ) : (
-                              <div className="border rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                                  <MapPin className="h-6 w-6 opacity-50" />
-                                </div>
-                                <p className="text-sm font-medium text-foreground">Nenhum endereço cadastrado</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Este cliente ainda não possui endereços.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="details" className="m-0 flex min-h-0 flex-1 flex-col">
-                          <div className="flex items-center justify-between border-b px-4 py-3">
-                            <h3 className="text-sm font-semibold flex items-center gap-2">
-                              <Info className="h-4 w-4" /> Detalhes
-                            </h3>
-                          </div>
-
-                          <div className="flex-1 overflow-y-auto p-4">
-                            <div className="grid grid-cols-1 gap-4 border rounded-lg p-4 bg-muted/10">
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Cliente</span>
-                                <p className="text-sm font-medium" title={cart?.customer?.name}>{cart?.customer?.name || '—'}</p>
-                              </div>
-                              <Separator />
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground flex items-center gap-1"><Store className="h-3 w-3" /> Loja</span>
-                                <p className="text-sm font-medium" title={cart?.store?.name}>{cart?.store?.name || '—'}</p>
-                              </div>
-                              <Separator />
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Criado em</span>
-                                <p className="text-sm font-medium">
-                                  {cart?.createdAt ? new Date(cart.createdAt).toLocaleDateString('pt-BR') : '—'} às {cart?.createdAt ? new Date(cart.createdAt).toLocaleTimeString('pt-BR') : '—'}
-                                </p>
-                              </div>
-                              <Separator />
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground flex items-center gap-1"><Package className="h-3 w-3" /> Total de Itens</span>
-                                <p className="text-sm font-medium">{cart?.totalItems || 0}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </TabsContent>
+                        <CartDetailsTab cart={cart} />
                       </div>
                     </Tabs>
                   </div>
 
                   <div className="lg:pl-0">
-                    <div className="rounded-xl border bg-background shadow-sm p-4 lg:sticky lg:top-6">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-semibold">Resumo</span>
-                          <span className="text-xs text-muted-foreground">
-                            {cart?.totalItems || 0} {(cart?.totalItems || 0) === 1 ? 'item' : 'itens'} no carrinho
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {cart && (
-                            <Badge className="h-6 px-2 text-[11px]" variant={cart.status === 'open' ? 'outline' : cart.status === 'abandoned' ? 'destructive' : 'default'}>
-                              {cart.status === 'open' ? 'Aberto' : cart.status === 'abandoned' ? 'Abandonado' : 'Finalizado'}
-                            </Badge>
-                          )}
-                          {selectedShippingQuote ? (
-                            <Badge variant="secondary" className="h-6 px-2 text-[11px]">
-                              {selectedShippingQuote.carrierName}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="h-6 px-2 text-[11px]">
-                              Sem frete
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Produtos</span>
-                          <span className="font-medium tabular-nums">{formatBRL(subtotalCents)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Frete</span>
-                          <span className="font-medium tabular-nums">{formatBRL(selectedShippingPrice)}</span>
-                        </div>
-
-                        {(cart?.additions || []).length > 0 && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Adicionais</span>
-                            <span className="font-medium tabular-nums">{formatBRL(cart?.totalAdditions || 0)}</span>
-                          </div>
-                        )}
-                        {(cart?.discounts || []).length > 0 && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Descontos</span>
-                            <span className="font-medium tabular-nums">-{formatBRL(cart?.totalDiscounts || 0)}</span>
-                          </div>
-                        )}
-                        {paymentDiscountCents > 0 && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Desconto (pagamento)</span>
-                            <span className="font-medium tabular-nums">-{formatBRL(paymentDiscountCents)}</span>
-                          </div>
-                        )}
-
-                        <div className="pt-2 space-y-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-muted-foreground">Método de pagamento</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              disabled={isReadOnly || isLoadingPaymentMethods || isRefetchingPaymentMethods || isFetchingPaymentQuote}
-                              onClick={() => refetchPaymentMethods()}
-                              aria-label="Atualizar métodos de pagamento"
-                              title="Atualizar"
-                            >
-                              <RefreshCw className={`h-4 w-4 ${isLoadingPaymentMethods || isRefetchingPaymentMethods ? 'animate-spin' : ''}`} />
-                            </Button>
-                          </div>
-
-                          <Select
-                            value={selectedPaymentMethodId}
-                            onValueChange={(v) => {
-                              setSelectedPaymentMethodId(v)
-                              setPaymentQuote(null)
-                              setSelectedInstallmentKey('')
-                              const nextId = Number(v)
-                              if (Number.isFinite(nextId) && nextId > 0) fetchPaymentMethodQuote(nextId)
-                            }}
-                            disabled={isReadOnly || isLoadingPaymentMethods || isFetchingPaymentQuote}
-                          >
-                            <SelectTrigger className="h-9 w-full">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(paymentMethods ?? []).map((m) => (
-                                <SelectItem key={m.id} value={String(m.id)}>
-                                  {m.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <div className="space-y-1.5">
-                            <span className="text-muted-foreground">Parcelamento</span>
-                            <Select
-                              value={selectedInstallmentKey}
-                              onValueChange={setSelectedInstallmentKey}
-                              disabled={isReadOnly || !paymentQuote || isFetchingPaymentQuote}
-                            >
-                              <SelectTrigger className="h-9 w-full">
-                                <SelectValue
-                                  placeholder={
-                                    isFetchingPaymentQuote ? 'Carregando...' : paymentQuote ? 'Selecione...' : 'Selecione um método'
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {installmentOptions.map((o) => (
-                                  <SelectItem key={o.key} value={o.key}>
-                                    {o.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <Separator className="my-3" />
-
-                        <div className="flex items-end justify-between gap-2">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold">Total</span>
-                            <span className="text-xs text-muted-foreground">Inclui frete selecionado</span>
-                          </div>
-                          <span className="text-2xl font-semibold tracking-tight tabular-nums text-primary">
-                            {formatBRL(summaryTotalCents)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <Button disabled={isReadOnly || !cart?.totalItems || cart?.totalItems === 0} className="w-full h-10 font-semibold gap-2">
-                          Finalizar Pedido <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <CartSummaryCard
+                      cart={cart}
+                      selectedShippingQuote={selectedShippingQuote}
+                      selectedShippingPrice={selectedShippingPrice}
+                      subtotalCents={subtotalCents}
+                      totalWithShippingCents={totalWithShippingCents}
+                      formatBRL={formatBRL}
+                      cartId={cartId}
+                      isReadOnly={isReadOnly}
+                    />
                   </div>
                 </div>
               )}

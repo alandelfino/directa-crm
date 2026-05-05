@@ -11,6 +11,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { privateInstance } from '@/lib/auth'
 import { Edit, Loader } from 'lucide-react'
 import { NumericFormat } from 'react-number-format'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const formSchema = z.object({
   label: z.string().min(1, { message: 'Label é obrigatório' }),
@@ -135,7 +136,7 @@ export function PayInInstallmentEditSheet({
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent className="min-w-[500px] sm:w-[540px] overflow-y-auto">
+      <SheetContent className="min-w-sm sm:w-sm overflow-y-auto">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <SheetHeader>
@@ -144,9 +145,33 @@ export function PayInInstallmentEditSheet({
             </SheetHeader>
 
             {(isLoading || !data) ? (
-              <div className="flex justify-center items-center h-40">
-                <Loader className="animate-spin size-6" />
-              </div>
+              <>
+                <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4 overflow-y-auto">
+                  <div className="grid gap-2">
+                    <Skeleton className="h-4 w-44" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </div>
+
+                <div className="mt-auto border-t p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-9 w-full" />
+                  </div>
+                </div>
+              </>
             ) : (
               <>
                 <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4 overflow-y-auto">

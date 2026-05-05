@@ -1,11 +1,12 @@
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { privateInstance } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Plus, Trash2, ShoppingCart, Package, User, Store, Calendar, ChevronDown, ChevronUp, Minus, Info, Loader2, ArrowRight, Truck, MapPin, RefreshCw, LocationEdit, TicketPercent, X } from "lucide-react"
@@ -95,6 +96,49 @@ type Cart = {
   shippingQuote?: ShippingQuote[]
 }
 
+type PaymentMethod = {
+  id: number
+  name: string
+}
+
+type PaymentMethodQuote = {
+  cartId: number
+  paymentMethod: {
+    id: number
+    name: string
+    activeDiscount: boolean
+    discountAmount: number
+    discountType: string
+  }
+  shippingQuote: null | { id: number; price: number; deadline: number }
+  totals: {
+    productsValue: number
+    shippingValue: number
+    totalDiscounts: number
+    baseTotalValue: number
+    discountApplied: number
+    discountedTotalValue: number
+  }
+  payIns: Array<{
+    id: number
+    name: string
+    numberOfInstallments: number
+    paymentMethodId: number
+    active: boolean
+    createdAt: string
+    updatedAt: string
+    noInterestRate: boolean
+    totals: {
+      baseTotalValue: number
+      discountApplied: number
+      discountedTotalValue: number
+      totalValue: number
+      totalInterest: number
+    }
+    installmentValue: number
+  }>
+}
+
 export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(true)
   const [addProductOpen, setAddProductOpen] = useState(false)
@@ -107,6 +151,9 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const [isUpdatingCartAfterCouponChange, setIsUpdatingCartAfterCouponChange] = useState(false)
   const [removeCouponOpen, setRemoveCouponOpen] = useState(false)
   const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null)
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>('')
+  const [selectedInstallmentKey, setSelectedInstallmentKey] = useState<string>('')
+  const [paymentQuote, setPaymentQuote] = useState<PaymentMethodQuote | null>(null)
   const queryClient = useQueryClient()
 
   // Fetch Cart Details (Store, Status, etc.)
@@ -120,6 +167,10 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   })
 
   const customerId = cart?.customer?.id
+  const selectedShippingQuoteId = useMemo(() => {
+    const selected = (cart?.shippingQuote ?? []).find((q) => q.isSelected) ?? null
+    return selected?.id ?? null
+  }, [cart?.shippingQuote])
 
   useEffect(() => {
     const next = cart?.address?.id
@@ -131,6 +182,9 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     setCouponCode('')
     setRemoveCouponOpen(false)
     setSelectedCouponCode(null)
+    setSelectedPaymentMethodId('')
+    setSelectedInstallmentKey('')
+    setPaymentQuote(null)
   }, [cartId])
 
   const { data: customerAddresses, isLoading: isLoadingAddresses, isRefetching: isRefetchingAddresses, refetch: refetchAddresses } = useQuery({
@@ -151,6 +205,12 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     },
     onMutate: async (shippingQuoteId: number) => {
       const previousCart = queryClient.getQueryData(['cart', cartId]) as Cart | undefined
+      const previousPaymentQuote = paymentQuote
+      const previousSelectedInstallmentKey = selectedInstallmentKey
+
+      setPaymentQuote(null)
+      setSelectedInstallmentKey('')
+
       queryClient.setQueryData(['cart', cartId], (old: Cart | undefined) => {
         if (!old) return old
         const nextQuotes = (old.shippingQuote ?? []).map((q) => ({
@@ -159,7 +219,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
         }))
         return { ...old, shippingQuote: nextQuotes }
       })
-      return { previousCart }
+      return { previousCart, previousPaymentQuote, previousSelectedInstallmentKey }
     },
     onSuccess: async () => {
       setIsUpdatingCartAfterShippingSelect(true)
@@ -171,6 +231,10 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       if (previousCart) {
         queryClient.setQueryData(['cart', cartId], previousCart)
       }
+      const previousPaymentQuote = context?.previousPaymentQuote as PaymentMethodQuote | null | undefined
+      const previousSelectedInstallmentKey = context?.previousSelectedInstallmentKey as string | undefined
+      if (previousPaymentQuote) setPaymentQuote(previousPaymentQuote)
+      if (typeof previousSelectedInstallmentKey === 'string') setSelectedInstallmentKey(previousSelectedInstallmentKey)
       const errorData = error?.response?.data
       toast.error(errorData?.title || 'Erro ao selecionar frete', {
         description: errorData?.detail || 'Não foi possível selecionar a cotação de frete.'
@@ -258,6 +322,63 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       setIsUpdatingCartAfterCouponChange(false)
     },
   })
+
+  const { data: paymentMethods, isLoading: isLoadingPaymentMethods, isRefetching: isRefetchingPaymentMethods, refetch: refetchPaymentMethods } = useQuery({
+    queryKey: ['payment-methods', 'lookup'],
+    enabled: open,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await privateInstance.get('/tenant/payment-methods', {
+        params: {
+          page: 1,
+          limit: 100,
+          sortBy: 'name',
+          orderBy: 'asc',
+        },
+      })
+      const items = (response.data as any)?.items
+      return Array.isArray(items) ? (items as PaymentMethod[]) : []
+    },
+  })
+
+  const { mutate: fetchPaymentMethodQuote, isPending: isFetchingPaymentQuote } = useMutation({
+    mutationFn: async (paymentMethodId: number) => {
+      const response = await privateInstance.post(`/tenant/carts/${cartId}/payment-method-quote`, {
+        paymentMethodId,
+      })
+      return response.data as PaymentMethodQuote
+    },
+    onSuccess: (data) => {
+      setPaymentQuote(data)
+      setSelectedInstallmentKey('')
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data
+      toast.error(errorData?.title || 'Erro ao buscar parcelamento', {
+        description: errorData?.detail || 'Não foi possível buscar as opções de parcelamento.',
+      })
+    },
+  })
+
+  const lastShippingQuoteIdRef = useRef<number | null | undefined>(undefined)
+  useEffect(() => {
+    if (isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) return
+    if (lastShippingQuoteIdRef.current === undefined) {
+      lastShippingQuoteIdRef.current = selectedShippingQuoteId
+      return
+    }
+    if (lastShippingQuoteIdRef.current === selectedShippingQuoteId) return
+    lastShippingQuoteIdRef.current = selectedShippingQuoteId
+
+    const nextId = Number(selectedPaymentMethodId)
+    if (Number.isFinite(nextId) && nextId > 0) fetchPaymentMethodQuote(nextId)
+  }, [
+    selectedShippingQuoteId,
+    selectedPaymentMethodId,
+    fetchPaymentMethodQuote,
+    isSelectingShippingQuote,
+    isUpdatingCartAfterShippingSelect,
+  ])
 
   const { mutate: removeCoupon, isPending: isRemovingCoupon } = useMutation({
     mutationFn: async () => {
@@ -458,6 +579,19 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   const subtotalCents = (cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)
   const totalWithShippingCents = (cart?.totalValue || 0) + selectedShippingPrice
   const formatBRL = (valueInCents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((valueInCents || 0) / 100)
+  const paymentDiscountCents = Number(paymentQuote?.totals?.discountApplied ?? 0) || 0
+  const summaryTotalCents =
+    paymentDiscountCents > 0 ? (Number(paymentQuote?.totals?.discountedTotalValue ?? 0) || 0) : totalWithShippingCents
+  const installmentOptions = paymentQuote
+    ? paymentQuote.payIns
+        .filter((p) => p.active)
+        .map((p) => ({
+          key: String(p.id),
+          label: `${p.name} de ${formatBRL(Number(p.installmentValue ?? 0) || 0)} - ${formatBRL(Number(p.totals?.totalValue ?? 0) || 0)}`,
+          numberOfInstallments: typeof p.numberOfInstallments === 'number' ? p.numberOfInstallments : 0,
+        }))
+        .sort((a, b) => a.numberOfInstallments - b.numberOfInstallments)
+    : []
 
   return (
     <>
@@ -980,6 +1114,77 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                             <span className="font-medium tabular-nums">-{formatBRL(cart?.totalDiscounts || 0)}</span>
                           </div>
                         )}
+                        {paymentDiscountCents > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Desconto (pagamento)</span>
+                            <span className="font-medium tabular-nums">-{formatBRL(paymentDiscountCents)}</span>
+                          </div>
+                        )}
+
+                        <div className="pt-2 space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Método de pagamento</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              disabled={isReadOnly || isLoadingPaymentMethods || isRefetchingPaymentMethods || isFetchingPaymentQuote}
+                              onClick={() => refetchPaymentMethods()}
+                              aria-label="Atualizar métodos de pagamento"
+                              title="Atualizar"
+                            >
+                              <RefreshCw className={`h-4 w-4 ${isLoadingPaymentMethods || isRefetchingPaymentMethods ? 'animate-spin' : ''}`} />
+                            </Button>
+                          </div>
+
+                          <Select
+                            value={selectedPaymentMethodId}
+                            onValueChange={(v) => {
+                              setSelectedPaymentMethodId(v)
+                              setPaymentQuote(null)
+                              setSelectedInstallmentKey('')
+                              const nextId = Number(v)
+                              if (Number.isFinite(nextId) && nextId > 0) fetchPaymentMethodQuote(nextId)
+                            }}
+                            disabled={isReadOnly || isLoadingPaymentMethods || isFetchingPaymentQuote}
+                          >
+                            <SelectTrigger className="h-9 w-full">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(paymentMethods ?? []).map((m) => (
+                                <SelectItem key={m.id} value={String(m.id)}>
+                                  {m.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <div className="space-y-1.5">
+                            <span className="text-muted-foreground">Parcelamento</span>
+                            <Select
+                              value={selectedInstallmentKey}
+                              onValueChange={setSelectedInstallmentKey}
+                              disabled={isReadOnly || !paymentQuote || isFetchingPaymentQuote}
+                            >
+                              <SelectTrigger className="h-9 w-full">
+                                <SelectValue
+                                  placeholder={
+                                    isFetchingPaymentQuote ? 'Carregando...' : paymentQuote ? 'Selecione...' : 'Selecione um método'
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {installmentOptions.map((o) => (
+                                  <SelectItem key={o.key} value={o.key}>
+                                    {o.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
                         <Separator className="my-3" />
 
@@ -989,7 +1194,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
                             <span className="text-xs text-muted-foreground">Inclui frete selecionado</span>
                           </div>
                           <span className="text-2xl font-semibold tracking-tight tabular-nums text-primary">
-                            {formatBRL(totalWithShippingCents)}
+                            {formatBRL(summaryTotalCents)}
                           </span>
                         </div>
                       </div>

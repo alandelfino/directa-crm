@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { privateInstance } from '@/lib/auth'
 import { Input } from '@/components/ui/input'
@@ -230,133 +230,133 @@ export function PayInsSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex items-center gap-2 px-4 py-3 border-b">
-          <Popover
-            open={isFilterOpen}
-            onOpenChange={(next) => {
-              if (next) {
-                setLocalSortBy(sortBy)
-                setLocalOrderBy(orderBy)
-                setLocalSearch(search)
-              }
-              setIsFilterOpen(next)
-            }}
-          >
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" disabled={isLoading || isRefetching}>
-                <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
-                {activeFilterCount > 0 && (
-                  <span className="absolute top-2 right-2 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[340px] p-5" align="start">
-              <div className="flex flex-col gap-5">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <ArrowUpDown className="h-4 w-4 text-primary" />
+        <div className="flex items-center px-4 py-3 border-b">
+          <div className="ml-auto flex items-center gap-2">
+            <Popover
+              open={isFilterOpen}
+              onOpenChange={(next) => {
+                if (next) {
+                  setLocalSortBy(sortBy)
+                  setLocalOrderBy(orderBy)
+                  setLocalSearch(search)
+                }
+                setIsFilterOpen(next)
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" disabled={isLoading || isRefetching}>
+                  <Funnel className={`size-4 ${activeFilterCount > 0 ? 'text-primary' : ''}`} />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-5" align="end">
+                <div className="flex flex-col gap-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <ArrowUpDown className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Ordenação</h4>
                     </div>
-                    <h4 className="font-semibold leading-none">Ordenação</h4>
+                    <div className="flex gap-2 w-full">
+                      <div className="flex-1">
+                        <Select value={localSortBy} onValueChange={(v) => setLocalSortBy(v as SortBy)}>
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder="Campo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="id">ID</SelectItem>
+                            <SelectItem value="createdAt">Criado em</SelectItem>
+                            <SelectItem value="name">Nome</SelectItem>
+                            <SelectItem value="numberOfInstallments">Parcelas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setLocalOrderBy((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                        title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                      >
+                        {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2 w-full">
-                    <div className="flex-1">
-                      <Select value={localSortBy} onValueChange={(v) => setLocalSortBy(v as SortBy)}>
-                        <SelectTrigger className="h-9 w-full">
-                          <SelectValue placeholder="Campo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="id">ID</SelectItem>
-                          <SelectItem value="createdAt">Criado em</SelectItem>
-                          <SelectItem value="name">Nome</SelectItem>
-                          <SelectItem value="numberOfInstallments">Parcelas</SelectItem>
-                        </SelectContent>
-                      </Select>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Funnel className="h-4 w-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold leading-none">Filtros</h4>
                     </div>
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="pay-ins-search" className="text-xs font-medium text-muted-foreground">
+                          Busca
+                        </Label>
+                        <Input
+                          id="pay-ins-search"
+                          value={localSearch}
+                          onChange={(e) => setLocalSearch(e.target.value)}
+                          className="h-9"
+                          placeholder="Buscar por nome..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"
-                      size="icon"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => setLocalOrderBy((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-                      title={localOrderBy === 'asc' ? 'Crescente' : 'Decrescente'}
+                      size="default"
+                      className="flex-1"
+                      onClick={() => {
+                        setLocalSortBy('createdAt')
+                        setLocalOrderBy('desc')
+                        setLocalSearch('')
+                      }}
                     >
-                      {localOrderBy === 'asc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpZA className="h-4 w-4" />}
+                      Limpar
+                    </Button>
+                    <Button
+                      size="default"
+                      className="flex-1"
+                      onClick={() => {
+                        setSortBy(localSortBy)
+                        setOrderBy(localOrderBy)
+                        setSearch(localSearch)
+                        setCurrentPage(1)
+                        setIsFilterOpen(false)
+                      }}
+                    >
+                      Aplicar
                     </Button>
                   </div>
                 </div>
+              </PopoverContent>
+            </Popover>
 
-                <Separator />
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isLoading || isRefetching}
+              onClick={() => {
+                setSelectedIds([])
+                refetch()
+              }}
+            >
+              {(isLoading || isRefetching) ? <RefreshCw className="animate-spin size-[0.85rem]" /> : <RefreshCw className="size-[0.85rem]" />}
+            </Button>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <Funnel className="h-4 w-4 text-primary" />
-                    </div>
-                    <h4 className="font-semibold leading-none">Filtros</h4>
-                  </div>
-                  <div className="grid gap-3">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="pay-ins-search" className="text-xs font-medium text-muted-foreground">
-                        Busca
-                      </Label>
-                      <Input
-                        id="pay-ins-search"
-                        value={localSearch}
-                        onChange={(e) => setLocalSearch(e.target.value)}
-                        className="h-9"
-                        placeholder="Buscar por nome..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="default"
-                    className="flex-1"
-                    onClick={() => {
-                      setLocalSortBy('createdAt')
-                      setLocalOrderBy('desc')
-                      setLocalSearch('')
-                    }}
-                  >
-                    Limpar
-                  </Button>
-                  <Button
-                    size="default"
-                    className="flex-1"
-                    onClick={() => {
-                      setSortBy(localSortBy)
-                      setOrderBy(localOrderBy)
-                      setSearch(localSearch)
-                      setCurrentPage(1)
-                      setIsFilterOpen(false)
-                    }}
-                  >
-                    Aplicar
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={isLoading || isRefetching}
-            onClick={() => {
-              setSelectedIds([])
-              refetch()
-            }}
-          >
-            {(isLoading || isRefetching) ? <RefreshCw className="animate-spin size-[0.85rem]" /> : <RefreshCw className="size-[0.85rem]" />}
-          </Button>
-
-          <div className="ml-auto flex items-center gap-2">
             <PayInInstallmentsSheet
               payInId={selectedId ?? 0}
               payInName={selectedPayIn?.name ?? null}
@@ -414,13 +414,6 @@ export function PayInsSheet({
           />
         </div>
 
-        <div className="mt-auto border-t p-4 flex justify-end">
-          <SheetClose asChild>
-            <Button variant="outline" size="sm" className="w-fit">
-              Fechar
-            </Button>
-          </SheetClose>
-        </div>
       </SheetContent>
     </Sheet>
   )

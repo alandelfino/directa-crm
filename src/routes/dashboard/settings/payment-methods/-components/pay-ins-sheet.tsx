@@ -24,6 +24,8 @@ type PayIn = {
   numberOfInstallments: number
   active: boolean
   paymentMethodId: number
+  payInInterestType: 'simple' | 'price_table'
+  installmentType: 'fixed' | 'dynamic'
   paymentMethod: { id: number; name: string }
   createdAt: string
   updatedAt: string
@@ -167,6 +169,28 @@ export function PayInsSheet({
       cell: (row) => <span className="tabular-nums text-muted-foreground">{row.numberOfInstallments ?? '-'}</span>,
       headerClassName: 'w-[9rem] min-w-[9rem] border-r border-neutral-200 px-4 py-2.5 text-right',
       className: 'w-[9rem] min-w-[9rem] border-r border-neutral-200 !px-4 py-3 text-right',
+    },
+    {
+      id: 'payInInterestType',
+      header: 'Tipo de juros',
+      cell: (row) => (
+        <span className="text-sm text-muted-foreground">
+          {row.payInInterestType === 'price_table' ? 'Tabela de preço' : row.payInInterestType === 'simple' ? 'Simples' : '-'}
+        </span>
+      ),
+      headerClassName: 'w-[12rem] min-w-[12rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12rem] min-w-[12rem] border-r border-neutral-200 !px-4 py-3',
+    },
+    {
+      id: 'installmentType',
+      header: 'Parcelamento',
+      cell: (row) => (
+        <span className="text-sm text-muted-foreground">
+          {row.installmentType === 'dynamic' ? 'Dinâmico' : row.installmentType === 'fixed' ? 'Fixo' : '-'}
+        </span>
+      ),
+      headerClassName: 'w-[10rem] min-w-[10rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[10rem] min-w-[10rem] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'active',

@@ -106,6 +106,8 @@ export type PaymentMethodQuote = {
     numberOfInstallments: number
     paymentMethodId: number
     active: boolean
+    payInInterestType: "simple" | "price_table"
+    installmentType: "fixed" | "dynamic"
     createdAt: string
     updatedAt: string
     noInterestRate: boolean
@@ -116,7 +118,7 @@ export type PaymentMethodQuote = {
       totalValue: number
       totalInterest: number
     }
-    installmentValue: number
+    installmentValue: number | null
+    installmentValues?: number[]
   }>
 }
-

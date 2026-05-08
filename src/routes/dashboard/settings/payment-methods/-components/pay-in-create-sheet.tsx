@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { privateInstance } from '@/lib/auth'
 import { Loader, Plus } from 'lucide-react'
@@ -15,6 +16,8 @@ import { Switch } from '@/components/ui/switch'
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
   numberOfInstallments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
+  payInInterestType: z.enum(['simple', 'price_table']).optional(),
+  installmentType: z.enum(['fixed', 'dynamic']).optional(),
   active: z.boolean().optional(),
 })
 
@@ -39,6 +42,8 @@ export function PayInCreateSheet({
     defaultValues: {
       name: '',
       numberOfInstallments: 1,
+      payInInterestType: 'simple',
+      installmentType: 'fixed',
       active: true,
     },
   })
@@ -49,6 +54,8 @@ export function PayInCreateSheet({
         name: values.name,
         numberOfInstallments: values.numberOfInstallments,
         paymentMethodId,
+        payInInterestType: values.payInInterestType,
+        installmentType: values.installmentType,
         active: values.active,
       }
       const response = await privateInstance.post('/tenant/pay-ins', payload)
@@ -59,7 +66,7 @@ export function PayInCreateSheet({
       toast.success('Condição de pagamento criada com sucesso!')
       queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
       setOpen(false)
-      form.reset({ name: '', numberOfInstallments: 1, active: true })
+      form.reset({ name: '', numberOfInstallments: 1, payInInterestType: 'simple', installmentType: 'fixed', active: true })
       onCreated?.()
     },
     onError: (err: any) => {
@@ -81,7 +88,7 @@ export function PayInCreateSheet({
       open={open}
       onOpenChange={(v) => {
         setOpen(v)
-        if (!v) form.reset({ name: '', numberOfInstallments: 1, active: true })
+        if (!v) form.reset({ name: '', numberOfInstallments: 1, payInInterestType: 'simple', installmentType: 'fixed', active: true })
       }}
     >
       <SheetTrigger asChild>
@@ -149,6 +156,50 @@ export function PayInCreateSheet({
 
               <FormField
                 control={form.control as any}
+                name="payInInterestType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de juros</FormLabel>
+                    <Select value={field.value ?? 'simple'} onValueChange={field.onChange} disabled={isPending}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 w-full">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="simple">Simples</SelectItem>
+                        <SelectItem value="price_table">Tabela de preço</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="installmentType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de parcelamento</FormLabel>
+                    <Select value={field.value ?? 'fixed'} onValueChange={field.onChange} disabled={isPending}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 w-full">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixo</SelectItem>
+                        <SelectItem value="dynamic">Dinâmico</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
                 name="active"
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-4">
@@ -182,4 +233,3 @@ export function PayInCreateSheet({
     </Sheet>
   )
 }
-

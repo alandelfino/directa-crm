@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { privateInstance } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import type { PaymentMethod, PaymentMethodQuote } from "./edit-cart.types"
@@ -203,7 +204,43 @@ export function PaymentMethodsOverviewSheet({
                                 </div>
 
                                 <div className="shrink-0 tabular-nums text-xs font-semibold text-foreground">
-                                  {formatBRL(Number(p.installmentValue ?? 0) || 0)}
+                                  {p.installmentType === "dynamic" ? (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                                          Ver parcelas
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent align="end" className="w-[260px] p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="text-sm font-semibold">Parcelas</div>
+                                          <div className="text-xs text-muted-foreground">
+                                            Total: <span className="tabular-nums font-semibold text-foreground">{formatBRL(Number(p.totals?.totalValue ?? 0) || 0)}</span>
+                                          </div>
+                                        </div>
+                                        <div className="mt-2 max-h-[240px] overflow-y-auto">
+                                          {Array.isArray(p.installmentValues) && p.installmentValues.length > 0 ? (
+                                            <div className="space-y-1">
+                                              {p.installmentValues
+                                                .filter((n) => typeof n === "number")
+                                                .map((v, idx) => (
+                                                  <div key={`${p.id}-${idx}`} className="flex items-center justify-between text-xs">
+                                                    <span className="text-muted-foreground">{idx + 1}ª parcela</span>
+                                                    <span className="tabular-nums font-semibold">{formatBRL(v)}</span>
+                                                  </div>
+                                                ))}
+                                            </div>
+                                          ) : (
+                                            <div className="text-xs text-muted-foreground">Nenhuma parcela disponível.</div>
+                                          )}
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                  ) : typeof p.installmentValue === "number" ? (
+                                    formatBRL(p.installmentValue)
+                                  ) : (
+                                    "—"
+                                  )}
                                 </div>
                               </div>
                             ))}

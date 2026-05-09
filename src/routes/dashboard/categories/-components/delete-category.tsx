@@ -6,29 +6,45 @@ import { privateInstance } from "@/lib/auth"
 import { useState } from "react"
 import { toast } from "sonner"
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === "string" ? data.title : undefined
+  const detail = typeof data.detail === "string" ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 export function DeleteCategory({ categoryId, disabled = false }: { categoryId: number | string; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const { isPending, mutate } = useMutation({
+  const { isPending, mutate } = useMutation<unknown, unknown, void>({
     mutationFn: async () => {
       return await privateInstance.delete(`/tenant/categories/${categoryId}`)
     },
     onSuccess: (response) => {
-      if (response.status === 200 || response.status === 204) {
+      if (isRecord(response) && (response.status === 200 || response.status === 204)) {
         toast.success('Categoria excluída com sucesso!')
         setOpen(false)
         queryClient.invalidateQueries({ queryKey: ['categories'] })
         queryClient.removeQueries({ queryKey: ['category', categoryId] })
       } else {
-        const errorData = (response.data as any)
-        toast.error(errorData?.title || 'Erro ao excluir categoria', {
-          description: errorData?.detail || 'Não foi possível excluir a categoria.'
+        const errorData = isRecord(response) && isRecord(response.data) ? response.data : null
+        const title = errorData && typeof errorData.title === "string" ? errorData.title : undefined
+        const detail = errorData && typeof errorData.detail === "string" ? errorData.detail : undefined
+        toast.error(title || 'Erro ao excluir categoria', {
+          description: detail || 'Não foi possível excluir a categoria.'
         })
       }
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao excluir categoria', {
         description: errorData?.detail || 'Não foi possível excluir a categoria.'
       })

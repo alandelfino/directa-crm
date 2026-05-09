@@ -30,12 +30,25 @@ type FlatCategory = {
   depth: number
 }
 
+type CategoriesResponse = {
+  items: ApiCategory[]
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const parseCategories = (data: unknown): ApiCategory[] => {
+  if (!data) return []
+  if (Array.isArray(data)) return data as ApiCategory[]
+  if (isRecord(data) && Array.isArray((data as CategoriesResponse).items)) return (data as CategoriesResponse).items
+  return []
+}
+
 function RouteComponent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [selectedCategories, setSelectedCategories] = useState<Array<number | string>>([])
 
-  const { data, isLoading, isRefetching, refetch } = useQuery({
+  const { data, isLoading, isRefetching, refetch } = useQuery<unknown>({
     queryKey: ['categories', currentPage, perPage],
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -54,11 +67,7 @@ function RouteComponent() {
   })
 
   const categories: ApiCategory[] = useMemo(() => {
-    const d: any = data
-    if (!d) return []
-    if (Array.isArray(d)) return d as ApiCategory[]
-    if (Array.isArray(d.items)) return d.items as ApiCategory[]
-    return []
+    return parseCategories(data)
   }, [data])
 
   // totalItems removido: usamos diretamente flattenedCategories.length no DataTable

@@ -28,30 +28,30 @@ export function CartSummaryCard({
     <div className="rounded-xl border bg-background shadow-sm p-4 lg:sticky lg:top-6">
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold">Resumo</span>
+          <span className="text-[13px] font-semibold">Resumo</span>
           <span className="text-xs text-muted-foreground">
             {cart?.totalItems || 0} {(cart?.totalItems || 0) === 1 ? "item" : "itens"} no carrinho
           </span>
         </div>
         <div className="flex items-center gap-2">
           {cart && (
-            <Badge className="h-6 px-2 text-[11px]" variant={cart.status === "open" ? "outline" : cart.status === "abandoned" ? "destructive" : "default"}>
+            <Badge className="h-5 px-2 text-[10px]" variant={cart.status === "open" ? "outline" : cart.status === "abandoned" ? "destructive" : "default"}>
               {cart.status === "open" ? "Aberto" : cart.status === "abandoned" ? "Abandonado" : "Finalizado"}
             </Badge>
           )}
           {selectedShippingQuote ? (
-            <Badge variant="secondary" className="h-6 px-2 text-[11px]">
+            <Badge variant="secondary" className="h-5 px-2 text-[10px]">
               {selectedShippingQuote.carrierName}
             </Badge>
           ) : (
-            <Badge variant="outline" className="h-6 px-2 text-[11px]">
+            <Badge variant="outline" className="h-5 px-2 text-[10px]">
               Sem frete
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="mt-4 space-y-2 text-sm">
+      <div className="mt-3 space-y-2 text-[13px]">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Produtos</span>
           <span className="font-medium tabular-nums">{formatBRL(subtotalCents)}</span>
@@ -80,30 +80,29 @@ export function CartSummaryCard({
             cartId={cartId}
             formatBRL={formatBRL}
             trigger={
-              <Button type="button" variant="link" className="w-full text-left justify-start text-sm font-light p-0 text-blue-600" disabled={isReadOnly || !cartId}>
+              <Button type="button" variant="link" className="w-full text-left justify-start text-xs font-light p-0 text-blue-600" disabled={isReadOnly || !cartId}>
                 Ver todas as formas de pagamentos
               </Button>
             }
           />
         </div>
 
-        <Separator className="my-3" />
+        <Separator className="my-2.5" />
 
         <div className="flex items-end justify-between gap-2">
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">Total</span>
+            <span className="text-[13px] font-semibold">Total</span>
             <span className="text-xs text-muted-foreground">Inclui frete selecionado</span>
           </div>
-          <span className="text-2xl font-semibold tracking-tight tabular-nums text-primary">{formatBRL(totalWithShippingCents)}</span>
+          <span className="text-xl font-semibold tracking-tight tabular-nums text-primary">{formatBRL(totalWithShippingCents)}</span>
         </div>
       </div>
 
-      <div className="mt-4">
-        <Button disabled={isReadOnly || !cart?.totalItems || cart?.totalItems === 0} className="w-full h-10 font-semibold gap-2">
-          Finalizar Pedido <ArrowRight className="h-4 w-4" />
+      <div className="mt-3">
+        <Button disabled={isReadOnly || !cart?.totalItems || cart?.totalItems === 0} className="w-full h-9 font-semibold gap-2 bg-green-500">
+          Finalizar Pedido <ArrowRight className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>
   )
 }
-

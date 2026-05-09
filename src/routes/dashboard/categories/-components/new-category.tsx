@@ -19,10 +19,37 @@ type ApiCategory = {
   parent_id?: number | string | null
 }
 
+type CategoriesResponse = {
+  items: ApiCategory[]
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+const parseCategories = (data: unknown): ApiCategory[] => {
+  if (!data) return []
+  if (Array.isArray(data)) return data as ApiCategory[]
+  if (isRecord(data) && Array.isArray((data as CategoriesResponse).items)) return (data as CategoriesResponse).items
+  return []
+}
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === "string" ? data.title : undefined
+  const detail = typeof data.detail === "string" ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
   parent_id: z.number().optional().default(0),
 })
+
+type FormValues = z.input<typeof formSchema>
 
 type NewCategorySheetProps = React.ComponentProps<"form"> & {
   trigger?: React.ReactNode
@@ -36,7 +63,7 @@ export function NewCategorySheet({
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const { data: categoriesResponse, isLoading: isLoadingCategories } = useQuery({
+  const { data: categoriesResponse, isLoading: isLoadingCategories } = useQuery<unknown>({
     queryKey: ["categories"],
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -58,11 +85,7 @@ export function NewCategorySheet({
   })
 
   const categories: ApiCategory[] = useMemo(() => {
-    const data = categoriesResponse
-    if (!data) return []
-    if (Array.isArray(data)) return data as ApiCategory[]
-    if (Array.isArray((data as any).items)) return (data as any).items as ApiCategory[]
-    return []
+    return parseCategories(categoriesResponse)
   }, [categoriesResponse])
 
   const closeSheet = () => {
@@ -70,45 +93,47 @@ export function NewCategorySheet({
     form.reset()
   }
 
-  const { isPending, mutate } = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => {
+  const { isPending, mutate } = useMutation<unknown, unknown, FormValues>({
+    mutationFn: (values: FormValues) => {
       // Garante que parent_id seja número e que 0 representa raiz
       const payload = {
         name: values.name,
-        parentId: Number(values.parent_id ?? 0),
+        parentId: typeof values.parent_id === "number" ? values.parent_id : 0,
       }
       return privateInstance.post("/tenant/categories", payload)
     },
     onSuccess: (response) => {
-      if (response.status === 200 || response.status === 201) {
+      if (isRecord(response) && (response.status === 200 || response.status === 201)) {
         toast.success("Categoria cadastrada com sucesso!")
         closeSheet()
         // Atualiza a listagem de categorias
         queryClient.invalidateQueries({ queryKey: ["categories"] })
       } else {
-        const errorData = (response.data as any)
-        toast.error(errorData?.title || "Erro ao cadastrar categoria", {
-          description: errorData?.detail || "Não foi possível criar a categoria."
+        const errorData = isRecord(response) && isRecord(response.data) ? response.data : null
+        const title = errorData && typeof errorData.title === "string" ? errorData.title : undefined
+        const detail = errorData && typeof errorData.detail === "string" ? errorData.detail : undefined
+        toast.error(title || "Erro ao cadastrar categoria", {
+          description: detail || "Não foi possível criar a categoria."
         })
       }
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || "Erro ao cadastrar categoria", {
         description: errorData?.detail || "Não foi possível criar a categoria."
       })
     },
   })
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema as any),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       parent_id: 0,
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: FormValues) {
     mutate(values)
   }
 

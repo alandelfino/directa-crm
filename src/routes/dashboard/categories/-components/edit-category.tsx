@@ -20,6 +20,29 @@ type ApiCategory = {
   parentId?: number | string | null
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const parseCategory = (data: unknown): ApiCategory | undefined => {
+  if (!isRecord(data)) return undefined
+  if ('id' in data && (typeof data.id === 'number' || typeof data.id === 'string')) {
+    if ('name' in data || 'nome' in data) return data as ApiCategory
+  }
+  if ('data' in data && isRecord(data.data)) return parseCategory(data.data)
+  return undefined
+}
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
   // Mantém o tipo como number e usa Select para converter string->number; default é controlado por RHF
@@ -31,7 +54,7 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
   const queryClient = useQueryClient()
 
   // Carregar detalhes da categoria selecionada
-  const { data: categoryResponse, isLoading: isLoadingCategory } = useQuery({
+  const { data: categoryResponse, isLoading: isLoadingCategory } = useQuery<unknown>({
     queryKey: ['category', categoryId],
     enabled: !!categoryId && open,
     refetchOnWindowFocus: false,
@@ -45,14 +68,7 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
   })
 
   const currentCategory: ApiCategory | undefined = useMemo(() => {
-    const d: any = categoryResponse
-    if (!d) return undefined
-    // Suporta retorno { id, name, parent_id } ou envelope com data
-    if (typeof d === 'object' && d !== null) {
-      if ('id' in d && ('name' in d || 'nome' in d)) return d as ApiCategory
-      if ('data' in d && typeof d.data === 'object') return d.data as ApiCategory
-    }
-    return undefined
+    return parseCategory(categoryResponse)
   }, [categoryResponse])
 
   // Recebe a lista de categorias do pai para evitar refetch ao montar o Sheet
@@ -65,7 +81,7 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
     form.reset()
   }
 
-  const { isPending, mutate } = useMutation({
+  const { isPending, mutate } = useMutation<unknown, unknown, z.infer<typeof formSchema>>({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       // Garante que parent_id seja número e que 0 representa raiz
       const payload = {
@@ -75,20 +91,22 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
       return privateInstance.put(`/tenant/categories/${categoryId}`, payload)
     },
     onSuccess: (response) => {
-      if (response.status === 200) {
+      if (isRecord(response) && response.status === 200) {
         toast.success('Categoria atualizada com sucesso!')
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['categories'] })
         queryClient.invalidateQueries({ queryKey: ['category', categoryId] })
       } else {
-        const errorData = (response.data as any)
-        toast.error(errorData?.title || 'Erro ao atualizar categoria', {
-          description: errorData?.detail || 'Não foi possível atualizar a categoria.'
+        const errorData = isRecord(response) && isRecord(response.data) ? response.data : null
+        const title = errorData && typeof errorData.title === 'string' ? errorData.title : undefined
+        const detail = errorData && typeof errorData.detail === 'string' ? errorData.detail : undefined
+        toast.error(title || 'Erro ao atualizar categoria', {
+          description: detail || 'Não foi possível atualizar a categoria.'
         })
       }
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao atualizar categoria', {
         description: errorData?.detail || 'Não foi possível atualizar a categoria.'
       })
@@ -111,7 +129,7 @@ export function EditCategorySheet({ categoryId, categories: categoriesProp = [] 
       name: currentCategory.name ?? currentCategory.nome ?? '',
       parent_id: parentId,
     })
-  }, [currentCategory])
+  }, [currentCategory, form])
 
   const onSubmit: SubmitHandler<z.infer<typeof formSchema>> = (values) => {
     mutate(values)

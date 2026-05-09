@@ -45,6 +45,11 @@ type Cart = {
   store?: { id: number, name: string, color: string }
 }
 
+type CartsResponse = {
+  items: Cart[]
+  total: number
+}
+
 function RouteComponent() {
   const queryClient = useQueryClient()
   const [currentPage, setCurrentPage] = useState(1)
@@ -55,16 +60,16 @@ function RouteComponent() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [cartToDelete, setCartToDelete] = useState<number | null>(null)
 
-  const { data, isLoading, isRefetching, refetch } = useQuery({
+  const { data, isLoading, isRefetching, refetch } = useQuery<CartsResponse>({
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     queryKey: ['carts', currentPage, perPage],
     queryFn: async () => {
-      const params: any = {
+      const params = {
         page: currentPage,
         limit: perPage,
       }
-      const response = await privateInstance.get('/tenant/carts', { params })
+      const response = await privateInstance.get<CartsResponse>('/tenant/carts', { params })
       return response.data
     }
   })
@@ -209,8 +214,8 @@ function RouteComponent() {
 
   useEffect(() => {
     if (!data) return
-    setCarts(data.items || [])
-    setTotalItems(data.total || 0)
+    setCarts(Array.isArray(data.items) ? data.items : [])
+    setTotalItems(typeof data.total === 'number' ? data.total : 0)
     queryClient.invalidateQueries({ queryKey: ['carts-mini'] })
   }, [data, queryClient])
 

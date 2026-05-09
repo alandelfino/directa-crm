@@ -26,6 +26,21 @@ type CartItem = {
   amount: number
 }
 
+type Product = {
+  id: number
+  name: string
+}
+
+type Derivation = {
+  id: number
+  name?: string | null
+  sku?: string | null
+}
+
+type DerivationsResponse = {
+  items: Derivation[]
+}
+
 export function AddProductsToCartSheet({ 
   open, 
   onOpenChange, 
@@ -39,21 +54,23 @@ export function AddProductsToCartSheet({
   const [itemsToAdd, setItemsToAdd] = useState<Record<number, number>>({}) // derivatedProductId -> amount
 
   // Fetch product details and derivations when product is selected
-  const { data: productData, isLoading: isLoadingProduct } = useQuery({
+  const { data: productData, isLoading: isLoadingProduct } = useQuery<{ product: Product; derivations: Derivation[] } | null>({
     queryKey: ['product-derivations-add', selectedProduct],
     queryFn: async () => {
       if (!selectedProduct) return null
       
       const [productRes, derivationsRes] = await Promise.all([
-        privateInstance.get(`/tenant/products/${selectedProduct}`),
-        privateInstance.get('/tenant/derivated-product', {
+        privateInstance.get<Product>(`/tenant/products/${selectedProduct}`),
+        privateInstance.get<DerivationsResponse>('/tenant/derivated-product', {
           params: { productId: selectedProduct, limit: 100 }
         })
       ])
 
+      const derivations = Array.isArray(derivationsRes.data?.items) ? derivationsRes.data.items : []
+
       return {
         product: productRes.data,
-        derivations: derivationsRes.data.items || []
+        derivations
       }
     },
     enabled: !!selectedProduct
@@ -77,7 +94,7 @@ export function AddProductsToCartSheet({
 
     const newItems: CartItem[] = Object.entries(itemsToAdd).map(([dId, amount]) => {
       const derivationId = Number(dId)
-      const derivation = productData.derivations.find((d: any) => d.id === derivationId)
+      const derivation = productData.derivations.find((d) => d.id === derivationId)
       return {
         derivatedProductId: derivationId,
         productName: productData.product.name,
@@ -167,7 +184,7 @@ export function AddProductsToCartSheet({
                     </div>
                     <ScrollArea className="flex-1">
                       <div className="divide-y">
-                        {productData?.derivations.map((d: any) => {
+                        {productData?.derivations.map((d) => {
                           const amount = itemsToAdd[d.id] || 0
                           return (
                             <div key={d.id} className="flex items-center justify-between p-4 hover:bg-muted/5 transition-colors">

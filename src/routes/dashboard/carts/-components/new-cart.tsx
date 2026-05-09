@@ -12,9 +12,30 @@ import { privateInstance } from "@/lib/auth"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CustomerSelectInput } from "@/components/ui/customer-select-input"
 
+type CreateCartResponse = {
+  id: number
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === "string" ? data.title : undefined
+  const detail = typeof data.detail === "string" ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const formSchema = z.object({
   customerId: z.coerce.number().min(1, { message: "Cliente é obrigatório" }),
 })
+
+type FormValues = z.input<typeof formSchema>
+type ParsedValues = z.output<typeof formSchema>
 
 export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: number) => void, onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false)
@@ -32,17 +53,17 @@ export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: num
     }
   }
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       customerId: 0,
     },
   })
 
-  const { isPending, mutateAsync } = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
+  const { isPending, mutateAsync } = useMutation<CreateCartResponse, unknown, ParsedValues>({
+    mutationFn: async (values: ParsedValues) => {
       // 1. Create Cart
-      const cartResponse = await privateInstance.post('/tenant/carts', values)
+      const cartResponse = await privateInstance.post<CreateCartResponse>('/tenant/carts', values)
       return cartResponse.data
     },
     onSuccess: (data) => {
@@ -53,16 +74,17 @@ export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: num
       queryClient.invalidateQueries({ queryKey: ['carts'] })
       queryClient.invalidateQueries({ queryKey: ['carts-mini'] })
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao criar carrinho', {
         description: errorData?.detail || 'Não foi possível criar o carrinho.'
       })
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    mutateAsync(values)
+  function onSubmit(values: FormValues) {
+    const parsed = formSchema.parse(values)
+    mutateAsync(parsed)
   }
 
   return (
@@ -95,7 +117,13 @@ export function NewCartSheet({ onCreated, onOpenChange }: { onCreated?: (id: num
                         <FormLabel className="text-xs">Cliente</FormLabel>
                         <FormControl>
                             <CustomerSelectInput 
-                                value={field.value ? Number(field.value) : undefined}
+                                value={
+                                  typeof field.value === "number"
+                                    ? field.value || undefined
+                                    : typeof field.value === "string"
+                                      ? (Number.isFinite(Number(field.value)) ? Number(field.value) : undefined)
+                                      : undefined
+                                }
                                 onChange={(id) => field.onChange(id)}
                                 disabled={isPending}
                             />

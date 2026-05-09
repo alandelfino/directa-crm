@@ -9,6 +9,24 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import type { PaymentMethod, PaymentMethodQuote } from "./edit-cart.types"
 
+type PaymentMethodsResponse = {
+  items: PaymentMethod[]
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === "string" ? data.title : undefined
+  const detail = typeof data.detail === "string" ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 export function PaymentMethodsOverviewSheet({
   className,
   cartId,
@@ -23,12 +41,12 @@ export function PaymentMethodsOverviewSheet({
   const [open, setOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error } = useQuery<PaymentMethodQuote[], unknown>({
     queryKey: ["cart-payment-methods-overview", cartId],
     enabled: open && Number(cartId) > 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get("/tenant/payment-methods", {
+      const response = await privateInstance.get<PaymentMethodsResponse>("/tenant/payment-methods", {
         params: {
           page: 1,
           limit: 100,
@@ -37,8 +55,7 @@ export function PaymentMethodsOverviewSheet({
         },
       })
 
-      const items = (response.data as any)?.items
-      const paymentMethods = Array.isArray(items) ? (items as PaymentMethod[]) : []
+      const paymentMethods = Array.isArray(response.data?.items) ? response.data.items : []
 
       const quoteResults = await Promise.allSettled(
         paymentMethods.map(async (m) => {
@@ -57,7 +74,7 @@ export function PaymentMethodsOverviewSheet({
 
   useEffect(() => {
     if (!isError) return
-    const errorData = (error as any)?.response?.data
+    const errorData = getApiErrorData(error)
     toast.error(errorData?.title || "Erro ao carregar formas de pagamento", {
       description: errorData?.detail || "Não foi possível carregar as formas de pagamento.",
     })
@@ -189,7 +206,7 @@ export function PaymentMethodsOverviewSheet({
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pb-0">
-                    <div className="px-1 pb-2">
+                    <div className="px-4 pb-4">
                       <div className="rounded-lg border bg-background overflow-hidden">
                         <div className="divide-y">
                           {(q.payIns ?? [])

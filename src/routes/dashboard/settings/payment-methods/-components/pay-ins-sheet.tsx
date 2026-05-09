@@ -18,6 +18,20 @@ import { PayInEditSheet } from './pay-in-edit-sheet'
 import { PayInDeleteDialog } from './pay-in-delete-dialog'
 import { PayInInstallmentsSheet } from './pay-in-installments-sheet'
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 type PayIn = {
   id: number
   name: string
@@ -33,13 +47,23 @@ type PayIn = {
 
 type SortBy = 'id' | 'createdAt' | 'name' | 'numberOfInstallments'
 
+type PayInsResponse = {
+  page: number
+  limit: number
+  totalPages: number
+  total: number
+  items: PayIn[]
+}
+
 export function PayInsSheet({
   paymentMethodId,
   paymentMethodName,
+  storeId,
   trigger,
 }: {
   paymentMethodId: number
   paymentMethodName?: string | null
+  storeId: number
   trigger?: React.ReactNode
 }) {
   const queryClient = useQueryClient()
@@ -62,32 +86,28 @@ export function PayInsSheet({
   const selectedId = selectedIds.length === 1 ? selectedIds[0] : null
   const activeFilterCount = (search ? 1 : 0) + (sortBy !== 'createdAt' ? 1 : 0) + (orderBy !== 'desc' ? 1 : 0)
 
-  const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({
-    queryKey: ['pay-ins', paymentMethodId, currentPage, perPage, sortBy, orderBy, search],
-    enabled: open,
+  const { data, isLoading, isRefetching, refetch, isError, error } = useQuery<PayInsResponse, unknown>({
+    queryKey: ['pay-ins', storeId, paymentMethodId, currentPage, perPage, sortBy, orderBy, search],
+    enabled: open && Number(storeId) > 0 && Number(paymentMethodId) > 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit: perPage,
         sortBy,
         orderBy,
+        storeId,
       }
       if (search) params.search = search
-      if (Number(paymentMethodId) > 0) params.paymentMethodId = paymentMethodId
-      const response = await privateInstance.get('/tenant/pay-ins', { params })
-      return response.data as {
-        page: number
-        limit: number
-        totalPages: number
-        total: number
-        items: PayIn[]
-      }
+      params.paymentMethodId = paymentMethodId
+      const response = await privateInstance.get<PayInsResponse>('/tenant/pay-ins', { params })
+      return response.data
     },
   })
 
   useEffect(() => {
-    if (data) setTotalItems(Number((data as any)?.total) || 0)
+    if (!data) return
+    setTotalItems(typeof data.total === 'number' ? data.total : 0)
   }, [data])
 
   useEffect(() => {
@@ -109,7 +129,7 @@ export function PayInsSheet({
 
   useEffect(() => {
     if (isError) {
-      const errorData = (error as any)?.response?.data
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao carregar condições de pagamento', {
         description: errorData?.detail || 'Não foi possível carregar as condições de pagamento.',
       })
@@ -220,12 +240,12 @@ export function PayInsSheet({
     },
     onSuccess: () => {
       toast.success('Condição de pagamento excluída com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-ins', storeId, paymentMethodId] })
       setSelectedIds([])
       setDeleteOpen(false)
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data
+    onError: (err: unknown) => {
+      const errorData = getApiErrorData(err)
       toast.error(errorData?.title || 'Erro ao excluir condição de pagamento', {
         description: errorData?.detail || 'Não foi possível excluir a condição de pagamento.',
       })
@@ -384,6 +404,7 @@ export function PayInsSheet({
             <PayInInstallmentsSheet
               payInId={selectedId ?? 0}
               payInName={selectedPayIn?.name ?? null}
+              storeId={storeId}
               trigger={(
                 <Button variant="outline" size="sm" disabled={!selectedId}>
                   <ListOrdered className="size-[0.85rem]" /> Parcelas
@@ -407,6 +428,7 @@ export function PayInsSheet({
               paymentMethodId={paymentMethodId}
               paymentMethodName={paymentMethodName}
               payInId={selectedId}
+              storeId={storeId}
               disabled={!selectedId}
               onSaved={() => setSelectedIds([])}
             />
@@ -414,6 +436,7 @@ export function PayInsSheet({
             <PayInCreateSheet
               paymentMethodId={paymentMethodId}
               paymentMethodName={paymentMethodName}
+              storeId={storeId}
               disabled={disabled}
               onCreated={() => setSelectedIds([])}
             />

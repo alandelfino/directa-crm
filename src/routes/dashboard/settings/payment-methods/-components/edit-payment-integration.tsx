@@ -14,6 +14,20 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Switch } from '@/components/ui/switch'
 import { NumericFormat } from 'react-number-format'
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const discountAmountSchema = z
   .preprocess((v) => (v === '' || v === null ? undefined : v), z.number())
   .optional()
@@ -22,6 +36,7 @@ const discountAmountSchema = z
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
+  storeId: z.coerce.number().int().min(1, { message: 'Loja é obrigatória' }),
   paymentGatewayId: z.coerce.number().int().min(1, { message: 'Gateway é obrigatório' }),
   activeDiscount: z.boolean().default(false),
   discountType: z.enum(['percent', 'fixed']).optional(),
@@ -62,11 +77,18 @@ type PaymentGateway = {
   updatedAt?: string
 }
 
+type Store = {
+  id: number
+  name: string
+}
+
 type DiscountType = 'percent' | 'fixed'
 
 type PaymentMethod = {
   id: number
   name: string
+  storeId: number
+  store?: { id: number; name: string }
   paymentGateway: { id: number, name: string }
   activeDiscount: boolean
   discountAmount: number
@@ -80,9 +102,10 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
   const [loading, setLoading] = useState(true)
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      storeId: 0,
       paymentGatewayId: 0,
       activeDiscount: false,
       discountType: undefined,
@@ -92,6 +115,22 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
 
   const activeDiscount = useWatch({ control: form.control, name: 'activeDiscount' })
   const discountType = useWatch({ control: form.control, name: 'discountType' })
+
+  const { data: stores, isLoading: isLoadingStores } = useQuery<Store[], unknown>({
+    queryKey: ['stores-list-select'],
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await privateInstance.get<{ items?: Store[] } | Store[]>('/tenant/stores', {
+        params: { page: 1, limit: 100, sortBy: 'name', orderBy: 'asc' },
+      })
+      const d = response.data
+      if (Array.isArray(d)) return d
+      return Array.isArray(d.items) ? d.items : []
+    },
+    enabled: true,
+  })
 
   const { data: gateways, isLoading: isLoadingGateways } = useQuery({
     queryKey: ['payment-methods', 'payment-gateways', 'select'],
@@ -110,11 +149,11 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
     enabled: true,
   })
 
-  const { data: paymentMethod, isLoading } = useQuery({
+  const { data: paymentMethod, isLoading } = useQuery<PaymentMethod, unknown>({
     queryKey: ['payment-method', id],
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/payment-methods/${id}`)
-      return response.data as PaymentMethod
+      const response = await privateInstance.get<PaymentMethod>(`/tenant/payment-methods/${id}`)
+      return response.data
     },
     enabled: !!id,
   })
@@ -123,6 +162,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
     if (!paymentMethod) return
     form.reset({
       name: paymentMethod.name,
+      storeId: Number(paymentMethod.store?.id ?? paymentMethod.storeId ?? 0),
       paymentGatewayId: paymentMethod.paymentGateway?.id ?? 0,
       activeDiscount: !!paymentMethod.activeDiscount,
       discountType: paymentMethod.discountType ?? undefined,
@@ -135,6 +175,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       const payload = {
         name: values.name,
+        storeId: values.storeId,
         paymentGatewayId: values.paymentGatewayId,
         activeDiscount: values.activeDiscount,
         discountType: values.activeDiscount ? values.discountType : undefined,
@@ -149,10 +190,10 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       onOpenChange(false)
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error: unknown) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao atualizar método de pagamento', {
-        description: errorData?.detail || 'Não foi possível atualizar o método de pagamento.'
+        description: errorData?.detail || 'Não foi possível atualizar o método de pagamento.',
       })
     }
   })
@@ -176,7 +217,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
             ) : (
               <>
                 <div className="flex-1 grid auto-rows-min gap-6 px-4 py-4 overflow-y-auto">
-                  <FormField control={form.control as any} name='name' render={({ field }) => (
+                  <FormField control={form.control} name='name' render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
@@ -186,7 +227,32 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                     </FormItem>
                   )} />
 
-                  <FormField control={form.control as any} name='paymentGatewayId' render={({ field }) => (
+                  <FormField control={form.control} name="storeId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loja</FormLabel>
+                      <Select
+                        onValueChange={(val) => field.onChange(Number(val))}
+                        value={field.value ? String(field.value) : undefined}
+                        disabled={isPending || isLoadingStores}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={isLoadingStores ? 'Carregando...' : 'Selecione...'} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(stores ?? []).map((s) => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name='paymentGatewayId' render={({ field }) => (
                     <FormItem>
                       <FormLabel>Gateway</FormLabel>
                       <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined} disabled={isPending || isLoadingGateways}>
@@ -196,7 +262,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {gateways?.map((g: any) => (
+                          {gateways?.map((g) => (
                             <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -206,7 +272,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                   )} />
 
                   <FormField
-                    control={form.control as any}
+                    control={form.control}
                     name="activeDiscount"
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between rounded-lg border p-4">
@@ -226,7 +292,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                   {activeDiscount && (
                     <>
                       <FormField
-                        control={form.control as any}
+                        control={form.control}
                         name="discountType"
                         render={({ field }) => (
                           <FormItem>
@@ -248,7 +314,7 @@ export function EditPaymentIntegrationSheet({ id, onOpenChange }: { id: number, 
                       />
 
                       <FormField
-                        control={form.control as any}
+                        control={form.control}
                         name="discountAmount"
                         render={({ field }) => (
                           <FormItem>

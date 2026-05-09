@@ -1,6 +1,6 @@
 
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
 import { Topbar } from '../-components/topbar'
@@ -57,6 +57,7 @@ function RouteComponent() {
   const [selectedCarts, setSelectedCarts] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+  const isEditSheetDirtyRef = useRef(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [cartToDelete, setCartToDelete] = useState<number | null>(null)
 
@@ -229,7 +230,15 @@ function RouteComponent() {
             <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
           </Button>
           <div className='flex items-center gap-2'>
-            <Button variant='outline' size='sm' onClick={() => setIsEditSheetOpen(true)} disabled={selectedCarts.length !== 1}>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => {
+                isEditSheetDirtyRef.current = false
+                setIsEditSheetOpen(true)
+              }}
+              disabled={selectedCarts.length !== 1}
+            >
               <Package className="size-[0.85rem]" /> Editar
             </Button>
             <Button
@@ -280,6 +289,7 @@ function RouteComponent() {
                   <NewCartSheet onCreated={(id) => {
                     refetch()
                     setSelectedCarts([id])
+                    isEditSheetDirtyRef.current = false
                     setIsEditSheetOpen(true)
                   }} />
                 </EmptyContent>
@@ -292,9 +302,15 @@ function RouteComponent() {
       {selectedCarts.length === 1 && isEditSheetOpen && (
         <EditCartSheet
           cartId={selectedCarts[0]}
+          onCartChanged={() => {
+            isEditSheetDirtyRef.current = true
+          }}
           onOpenChange={(open) => {
             setIsEditSheetOpen(open)
-            if (!open) refetch()
+            if (!open) {
+              if (isEditSheetDirtyRef.current) refetch()
+              isEditSheetDirtyRef.current = false
+            }
           }}
         />
       )}

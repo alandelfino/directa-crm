@@ -5,6 +5,20 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Loader } from "lucide-react"
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === "string" ? data.title : undefined
+  const detail = typeof data.detail === "string" ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 export function DeletePaymentIntegrationDialog({ id, onOpenChange }: { id: number, onOpenChange: (open: boolean) => void }) {
   const queryClient = useQueryClient()
 
@@ -17,10 +31,10 @@ export function DeletePaymentIntegrationDialog({ id, onOpenChange }: { id: numbe
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       onOpenChange(false)
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error: unknown) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao excluir método de pagamento', {
-        description: errorData?.detail || 'Não foi possível excluir o método de pagamento.'
+        description: errorData?.detail || 'Não foi possível excluir o método de pagamento.',
       })
     }
   })

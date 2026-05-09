@@ -1,15 +1,19 @@
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { privateInstance } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { ShoppingCart, Loader2 } from "lucide-react"
+import { ChevronDown, MapPin, ShoppingCart, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { AddProductsToCartSheet } from "./add-products-to-cart-sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import type { Cart, CartAddress, DerivatedProduct, ProductGroup } from "./edit-cart.types"
-import { CartCouponCard, CartItemsTab, CartTopCards } from "./cart-items-tab"
+import { Skeleton } from "@/components/ui/skeleton"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { CartAddress, CartBasic, CartCuponsResponse, CartProductsResponse, CartShippingQuoteResponse, CustomerAddress, DerivatedProduct, ProductGroup } from "./edit-cart.types"
+import { CartCouponCard, CartCustomerInfoCard, CartItemsTab } from "./cart-items-tab"
 import { CartSummaryCard } from "./cart-summary-card"
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
@@ -26,36 +30,94 @@ const getApiErrorData = (err: unknown): { title?: string; detail?: string } | nu
   return title || detail ? { title, detail } : null
 }
 
-export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpenChange?: (open: boolean) => void }) {
+type CustomerAddressesResponse = { items: CustomerAddress[] } | CustomerAddress[]
+
+export function EditCartSheet({
+  cartId,
+  onOpenChange,
+  onCartChanged,
+}: {
+  cartId: number
+  onOpenChange?: (open: boolean) => void
+  onCartChanged?: () => void
+}) {
   const [open, setOpen] = useState(true)
   const [addProductOpen, setAddProductOpen] = useState(false)
   const [openProducts, setOpenProducts] = useState<string[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null)
+  const [shippingSheetOpen, setShippingSheetOpen] = useState(false)
+  const [shippingSelectedId, setShippingSelectedId] = useState<number | null>(null)
   const [isUpdatingCartAfterShippingSelect, setIsUpdatingCartAfterShippingSelect] = useState(false)
   const [isUpdatingCartAfterAddressSelect, setIsUpdatingCartAfterAddressSelect] = useState(false)
-  const [couponCode, setCouponCode] = useState('')
-  const [isUpdatingCartAfterCouponChange, setIsUpdatingCartAfterCouponChange] = useState(false)
+  const [couponCode, setCouponCode] = useState("")
   const [removeCouponOpen, setRemoveCouponOpen] = useState(false)
   const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
-  // Fetch Cart Details (Store, Status, etc.)
-  const { data: cart, isLoading: isLoadingCart } = useQuery({
-    queryKey: ['cart', cartId],
+  const { data: cartBasic, isLoading: isLoadingCartBasic } = useQuery<CartBasic>({
+    queryKey: ["cart-basic", cartId],
+    enabled: !!cartId && open,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/carts/${cartId}`)
-      return response.data as Cart
+      const response = await privateInstance.get<CartBasic>(`/tenant/carts/${cartId}`)
+      return response.data
     },
-    enabled: !!cartId
   })
 
-  const customerId = cart?.customer?.id
+  const { data: cartProducts, isLoading: isLoadingCartProducts } = useQuery<CartProductsResponse>({
+    queryKey: ["cart-products", cartId],
+    enabled: !!cartId && open,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await privateInstance.get<CartProductsResponse>(`/tenant/carts/${cartId}/products`)
+      return response.data
+    },
+  })
+
+  const { data: cartCupons, isLoading: isLoadingCartCupons } = useQuery<CartCuponsResponse>({
+    queryKey: ["cart-cupons", cartId],
+    enabled: !!cartId && open,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await privateInstance.get<CartCuponsResponse>(`/tenant/carts/${cartId}/cupons`)
+      return response.data
+    },
+  })
+
+  const { data: cartShipping, isLoading: isLoadingCartShipping } = useQuery<CartShippingQuoteResponse>({
+    queryKey: ["cart-shipping-quote", cartId],
+    enabled: !!cartId && open,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await privateInstance.get<CartShippingQuoteResponse>(`/tenant/carts/${cartId}/shipping-quote`)
+      return response.data
+    },
+  })
+
+  const customerId = cartBasic?.customer?.id
+
+  const { data: customerAddressesData, isLoading: isLoadingAddresses } = useQuery<CustomerAddressesResponse>({
+    queryKey: ["customer-addresses", customerId],
+    enabled: shippingSheetOpen && Number(customerId) > 0,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const response = await privateInstance.get<CustomerAddressesResponse>(`/tenant/customers/${customerId}/address`)
+      return response.data
+    },
+  })
+
+  const customerAddresses = useMemo<CustomerAddress[]>(() => {
+    if (!customerAddressesData) return []
+    if (Array.isArray(customerAddressesData)) return customerAddressesData
+    if (isRecord(customerAddressesData) && Array.isArray(customerAddressesData.items)) return customerAddressesData.items as CustomerAddress[]
+    return []
+  }, [customerAddressesData])
 
   useEffect(() => {
-    const next = cart?.address?.id
+    const next = cartBasic?.address?.id
     if (typeof next === 'number') setSelectedAddressId(next)
     else setSelectedAddressId(null)
-  }, [cart?.address?.id])
+  }, [cartBasic?.address?.id])
 
   useEffect(() => {
     setCouponCode('')
@@ -64,46 +126,47 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   }, [cartId])
 
   const { mutate: selectShippingQuote, isPending: isSelectingShippingQuote } = useMutation<
-    { id: number; cartId: number; price: number; deadline: number; isSelected: boolean; updatedAt: string },
+    { id: number; cartId: number; serviceId: number; price: number; deadline: number; isSelected: boolean; updatedAt: string },
     unknown,
     number,
-    { previousCart: Cart | undefined }
+    { previousShipping: CartShippingQuoteResponse | undefined }
   >({
     mutationFn: async (shippingQuoteId: number) => {
-      const response = await privateInstance.put(`/tenant/carts/${cartId}/shipping-quote/${shippingQuoteId}/select`)
-      return response.data as { id: number; cartId: number; price: number; deadline: number; isSelected: boolean; updatedAt: string }
+      const response = await privateInstance.put<{ id: number; cartId: number; serviceId: number; price: number; deadline: number; isSelected: boolean; updatedAt: string }>(
+        `/tenant/carts/${cartId}/shipping-quote/${shippingQuoteId}/select`
+      )
+      return response.data
     },
     onMutate: async (shippingQuoteId: number) => {
-      const previousCart = queryClient.getQueryData(['cart', cartId]) as Cart | undefined
-      queryClient.setQueryData(['cart', cartId], (old: Cart | undefined) => {
+      const previousShipping = queryClient.getQueryData<CartShippingQuoteResponse>(["cart-shipping-quote", cartId])
+      queryClient.setQueryData<CartShippingQuoteResponse>(["cart-shipping-quote", cartId], (old) => {
         if (!old) return old
-        const nextQuotes = (old.shippingQuote ?? []).map((q) => ({
-          ...q,
-          isSelected: q.id === shippingQuoteId,
-        }))
-        return { ...old, shippingQuote: nextQuotes }
+        return {
+          ...old,
+          shippingQuote: old.shippingQuote.map((q) => ({ ...q, isSelected: q.id === shippingQuoteId })),
+        }
       })
-      return { previousCart }
+      return { previousShipping }
     },
     onSuccess: async () => {
+      onCartChanged?.()
       setIsUpdatingCartAfterShippingSelect(true)
-      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
+      await queryClient.refetchQueries({ queryKey: ["cart-shipping-quote", cartId], exact: true })
       setIsUpdatingCartAfterShippingSelect(false)
     },
     onError: (error, _shippingQuoteId, context) => {
-      const previousCart = context?.previousCart
-      if (previousCart) {
-        queryClient.setQueryData(['cart', cartId], previousCart)
+      if (context?.previousShipping) {
+        queryClient.setQueryData(["cart-shipping-quote", cartId], context.previousShipping)
       }
       const errorData = getApiErrorData(error)
-      toast.error(errorData?.title || 'Erro ao selecionar frete', {
-        description: errorData?.detail || 'Não foi possível selecionar a cotação de frete.'
+      toast.error(errorData?.title || "Erro ao selecionar frete", {
+        description: errorData?.detail || "Não foi possível selecionar a cotação de frete.",
       })
       setIsUpdatingCartAfterShippingSelect(false)
     },
     onSettled: () => {
       setIsUpdatingCartAfterShippingSelect(false)
-    }
+    },
   })
 
   const { mutate: selectCartAddress, isPending: isSelectingAddress } = useMutation<
@@ -122,8 +185,12 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       return { prevSelectedAddressId: prev }
     },
     onSuccess: async () => {
+      onCartChanged?.()
       setIsUpdatingCartAfterAddressSelect(true)
-      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["cart-basic", cartId], exact: true }),
+        queryClient.refetchQueries({ queryKey: ["cart-shipping-quote", cartId], exact: true }),
+      ])
       setIsUpdatingCartAfterAddressSelect(false)
     },
     onError: (error, _addressId, context) => {
@@ -200,20 +267,18 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       }
     },
     onSuccess: async () => {
-      toast.success('Cupom aplicado com sucesso!')
-      setCouponCode('')
-      setIsUpdatingCartAfterCouponChange(true)
-      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
-      setIsUpdatingCartAfterCouponChange(false)
+      onCartChanged?.()
+      toast.success("Cupom aplicado com sucesso!")
+      setCouponCode("")
+      await queryClient.refetchQueries({ queryKey: ["cart-cupons", cartId], exact: true })
     },
     onError: (error) => {
       const errorData = getApiErrorData(error)
-      toast.error(errorData?.title || 'Erro ao aplicar cupom', {
-        description: errorData?.detail || 'Não foi possível aplicar o cupom no carrinho.',
+      toast.error(errorData?.title || "Erro ao aplicar cupom", {
+        description: errorData?.detail || "Não foi possível aplicar o cupom no carrinho.",
       })
     },
     onSettled: () => {
-      setIsUpdatingCartAfterCouponChange(false)
     },
   })
 
@@ -223,29 +288,27 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       return response.status
     },
     onSuccess: async () => {
+      onCartChanged?.()
       setRemoveCouponOpen(false)
       setSelectedCouponCode(null)
-      toast.success('Cupom removido.')
-      setCouponCode('')
-      setIsUpdatingCartAfterCouponChange(true)
-      await queryClient.refetchQueries({ queryKey: ['cart', cartId], exact: true })
-      setIsUpdatingCartAfterCouponChange(false)
+      toast.success("Cupom removido.")
+      setCouponCode("")
+      await queryClient.refetchQueries({ queryKey: ["cart-cupons", cartId], exact: true })
     },
     onError: (error) => {
       setRemoveCouponOpen(false)
       setSelectedCouponCode(null)
       const errorData = getApiErrorData(error)
-      toast.error(errorData?.title || 'Erro ao remover cupom', {
-        description: errorData?.detail || 'Não foi possível remover o cupom do carrinho.',
+      toast.error(errorData?.title || "Erro ao remover cupom", {
+        description: errorData?.detail || "Não foi possível remover o cupom do carrinho.",
       })
     },
     onSettled: () => {
-      setIsUpdatingCartAfterCouponChange(false)
     },
   })
 
   // Add items mutation
-  const { mutateAsync: addItems, isPending: isAddingItems } = useMutation<void, unknown, { derivatedProductId: number, amount: number }[]>({
+  const { mutateAsync: addItems } = useMutation<void, unknown, { derivatedProductId: number; amount: number }[]>({
     mutationFn: async (newItems: { derivatedProductId: number, amount: number }[]) => {
       for (const item of newItems) {
         await privateInstance.post(`/tenant/carts/${cartId}/derivated-products`, {
@@ -255,15 +318,11 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       }
     },
     onSuccess: () => {
+      onCartChanged?.()
       toast.success('Produtos adicionados com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['cart', cartId] })
+      queryClient.invalidateQueries({ queryKey: ["cart-products", cartId] })
+      queryClient.invalidateQueries({ queryKey: ["cart-shipping-quote", cartId] })
       setAddProductOpen(false)
-
-      // Automatically open new products
-      // We can't access productName here easily anymore, so we might need to rely on CartItems component 
-      // or fetch names separately. For now, removing this auto-expand feature or simplifying it.
-      // const newNames = new Set(variables.map(v => v.productName))
-      // setOpenProducts(prev => Array.from(new Set([...prev, ...newNames])))
     },
     onError: (error) => {
       const errorData = getApiErrorData(error)
@@ -274,7 +333,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   })
 
   // Update item amount mutation
-  const { mutate: updateItem, isPending: isUpdatingItem } = useMutation<
+  const { mutate: updateItem } = useMutation<
     { id: number; amount: number },
     unknown,
     { cartDerivatedProductId: number; amount: number }
@@ -286,55 +345,27 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       return response.data
     },
     onSuccess: (updatedItem) => {
-      // Update the main cart query (which contains the products list)
-      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
+      onCartChanged?.()
+      queryClient.setQueryData<CartProductsResponse>(["cart-products", cartId], (oldData) => {
         if (!oldData) return oldData
+        const nextAmount = Number(updatedItem.amount)
 
-        const newGroups = (oldData.products || []).map((group: ProductGroup) => {
-          // Check if the updated item belongs to this group
-          // Note: Using updatedItem.id (relationship ID) to match item.id
-          const itemIndex = group.derivatedProducts.findIndex((p: DerivatedProduct) => Number(p.id) === Number(updatedItem.id))
+        const nextProducts = oldData.products
+          .map((group: ProductGroup) => {
+            const nextDerivatedProducts = group.derivatedProducts
+              .map((p: DerivatedProduct) => {
+                if (Number(p.id) !== Number(updatedItem.id)) return p
+                return { ...p, amount: nextAmount, totalValue: nextAmount * p.price }
+              })
+              .filter((p) => p.amount > 0)
 
-          if (itemIndex === -1) return group
+            return { ...group, derivatedProducts: nextDerivatedProducts }
+          })
+          .filter((group) => group.derivatedProducts.length > 0)
 
-          // Update the specific item in the group
-          const newDerivatedProducts = [...group.derivatedProducts]
-
-          // Calculate new total value locally since API doesn't return it in the update response
-          const currentItem = newDerivatedProducts[itemIndex]
-          const newAmount = Number(updatedItem.amount)
-          const newTotalValue = newAmount * currentItem.price
-
-          newDerivatedProducts[itemIndex] = {
-            ...currentItem,
-            amount: newAmount,
-            totalValue: newTotalValue
-          }
-
-          // Recalculate group totals
-          const groupTotalItems = newDerivatedProducts.reduce((acc, curr) => acc + curr.amount, 0)
-          const groupTotalValue = newDerivatedProducts.reduce((acc, curr) => acc + curr.totalValue, 0)
-
-          return {
-            ...group,
-            derivatedProducts: newDerivatedProducts,
-            totalItems: groupTotalItems,
-            totalValue: groupTotalValue
-          }
-        })
-
-        // Recalculate cart totals from the updated groups
-        const newTotalItems = newGroups.reduce((acc, group) => acc + group.totalItems, 0)
-        const newTotalValue = newGroups.reduce((acc, group) => acc + group.totalValue, 0)
-
-        return {
-          ...oldData,
-          products: newGroups,
-          totalItems: newTotalItems,
-          totalValue: newTotalValue
-        }
+        return { ...oldData, products: nextProducts }
       })
-      queryClient.invalidateQueries({ queryKey: ['carts-mini'] })
+      queryClient.invalidateQueries({ queryKey: ["cart-shipping-quote", cartId] })
     },
     onError: () => {
       toast.error('Erro ao atualizar item.')
@@ -342,7 +373,7 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
   })
 
   // Delete item mutation
-  const { mutate: deleteItem, isPending: isDeletingItem } = useMutation<number, unknown, number>({
+  const { mutate: deleteItem } = useMutation<number, unknown, number>({
     mutationFn: async (cartDerivatedProductId: number) => {
       await privateInstance.put(`/tenant/carts/${cartId}/derivated-products/${cartDerivatedProductId}`, {
         amount: 0
@@ -350,41 +381,21 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
       return cartDerivatedProductId
     },
     onSuccess: (deletedId) => {
+      onCartChanged?.()
       toast.success('Item removido.')
 
-      // Optimistically update the cart by removing the item
-      queryClient.setQueryData(['cart', cartId], (oldData: Cart | undefined) => {
+      queryClient.setQueryData<CartProductsResponse>(["cart-products", cartId], (oldData) => {
         if (!oldData) return oldData
-
-        const newGroups = (oldData.products || []).map((group: ProductGroup) => {
-          // Filter out the deleted item
-          const newDerivatedProducts = group.derivatedProducts.filter(p => Number(p.id) !== Number(deletedId))
-
-          if (newDerivatedProducts.length === group.derivatedProducts.length) return group
-
-          // Recalculate group totals
-          const groupTotalItems = newDerivatedProducts.reduce((acc, curr) => acc + curr.amount, 0)
-          const groupTotalValue = newDerivatedProducts.reduce((acc, curr) => acc + curr.totalValue, 0)
-
-          return {
+        const nextProducts = oldData.products
+          .map((group: ProductGroup) => ({
             ...group,
-            derivatedProducts: newDerivatedProducts,
-            totalItems: groupTotalItems,
-            totalValue: groupTotalValue
-          }
-        }).filter(group => group.derivatedProducts.length > 0)
+            derivatedProducts: group.derivatedProducts.filter((p) => Number(p.id) !== Number(deletedId)),
+          }))
+          .filter((group) => group.derivatedProducts.length > 0)
 
-        // Recalculate cart totals
-        const newTotalItems = newGroups.reduce((acc, group) => acc + group.totalItems, 0)
-        const newTotalValue = newGroups.reduce((acc, group) => acc + group.totalValue, 0)
-
-        return {
-          ...oldData,
-          products: newGroups,
-          totalItems: newTotalItems,
-          totalValue: newTotalValue
-        }
+        return { ...oldData, products: nextProducts }
       })
+      queryClient.invalidateQueries({ queryKey: ["cart-shipping-quote", cartId] })
     },
     onError: () => {
       toast.error('Erro ao remover item.')
@@ -404,20 +415,32 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
     )
   }
 
-  const isReadOnly = cart?.status !== 'open'
-  const selectedShippingQuote = (cart?.shippingQuote ?? []).find((q) => q.isSelected) ?? null
+  const isReadOnly = cartBasic ? cartBasic.status !== "open" : true
+  const shippingQuotes = cartShipping?.shippingQuote ?? []
+  const selectedShippingQuote = shippingQuotes.find((q) => q.isSelected) ?? null
   const selectedShippingPrice = selectedShippingQuote?.price ?? 0
-  const cupons = Array.isArray(cart?.cupons) ? cart!.cupons : []
-  const isBusy =
-    isLoadingCart ||
-    isAddingItems ||
-    isUpdatingItem ||
-    isDeletingItem ||
-    isUpdatingCartAfterAddressSelect ||
-    isUpdatingCartAfterShippingSelect ||
-    isUpdatingCartAfterCouponChange
-  const subtotalCents = (cart?.totalValue || 0) - (cart?.totalAdditions || 0) + (cart?.totalDiscounts || 0)
-  const totalWithShippingCents = (cart?.totalValue || 0) + selectedShippingPrice
+  const cupons = cartCupons?.cupons ?? []
+  const selectedAddress = cartBasic?.address ?? null
+
+  useEffect(() => {
+    if (!shippingSheetOpen) {
+      setShippingSelectedId(null)
+      return
+    }
+    setShippingSelectedId(selectedShippingQuote?.id ?? null)
+  }, [shippingSheetOpen, selectedShippingQuote?.id])
+
+  const productGroups = cartProducts?.products ?? []
+  const totalItems = productGroups.reduce(
+    (acc, group) => acc + group.derivatedProducts.reduce((acc2, item) => acc2 + item.amount, 0),
+    0
+  )
+  const productsValueCents = productGroups.reduce(
+    (acc, group) => acc + group.derivatedProducts.reduce((acc2, item) => acc2 + item.totalValue, 0),
+    0
+  )
+  const discountsCents = cupons.reduce((acc, c) => acc + (c.discountApplied || 0), 0)
+  const totalWithShippingCents = Math.max(0, productsValueCents + selectedShippingPrice - discountsCents)
   const formatBRL = (valueInCents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((valueInCents || 0) / 100)
 
   return (
@@ -452,70 +475,228 @@ export function EditCartSheet({ cartId, onOpenChange }: { cartId: number, onOpen
 
           <div className="flex-1 min-h-0 overflow-hidden bg-muted/20">
             <div className="mx-auto flex min-h-0 h-full max-w-[1400px] flex-col px-4 py-4">
-              {isBusy ? (
-                <div className="flex flex-col h-full flex-1 items-center justify-center space-y-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Carregando informações...</p>
+              <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
+                <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+                  <CartItemsTab
+                    products={productGroups}
+                    totalItems={totalItems}
+                    isLoading={isLoadingCartProducts}
+                    openProducts={openProducts}
+                    toggleProductOpen={toggleProductOpen}
+                    setAddProductOpen={setAddProductOpen}
+                    isReadOnly={isReadOnly}
+                    formatBRL={formatBRL}
+                    updateItem={updateItem}
+                    deleteItem={deleteItem}
+                  />
+
+                  <CartCouponCard
+                    cupons={cupons}
+                    isLoading={isLoadingCartCupons}
+                    couponCode={couponCode}
+                    setCouponCode={(next) => setCouponCode(next)}
+                    applyCoupon={applyCoupon}
+                    isApplyingCoupon={isApplyingCoupon}
+                    isRemovingCoupon={isRemovingCoupon}
+                    setSelectedCouponCode={(code) => setSelectedCouponCode(code)}
+                    setRemoveCouponOpen={(next) => setRemoveCouponOpen(next)}
+                    isReadOnly={isReadOnly}
+                  />
                 </div>
-              ) : (
-                <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-                  <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-                    <CartTopCards
-                      cart={cart}
-                      customerId={customerId}
-                      selectedShippingQuote={selectedShippingQuote}
-                      isSelectingShippingQuote={isSelectingShippingQuote}
-                      isUpdatingCartAfterShippingSelect={isUpdatingCartAfterShippingSelect}
-                      selectShippingQuote={selectShippingQuote}
-                      selectedAddressId={selectedAddressId}
-                      setSelectedAddressId={setSelectedAddressId}
-                      isSelectingAddress={isSelectingAddress}
-                      isUpdatingCartAfterAddressSelect={isUpdatingCartAfterAddressSelect}
-                      selectCartAddress={selectCartAddress}
-                      isReadOnly={isReadOnly}
-                      formatBRL={formatBRL}
-                    />
 
-                    <CartItemsTab
-                      cart={cart}
-                      openProducts={openProducts}
-                      toggleProductOpen={toggleProductOpen}
-                      setAddProductOpen={setAddProductOpen}
-                      isReadOnly={isReadOnly}
-                      formatBRL={formatBRL}
-                      updateItem={updateItem}
-                      deleteItem={deleteItem}
-                    />
-
-                    <CartCouponCard
-                      cupons={cupons}
-                      couponCode={couponCode}
-                      setCouponCode={(next) => setCouponCode(next)}
-                      applyCoupon={applyCoupon}
-                      isApplyingCoupon={isApplyingCoupon}
-                      isRemovingCoupon={isRemovingCoupon}
-                      setSelectedCouponCode={(code) => setSelectedCouponCode(code)}
-                      setRemoveCouponOpen={(next) => setRemoveCouponOpen(next)}
-                      isReadOnly={isReadOnly}
-                    />
+                <div className="lg:pl-0">
+                  <div className="mb-3">
+                    <CartCustomerInfoCard cart={cartBasic} customerId={customerId} isLoadingCartBasic={isLoadingCartBasic} />
                   </div>
-
-                  <div className="lg:pl-0">
-                    <CartSummaryCard
-                      cart={cart}
-                      selectedShippingQuote={selectedShippingQuote}
-                      selectedShippingPrice={selectedShippingPrice}
-                      subtotalCents={subtotalCents}
-                      totalWithShippingCents={totalWithShippingCents}
-                      formatBRL={formatBRL}
-                      cartId={cartId}
-                      isReadOnly={isReadOnly}
-                    />
-                  </div>
+                  <CartSummaryCard
+                    status={cartBasic?.status ?? null}
+                    totalItems={totalItems}
+                    productsValueCents={productsValueCents}
+                    discountsCents={discountsCents}
+                    isLoadingBasic={isLoadingCartBasic}
+                    isLoadingProducts={isLoadingCartProducts}
+                    isLoadingCupons={isLoadingCartCupons}
+                    selectedShippingQuote={selectedShippingQuote}
+                    selectedShippingPrice={selectedShippingPrice}
+                    isLoadingShipping={isLoadingCartShipping}
+                    totalWithShippingCents={totalWithShippingCents}
+                    formatBRL={formatBRL}
+                    cartId={cartId}
+                    isReadOnly={isReadOnly}
+                    onEditShipping={() => setShippingSheetOpen(true)}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={shippingSheetOpen} onOpenChange={setShippingSheetOpen}>
+        <SheetContent className="flex flex-col gap-0 p-0 w-full sm:w-[min(720px,calc(100vw-2rem))]">
+          <SheetHeader className="border-b p-4">
+            <SheetTitle>Selecionar frete</SheetTitle>
+            <SheetDescription>Escolha uma opção para aplicar ao carrinho.</SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild disabled={isReadOnly || !customerId || isSelectingAddress || isUpdatingCartAfterAddressSelect}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto w-full justify-between gap-3 px-3 py-2"
+                >
+                  <span className="flex min-w-0 items-start gap-2">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 text-left">
+                      <span className="block text-[11px] text-muted-foreground">Endereço para cotação</span>
+                      <span className="block truncate text-xs font-medium">
+                        {selectedAddress
+                          ? `${selectedAddress.name} • ${selectedAddress.city} - ${selectedAddress.state}`
+                          : "Selecionar endereço"}
+                      </span>
+                    </span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[360px] max-h-[320px] overflow-y-auto">
+                {isLoadingAddresses ? (
+                  <div className="p-2 space-y-2">
+                    <Skeleton className="h-4 w-[220px]" />
+                    <Skeleton className="h-4 w-[300px]" />
+                    <Skeleton className="h-4 w-[260px]" />
+                  </div>
+                ) : customerAddresses.length === 0 ? (
+                  <div className="p-3 text-sm text-muted-foreground">Nenhum endereço encontrado.</div>
+                ) : (
+                  customerAddresses.map((a) => {
+                    const isSelected = a.id === (selectedAddressId ?? null)
+                    return (
+                      <DropdownMenuItem
+                        key={a.id}
+                        className="flex flex-col items-start gap-0.5"
+                        onSelect={() => {
+                          if (isSelected) return
+                          setShippingSelectedId(null)
+                          selectCartAddress(a.id)
+                        }}
+                      >
+                        <div className="w-full flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-medium">{a.name}</span>
+                          {isSelected ? (
+                            <Badge variant="secondary" className="h-5 px-2 text-[10px]">
+                              Atual
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {a.streetName}, {a.number} • {a.neighborhood} • {a.city} - {a.state}
+                        </span>
+                      </DropdownMenuItem>
+                    )
+                  })
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {isSelectingAddress || isUpdatingCartAfterAddressSelect ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <Skeleton className="h-4 w-[180px]" />
+                        <Skeleton className="mt-2 h-3 w-[240px]" />
+                      </div>
+                      <Skeleton className="h-4 w-[90px]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (isLoadingCartShipping || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) && shippingQuotes.length === 0 ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <Skeleton className="h-4 w-[180px]" />
+                        <Skeleton className="mt-2 h-3 w-[240px]" />
+                      </div>
+                      <Skeleton className="h-4 w-[90px]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : shippingQuotes.length === 0 ? (
+              <div className="text-sm text-muted-foreground">Nenhuma cotação de frete disponível.</div>
+            ) : (
+              <div className="space-y-2">
+                {shippingQuotes.map((q) => {
+                  const checked = shippingSelectedId === q.id
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      className={[
+                        "w-full rounded-lg border p-3 text-left transition-colors",
+                        checked ? "border-primary bg-primary/5" : "hover:bg-muted/30",
+                      ].join(" ")}
+                      onClick={() => setShippingSelectedId(q.id)}
+                      disabled={isReadOnly || isSelectingAddress || isUpdatingCartAfterAddressSelect}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox checked={checked} onCheckedChange={() => setShippingSelectedId(q.id)} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold truncate">{q.carrierName}</div>
+                            <div className="mt-0.5 text-xs text-muted-foreground truncate">
+                              {q.serviceName} • {q.deadline} dia(s)
+                            </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-sm font-semibold tabular-nums">{formatBRL(q.price)}</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <SheetFooter className="border-t p-4 flex-row justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShippingSheetOpen(false)}
+              disabled={isSelectingAddress || isUpdatingCartAfterAddressSelect || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!shippingSelectedId) return
+                selectShippingQuote(shippingSelectedId)
+                setShippingSheetOpen(false)
+              }}
+              disabled={
+                isReadOnly ||
+                !shippingSelectedId ||
+                isSelectingAddress ||
+                isUpdatingCartAfterAddressSelect ||
+                isSelectingShippingQuote ||
+                isUpdatingCartAfterShippingSelect ||
+                shippingSelectedId === (selectedShippingQuote?.id ?? null)
+              }
+            >
+              Aplicar
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 

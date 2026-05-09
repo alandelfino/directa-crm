@@ -1,23 +1,17 @@
 export type DerivatedProduct = {
   id: number
-  name: string
-  price: number
-  oldPrice: number
-  amount: number
-  productId: number
-  cartId: number
-  totalValue: number
   derivatedProductId: number
+  name: string
+  amount: number
+  oldPrice: number
+  price: number
+  totalValue: number
 }
 
 export type ProductGroup = {
   id: number
-  productId: number
   name: string
   sku?: string
-  cartId: number
-  totalItems: number
-  totalValue: number
   derivatedProducts: DerivatedProduct[]
 }
 
@@ -40,7 +34,7 @@ export type CartAddress = {
   state: string
   zipCode: string
   country: string
-  complement: string
+  complement: string | null
   isDefault: boolean
 }
 
@@ -49,21 +43,26 @@ export type CustomerAddress = CartAddress & {
   updatedAt: string
 }
 
-export type Cart = {
+export type CartStatus = "open" | "abandoned" | "finished"
+
+export type CartBasic = {
   id: number
   customer: { id: number; name: string }
   store: { id: number; name: string }
-  address?: CartAddress | null
-  status: "open" | "abandoned" | "finished"
-  totalItems: number
-  totalAdditions: number
-  totalDiscounts: number
-  totalValue: number
+  address: CartAddress | null
+  status: CartStatus
   createdAt: string
   updatedAt: string
-  additions: { id: number; name: string; value: number }[]
-  discounts: { id: number; name: string; value: number }[]
-  cupons?: {
+}
+
+export type CartProductsResponse = {
+  cartId: number
+  products: ProductGroup[]
+}
+
+export type CartCuponsResponse = {
+  cartId: number
+  cupons: Array<{
     id: number
     code: string
     description: string
@@ -72,9 +71,12 @@ export type Cart = {
     value: number
     storeId: number
     discountApplied: number
-  }[]
-  products: ProductGroup[]
-  shippingQuote?: ShippingQuote[]
+  }>
+}
+
+export type CartShippingQuoteResponse = {
+  cartId: number
+  shippingQuote: ShippingQuote[]
 }
 
 export type PaymentMethod = {

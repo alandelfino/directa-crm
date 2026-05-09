@@ -13,6 +13,20 @@ import { privateInstance } from '@/lib/auth'
 import { Loader, Plus } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
   numberOfInstallments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
@@ -24,12 +38,14 @@ const formSchema = z.object({
 export function PayInCreateSheet({
   paymentMethodId,
   paymentMethodName,
+  storeId,
   disabled,
   onCreated,
   trigger,
 }: {
   paymentMethodId: number
   paymentMethodName?: string | null
+  storeId: number
   disabled?: boolean
   onCreated?: () => void
   trigger?: React.ReactNode
@@ -38,7 +54,7 @@ export function PayInCreateSheet({
   const queryClient = useQueryClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       numberOfInstallments: 1,
@@ -50,10 +66,12 @@ export function PayInCreateSheet({
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
+      if (Number(storeId) <= 0) throw new Error('Loja inválida')
       const payload = {
         name: values.name,
         numberOfInstallments: values.numberOfInstallments,
         paymentMethodId,
+        storeId,
         payInInterestType: values.payInInterestType,
         installmentType: values.installmentType,
         active: values.active,
@@ -64,13 +82,13 @@ export function PayInCreateSheet({
     },
     onSuccess: () => {
       toast.success('Condição de pagamento criada com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-ins', storeId, paymentMethodId] })
       setOpen(false)
       form.reset({ name: '', numberOfInstallments: 1, payInInterestType: 'simple', installmentType: 'fixed', active: true })
       onCreated?.()
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data
+    onError: (err: unknown) => {
+      const errorData = getApiErrorData(err)
       toast.error(errorData?.title || 'Erro ao criar condição de pagamento', {
         description: errorData?.detail || 'Não foi possível criar a condição de pagamento.',
       })
@@ -119,7 +137,7 @@ export function PayInCreateSheet({
               </FormItem>
 
               <FormField
-                control={form.control as any}
+                control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -133,7 +151,7 @@ export function PayInCreateSheet({
               />
 
               <FormField
-                control={form.control as any}
+                control={form.control}
                 name="numberOfInstallments"
                 render={({ field }) => (
                   <FormItem>
@@ -155,7 +173,7 @@ export function PayInCreateSheet({
               />
 
               <FormField
-                control={form.control as any}
+                control={form.control}
                 name="payInInterestType"
                 render={({ field }) => (
                   <FormItem>
@@ -177,7 +195,7 @@ export function PayInCreateSheet({
               />
 
               <FormField
-                control={form.control as any}
+                control={form.control}
                 name="installmentType"
                 render={({ field }) => (
                   <FormItem>
@@ -199,7 +217,7 @@ export function PayInCreateSheet({
               />
 
               <FormField
-                control={form.control as any}
+                control={form.control}
                 name="active"
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-4">

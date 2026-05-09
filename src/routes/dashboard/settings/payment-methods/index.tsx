@@ -24,9 +24,19 @@ export const Route = createFileRoute('/dashboard/settings/payment-methods/')({
 
 type DiscountType = 'percent' | 'fixed'
 
+type Store = {
+  id: number
+  name: string
+}
+
 type PaymentMethod = {
   id: number
   name: string
+  storeId: number
+  store?: {
+    id: number
+    name: string
+  }
   paymentGateway: {
     id: number
     name: string
@@ -38,11 +48,20 @@ type PaymentMethod = {
   updatedAt: string
 }
 
+type PaymentMethodsResponse = {
+  page: number
+  limit: number
+  totalPages: number
+  total: number
+  items: PaymentMethod[]
+}
+
 function RouteComponent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [totalItems, setTotalItems] = useState(0)
+  const [storeId, setStoreId] = useState<number | null>(null)
 
   const [editId, setEditId] = useState<number | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -54,37 +73,54 @@ function RouteComponent() {
   const [localSortBy, setLocalSortBy] = useState('createdAt')
   const [localOrderBy, setLocalOrderBy] = useState('desc')
   const [localSearch, setLocalSearch] = useState('')
+  const [localStoreId, setLocalStoreId] = useState<number | null>(null)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
-  const activeFilterCount = (search ? 1 : 0)
+  const activeFilterCount = (search ? 1 : 0) + (typeof storeId === 'number' && storeId > 0 ? 1 : 0)
 
-  const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['payment-methods', currentPage, perPage, sortBy, orderBy, search],
+  const { data: stores, isLoading: isLoadingStores } = useQuery<Store[], unknown>({
+    queryKey: ['stores-list-select'],
+    staleTime: 0,
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const params: any = {
+      const response = await privateInstance.get<{ items?: Store[] } | Store[]>('/tenant/stores', {
+        params: { page: 1, limit: 100, sortBy: 'name', orderBy: 'asc' },
+      })
+      const d = response.data
+      if (Array.isArray(d)) return d
+      return Array.isArray(d.items) ? d.items : []
+    },
+  })
+
+  const { data, isLoading, isRefetching, refetch } = useQuery<PaymentMethodsResponse, unknown>({
+    queryKey: ['payment-methods', storeId, currentPage, perPage, sortBy, orderBy, search],
+    refetchOnWindowFocus: false,
+    enabled: true,
+    queryFn: async () => {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit: perPage,
         sortBy,
         orderBy,
       }
+      if (typeof storeId === 'number' && storeId > 0) params.storeId = storeId
 
       if (search) params.search = search
 
-      const response = await privateInstance.get('/tenant/payment-methods', { params })
+      const response = await privateInstance.get<PaymentMethodsResponse>('/tenant/payment-methods', { params })
       return response.data
     }
   })
 
   useEffect(() => {
-    if (data) {
-      setTotalItems(data.total || 0)
-    }
+    if (!data) return
+    setTotalItems(typeof data.total === 'number' ? data.total : 0)
   }, [data])
 
   useEffect(() => {
     setSelectedItems([])
-  }, [currentPage, perPage, sortBy, orderBy, search])
+  }, [storeId, currentPage, perPage, sortBy, orderBy, search])
 
   const toggleSelect = useCallback((id: number) => {
     if (selectedItems.includes(id)) {
@@ -94,7 +130,7 @@ function RouteComponent() {
     }
   }, [selectedItems])
 
-  const fmtDate = (v?: string) => {
+  const fmtDate = useCallback((v?: string) => {
     if (!v) return '-'
     try {
       const d = new Date(v)
@@ -108,16 +144,22 @@ function RouteComponent() {
     } catch {
       return v
     }
-  }
+  }, [])
 
   const selectedPaymentMethod = useMemo(() => {
     if (selectedItems.length !== 1) return null
     const id = selectedItems[0]
-    const items = Array.isArray(data?.items) ? (data.items as PaymentMethod[]) : []
+    const items = Array.isArray(data?.items) ? data.items : []
     return items.find((x) => x.id === id) ?? null
   }, [selectedItems, data?.items])
 
-  const formatDiscountValue = (type: DiscountType, amount: number) => {
+  const storesById = useMemo(() => {
+    const map = new Map<number, Store>()
+    for (const s of stores ?? []) map.set(s.id, s)
+    return map
+  }, [stores])
+
+  const formatDiscountValue = useCallback((type: DiscountType, amount: number) => {
     if (type === 'percent') {
       const n = (Number(amount) || 0) / 100
       try {
@@ -128,7 +170,7 @@ function RouteComponent() {
       }
     }
     return formatMoneyFromCents(Number(amount) || 0)
-  }
+  }, [])
 
   const columns: ColumnDef<PaymentMethod>[] = useMemo(() => [
     {
@@ -167,6 +209,17 @@ function RouteComponent() {
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'store',
+      header: 'Loja',
+      cell: (row) => (
+        <span className="text-muted-foreground">
+          {storesById.get(row.storeId)?.name ?? row.store?.name ?? '-'}
+        </span>
+      ),
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'discount',
       header: 'Desconto',
       cell: (row) => (
@@ -190,7 +243,7 @@ function RouteComponent() {
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     }
-  ], [selectedItems, toggleSelect])
+  ], [fmtDate, formatDiscountValue, selectedItems, storesById, toggleSelect])
 
   return (
     <div className='flex flex-col w-full h-full'>
@@ -204,6 +257,7 @@ function RouteComponent() {
               setLocalSortBy(sortBy)
               setLocalOrderBy(orderBy)
               setLocalSearch(search)
+              setLocalStoreId(storeId)
             }
             setIsFilterOpen(open)
           }}>
@@ -263,6 +317,36 @@ function RouteComponent() {
                   </div>
                   <div className="grid gap-3">
                     <div className="grid gap-1.5">
+                      <Label htmlFor="storeId" className="text-xs font-medium text-muted-foreground">
+                        Loja
+                      </Label>
+                      <Select
+                        value={typeof localStoreId === 'number' && localStoreId > 0 ? String(localStoreId) : '__all__'}
+                        onValueChange={(val) => {
+                          if (val === '__all__') {
+                            setLocalStoreId(null)
+                            return
+                          }
+                          const next = Number(val)
+                          if (!Number.isFinite(next) || next <= 0) return
+                          setLocalStoreId(next)
+                        }}
+                        disabled={isLoadingStores}
+                      >
+                        <SelectTrigger id="storeId" className="h-9 w-full">
+                          <SelectValue placeholder={isLoadingStores ? 'Carregando lojas...' : 'Selecione a loja'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">Todas as lojas</SelectItem>
+                          {(stores ?? []).map((s) => (
+                            <SelectItem key={s.id} value={String(s.id)}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-1.5">
                       <Label htmlFor="search" className="text-xs font-medium text-muted-foreground">Busca</Label>
                       <Input
                         id="search"
@@ -280,10 +364,17 @@ function RouteComponent() {
                     setLocalSortBy('createdAt')
                     setLocalOrderBy('desc')
                     setLocalSearch('')
+                    setLocalStoreId(null)
                   }}>
                     Limpar
                   </Button>
                   <Button size="default" className="flex-1" onClick={() => {
+                    const nextStoreId = typeof localStoreId === 'number' && localStoreId > 0 ? localStoreId : null
+                    if (nextStoreId !== storeId) {
+                      setStoreId(nextStoreId)
+                      setCurrentPage(1)
+                      setSelectedItems([])
+                    }
                     setSortBy(localSortBy)
                     setOrderBy(localOrderBy)
                     setSearch(localSearch)
@@ -303,6 +394,7 @@ function RouteComponent() {
           <PayInsSheet
             paymentMethodId={selectedPaymentMethod?.id ?? 0}
             paymentMethodName={selectedPaymentMethod?.name ?? null}
+            storeId={selectedPaymentMethod?.storeId ?? storeId ?? 0}
             trigger={(
               <Button variant={'outline'} size="sm" disabled={selectedItems.length !== 1}>
                 <ShieldCheck className="size-[0.85rem]" /> Condições de pagamento
@@ -336,7 +428,7 @@ function RouteComponent() {
 
       <DataTable
         columns={columns}
-        data={(data?.items || []) as PaymentMethod[]}
+        data={Array.isArray(data?.items) ? data.items : []}
         loading={isLoading || isRefetching}
         page={currentPage}
         perPage={perPage}

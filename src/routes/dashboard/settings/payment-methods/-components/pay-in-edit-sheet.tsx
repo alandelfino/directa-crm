@@ -13,6 +13,20 @@ import { privateInstance } from '@/lib/auth'
 import { Edit, Loader } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
   numberOfInstallments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
@@ -38,6 +52,7 @@ export function PayInEditSheet({
   paymentMethodId,
   paymentMethodName,
   payInId,
+  storeId,
   disabled,
   onSaved,
   trigger,
@@ -45,6 +60,7 @@ export function PayInEditSheet({
   paymentMethodId: number
   paymentMethodName?: string | null
   payInId: number | null
+  storeId: number
   disabled: boolean
   onSaved?: () => void
   trigger?: React.ReactNode
@@ -53,7 +69,7 @@ export function PayInEditSheet({
   const queryClient = useQueryClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       numberOfInstallments: 1,
@@ -63,27 +79,25 @@ export function PayInEditSheet({
     },
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<PayIn, unknown>({
     queryKey: ['pay-in', payInId],
     enabled: open && !!payInId,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/pay-ins/${payInId}`)
-      return response.data as PayIn
+      const response = await privateInstance.get<PayIn>(`/tenant/pay-ins/${payInId}`)
+      return response.data
     },
   })
 
   useEffect(() => {
     if (!open) return
     if (!data) return
-    const rawInstallmentType = String((data as any)?.installmentType ?? '').toLowerCase()
+    const rawInstallmentType = String(data.installmentType ?? '').toLowerCase()
     const normalizedInstallmentType =
       rawInstallmentType === 'dynamic' || rawInstallmentType === 'dinamico' || rawInstallmentType === 'dinâmico'
         ? 'dynamic'
         : 'fixed'
-    const rawPayInInterestType = String((data as any)?.payInInterestType ?? '')
-      .toLowerCase()
-      .replace(/-/g, '_')
+    const rawPayInInterestType = String(data.payInInterestType ?? '').toLowerCase().replace(/-/g, '_')
     const normalizedPayInInterestType = rawPayInInterestType === 'price_table' ? 'price_table' : 'simple'
     form.reset({
       name: data.name ?? '',
@@ -97,10 +111,12 @@ export function PayInEditSheet({
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       if (!payInId) throw new Error('Pay in inválido')
+      if (Number(storeId) <= 0) throw new Error('Loja inválida')
       const payload = {
         name: values.name,
         numberOfInstallments: values.numberOfInstallments,
         paymentMethodId,
+        storeId,
         payInInterestType: values.payInInterestType,
         installmentType: values.installmentType,
         active: values.active,
@@ -111,12 +127,12 @@ export function PayInEditSheet({
     },
     onSuccess: () => {
       toast.success('Condição de pagamento atualizada com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['pay-ins', paymentMethodId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-ins', storeId, paymentMethodId] })
       setOpen(false)
       onSaved?.()
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data
+    onError: (err: unknown) => {
+      const errorData = getApiErrorData(err)
       toast.error(errorData?.title || 'Erro ao atualizar condição de pagamento', {
         description: errorData?.detail || 'Não foi possível atualizar a condição de pagamento.',
       })
@@ -181,7 +197,7 @@ export function PayInEditSheet({
                   <div className="grid grid-cols-5 gap-4">
                     <div className="col-span-4">
                       <FormField
-                        control={form.control as any}
+                        control={form.control}
                         name="name"
                         render={({ field }) => (
                           <FormItem>
@@ -196,7 +212,7 @@ export function PayInEditSheet({
                     </div>
                     <div className="col-span-1">
                       <FormField
-                        control={form.control as any}
+                        control={form.control}
                         name="numberOfInstallments"
                         render={({ field }) => (
                           <FormItem>
@@ -221,7 +237,7 @@ export function PayInEditSheet({
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
-                      control={form.control as any}
+                      control={form.control}
                       name="payInInterestType"
                       render={({ field }) => (
                         <FormItem>
@@ -248,7 +264,7 @@ export function PayInEditSheet({
                     />
 
                     <FormField
-                      control={form.control as any}
+                      control={form.control}
                       name="installmentType"
                       render={({ field }) => (
                         <FormItem>
@@ -276,7 +292,7 @@ export function PayInEditSheet({
                   </div>
 
                   <FormField
-                    control={form.control as any}
+                    control={form.control}
                     name="active"
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between rounded-lg border p-4">

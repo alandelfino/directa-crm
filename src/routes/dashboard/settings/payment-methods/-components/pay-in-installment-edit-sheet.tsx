@@ -13,6 +13,20 @@ import { Edit, Loader } from 'lucide-react'
 import { NumericFormat } from 'react-number-format'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 const formSchema = z.object({
   label: z.string().min(1, { message: 'Label é obrigatório' }),
   interestRate: z.coerce.number().int().min(0, { message: 'Juros inválido' }),
@@ -35,6 +49,7 @@ export function PayInInstallmentEditSheet({
   payInId,
   payInName,
   payInInstallmentId,
+  storeId,
   disabled,
   onSaved,
   trigger,
@@ -42,6 +57,7 @@ export function PayInInstallmentEditSheet({
   payInId: number
   payInName?: string | null
   payInInstallmentId: number | null
+  storeId: number
   disabled: boolean
   onSaved?: () => void
   trigger?: React.ReactNode
@@ -50,7 +66,7 @@ export function PayInInstallmentEditSheet({
   const queryClient = useQueryClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       label: '',
       interestRate: 0,
@@ -58,13 +74,15 @@ export function PayInInstallmentEditSheet({
     },
   })
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['pay-in-installment', payInInstallmentId],
+  const { data, isLoading } = useQuery<PayInInstallment, unknown>({
+    queryKey: ['pay-in-installment', storeId, payInInstallmentId],
     enabled: open && !!payInInstallmentId,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const response = await privateInstance.get(`/tenant/pay-in-installments/${payInInstallmentId}`)
-      return response.data as PayInInstallment
+      const response = await privateInstance.get<PayInInstallment>(`/tenant/pay-in-installments/${payInInstallmentId}`, {
+        params: { storeId },
+      })
+      return response.data
     },
   })
 
@@ -81,8 +99,10 @@ export function PayInInstallmentEditSheet({
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       if (!payInInstallmentId) throw new Error('Parcela inválida')
+      if (Number(storeId) <= 0) throw new Error('Loja inválida')
       const payload = {
         payInId,
+        storeId,
         label: values.label,
         interestRate: values.interestRate,
         intervalInDays: values.intervalInDays,
@@ -93,12 +113,12 @@ export function PayInInstallmentEditSheet({
     },
     onSuccess: () => {
       toast.success('Parcela atualizada com sucesso!')
-      queryClient.invalidateQueries({ queryKey: ['pay-in-installments', payInId] })
+      queryClient.invalidateQueries({ queryKey: ['pay-in-installments', storeId, payInId] })
       setOpen(false)
       onSaved?.()
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data
+    onError: (err: unknown) => {
+      const errorData = getApiErrorData(err)
       toast.error(errorData?.title || 'Erro ao atualizar parcela', {
         description: errorData?.detail || 'Não foi possível atualizar a parcela.',
       })
@@ -183,7 +203,7 @@ export function PayInInstallmentEditSheet({
                   </FormItem>
 
                   <FormField
-                    control={form.control as any}
+                    control={form.control}
                     name="label"
                     render={({ field }) => (
                       <FormItem>
@@ -197,7 +217,7 @@ export function PayInInstallmentEditSheet({
                   />
 
                   <FormField
-                    control={form.control as any}
+                    control={form.control}
                     name="interestRate"
                     render={({ field }) => (
                       <FormItem>
@@ -230,7 +250,7 @@ export function PayInInstallmentEditSheet({
                   />
 
                   <FormField
-                    control={form.control as any}
+                    control={form.control}
                     name="intervalInDays"
                     render={({ field }) => (
                       <FormItem>

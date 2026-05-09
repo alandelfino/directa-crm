@@ -1,87 +1,32 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { privateInstance } from "@/lib/auth"
 import { useQuery } from "@tanstack/react-query"
-import { ChevronDown, ChevronUp, Loader2, Mail, MapPin, Minus, Package, Pencil, Phone, Plus, ShoppingCart, TicketPercent, Trash2, Truck, User2, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
-import type { Cart, CustomerAddress, ShippingQuote } from "./edit-cart.types"
-import { IconPencil } from "@tabler/icons-react"
+import { ChevronDown, ChevronUp, Loader2, Minus, Package, Plus, ShoppingCart, TicketPercent, Trash2, User2, X } from "lucide-react"
+import type { CartBasic, CartCuponsResponse, ProductGroup } from "./edit-cart.types"
 
 type CustomerDetails = {
   id: number
   name?: string | null
   nameOrTradeName?: string | null
-  email?: string | null
-  phone?: string | null
   personType?: "natural" | "entity" | null
   cpfOrCnpj?: string | null
 }
 
-type CustomerAddressesResponse = { items: CustomerAddress[] } | CustomerAddress[]
-
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
-
-export function CartTopCards({
+export function CartCustomerInfoCard({
   cart,
   customerId,
-  selectedShippingQuote,
-  isSelectingShippingQuote,
-  isUpdatingCartAfterShippingSelect,
-  selectShippingQuote,
-  selectedAddressId,
-  setSelectedAddressId,
-  isSelectingAddress,
-  isUpdatingCartAfterAddressSelect,
-  selectCartAddress,
-  isReadOnly,
-  formatBRL,
+  isLoadingCartBasic,
 }: {
-  cart: Cart | undefined
+  cart: CartBasic | undefined
   customerId: number | undefined
-  selectedShippingQuote: ShippingQuote | null
-  isSelectingShippingQuote: boolean
-  isUpdatingCartAfterShippingSelect: boolean
-  selectShippingQuote: (shippingQuoteId: number) => void
-  selectedAddressId: number | null
-  setSelectedAddressId: (next: number | null) => void
-  isSelectingAddress: boolean
-  isUpdatingCartAfterAddressSelect: boolean
-  selectCartAddress: (addressId: number) => void
-  isReadOnly: boolean
-  formatBRL: (valueInCents: number) => string
+  isLoadingCartBasic: boolean
 }) {
-  const [shippingSheetOpen, setShippingSheetOpen] = useState(false)
-  const [shippingSelectedId, setShippingSelectedId] = useState<number | null>(null)
-
-  const [addressSheetOpen, setAddressSheetOpen] = useState(false)
-  const [addressSelectedId, setAddressSelectedId] = useState<number | null>(null)
-
-  const shippingQuotes = useMemo<ShippingQuote[]>(() => cart?.shippingQuote ?? [], [cart?.shippingQuote])
-
-  useEffect(() => {
-    if (!shippingSheetOpen) {
-      setShippingSelectedId(null)
-      return
-    }
-    setShippingSelectedId(selectedShippingQuote?.id ?? null)
-  }, [shippingSheetOpen, selectedShippingQuote?.id])
-
-  useEffect(() => {
-    if (!addressSheetOpen) {
-      setAddressSelectedId(null)
-      return
-    }
-    const initialId = cart?.address?.id ?? selectedAddressId ?? null
-    setAddressSelectedId(initialId)
-  }, [addressSheetOpen, cart?.address?.id, selectedAddressId])
-
-  const { data: customer } = useQuery<CustomerDetails>({
+  const { data: customer, isLoading } = useQuery<CustomerDetails>({
     queryKey: ["customer-details", customerId],
     enabled: Number(customerId) > 0,
     refetchOnWindowFocus: false,
@@ -90,26 +35,6 @@ export function CartTopCards({
       return response.data
     },
   })
-
-  const {
-    data: customerAddressesData,
-    isLoading: isLoadingAddresses,
-  } = useQuery<CustomerAddressesResponse>({
-    queryKey: ["customer-addresses", customerId],
-    enabled: addressSheetOpen && Number(customerId) > 0,
-    refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const response = await privateInstance.get<CustomerAddressesResponse>(`/tenant/customers/${customerId}/address`)
-      return response.data
-    },
-  })
-
-  const customerAddresses = useMemo<CustomerAddress[]>(() => {
-    if (!customerAddressesData) return []
-    if (Array.isArray(customerAddressesData)) return customerAddressesData
-    if (isRecord(customerAddressesData) && Array.isArray(customerAddressesData.items)) return customerAddressesData.items as CustomerAddress[]
-    return []
-  }, [customerAddressesData])
 
   const onlyDigits = (v?: string) => String(v ?? "").replace(/\D/g, "")
   const formatCpf = (v?: string) => {
@@ -129,313 +54,46 @@ export function CartTopCards({
   }
 
   const customerName = String(customer?.nameOrTradeName ?? customer?.name ?? cart?.customer?.name ?? "")
-  const customerEmail = String(customer?.email ?? "")
-  const customerPhone = String(customer?.phone ?? "")
   const customerPersonType = customer?.personType ?? undefined
   const customerCpfOrCnpj = String(customer?.cpfOrCnpj ?? "")
   const customerDoc =
     customerPersonType === "entity" ? formatCnpj(customerCpfOrCnpj) : customerPersonType === "natural" ? formatCpf(customerCpfOrCnpj) : customerCpfOrCnpj
-
-  const selectedAddress = cart?.address ?? null
+  const showSkeleton = isLoadingCartBasic || isLoading
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <div className="md:col-span-2 rounded-xl border bg-background shadow-sm p-4">
-        <div className="flex items-start gap-3">
-          <div>
-            <User2 className="h-3.5 w-3.5 text-primary/70" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs text-muted-foreground">Cliente</div>
-            <div className="mt-0.5 text-[13px] font-semibold truncate">{customerName || "—"}</div>
-            <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs text-muted-foreground md:grid-cols-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <Mail className="h-3 w-3 shrink-0" />
-                <span className="truncate">{customerEmail || "—"}</span>
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <Phone className="h-3 w-3 shrink-0" />
-                <span className="truncate">{customerPhone || "—"}</span>
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
+    <div className="rounded-xl border bg-background shadow-sm p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-9 w-9 rounded-xl bg-primary/5 border flex items-center justify-center shrink-0">
+          <User2 className="h-3.5 w-3.5 text-primary/70" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs text-muted-foreground">Cliente</div>
+          {showSkeleton ? (
+            <div className="mt-1 space-y-2">
+              <Skeleton className="h-4 w-[220px]" />
+              <Skeleton className="h-3 w-[160px]" />
+            </div>
+          ) : (
+            <>
+              <div className="mt-0.5 text-[13px] font-semibold truncate">{customerName || "—"}</div>
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline" className="text-[10px] h-4 px-2 shrink-0">
                   {customerPersonType === "entity" ? "CNPJ" : customerPersonType === "natural" ? "CPF" : "Documento"}
                 </Badge>
                 <span className="truncate">{customerDoc || "—"}</span>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
-
-      <div className="relative rounded-xl border bg-background shadow-sm p-4 flex flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 min-w-0">
-            <div>
-              <Truck className="h-3.5 w-3.5 text-primary/70" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-muted-foreground">Frete selecionado</div>
-              <div className="mt-0.5 text-[13px] font-semibold truncate">{selectedShippingQuote ? selectedShippingQuote.carrierName : "Sem frete"}</div>
-              {selectedShippingQuote ? (
-                <div className="mt-1 text-xs text-muted-foreground truncate">
-                  {selectedShippingQuote.serviceName} • {selectedShippingQuote.deadline} dia(s)
-                </div>
-              ) : (
-                <div className="mt-1 text-xs text-muted-foreground">Selecione uma cotação para calcular o total.</div>
-              )}
-            </div>
-          </div>
-
-          {selectedShippingQuote ? (
-            <div className="shrink-0 text-[13px] font-semibold tabular-nums">{formatBRL(selectedShippingQuote.price)}</div>
-          ) : null}
-        </div>
-
-        <div className="mt-auto pt-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute -top-3 -right-3 border rounded bg-white w-6 h-6 text-blue-600 cursor-pointer"
-            onClick={() => setShippingSheetOpen(true)}
-            disabled={isReadOnly}
-          >
-            <IconPencil />
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative rounded-xl border bg-background shadow-sm p-4 flex flex-col">
-        <div className="flex items-start gap-3">
-          <div>
-            <MapPin className="h-3.5 w-3.5 text-primary/70" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xs text-muted-foreground">Endereço selecionado</div>
-            <div className="mt-0.5 text-[13px] font-semibold truncate">{selectedAddress ? selectedAddress.name : "Sem endereço"}</div>
-            {selectedAddress ? (
-              <div className="mt-1 text-xs text-muted-foreground truncate">
-                {selectedAddress.streetName}, {selectedAddress.number} • {selectedAddress.neighborhood}
-              </div>
-            ) : (
-              <div className="mt-1 text-xs text-muted-foreground">Selecione um endereço para o carrinho.</div>
-            )}
-            {selectedAddress ? (
-              <div className="mt-1 text-xs text-muted-foreground truncate">
-                {selectedAddress.city} - {selectedAddress.state} • {selectedAddress.zipCode}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="mt-auto pt-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute -top-3 -right-3 border rounded bg-white w-6 h-6 text-blue-600 cursor-pointer"
-            onClick={() => setAddressSheetOpen(true)}
-            disabled={isReadOnly || !customerId}
-          >
-            <Pencil />
-          </Button>
-        </div>
-      </div>
-
-      <Sheet open={shippingSheetOpen} onOpenChange={setShippingSheetOpen}>
-        <SheetContent className="flex flex-col gap-0 p-0 w-full sm:w-[min(720px,calc(100vw-2rem))]">
-          <SheetHeader className="border-b p-4">
-            <SheetTitle>Mais opções de frete</SheetTitle>
-            <SheetDescription>Selecione uma opção para aplicar ao carrinho.</SheetDescription>
-          </SheetHeader>
-
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-            {(isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) && shippingQuotes.length === 0 ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="rounded-lg border p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <Skeleton className="h-4 w-[180px]" />
-                        <Skeleton className="mt-2 h-3 w-[240px]" />
-                      </div>
-                      <Skeleton className="h-4 w-[90px]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : shippingQuotes.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhuma cotação de frete disponível.</div>
-            ) : (
-              <div className="space-y-2">
-                {shippingQuotes.map((q) => {
-                  const checked = shippingSelectedId === q.id
-                  return (
-                    <button
-                      key={q.id}
-                      type="button"
-                      className={[
-                        "w-full rounded-lg border p-3 text-left transition-colors",
-                        checked ? "border-primary bg-primary/5" : "hover:bg-muted/30",
-                      ].join(" ")}
-                      onClick={() => setShippingSelectedId(q.id)}
-                      disabled={isReadOnly}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox checked={checked} onCheckedChange={() => setShippingSelectedId(q.id)} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold truncate">{q.carrierName}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground truncate">
-                              {q.serviceName} • {q.deadline} dia(s)
-                            </div>
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-sm font-semibold tabular-nums">{formatBRL(q.price)}</div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          <SheetFooter className="border-t p-4 flex-row justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShippingSheetOpen(false)}
-              disabled={isSelectingShippingQuote || isUpdatingCartAfterShippingSelect}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                if (!shippingSelectedId) return
-                selectShippingQuote(shippingSelectedId)
-                setShippingSheetOpen(false)
-              }}
-              disabled={
-                isReadOnly ||
-                !shippingSelectedId ||
-                isSelectingShippingQuote ||
-                isUpdatingCartAfterShippingSelect ||
-                shippingSelectedId === (selectedShippingQuote?.id ?? null)
-              }
-            >
-              Aplicar
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-
-      <Sheet open={addressSheetOpen} onOpenChange={setAddressSheetOpen}>
-        <SheetContent className="flex flex-col gap-0 p-0 w-full sm:w-[min(720px,calc(100vw-2rem))]">
-          <SheetHeader className="border-b p-4">
-            <SheetTitle>Escolher outro endereço</SheetTitle>
-            <SheetDescription>Selecione um endereço para aplicar ao carrinho.</SheetDescription>
-          </SheetHeader>
-
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-            {isLoadingAddresses ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="rounded-lg border p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <Skeleton className="h-4 w-[220px]" />
-                        <Skeleton className="mt-2 h-3 w-[300px]" />
-                      </div>
-                      <Skeleton className="h-4 w-[60px]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : customerAddresses.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhum endereço encontrado.</div>
-            ) : (
-              <div className="space-y-2">
-                {customerAddresses.map((a) => {
-                  const checked = addressSelectedId === a.id
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      className={[
-                        "w-full rounded-lg border p-3 text-left transition-colors",
-                        checked ? "border-primary bg-primary/5" : "hover:bg-muted/30",
-                      ].join(" ")}
-                      onClick={() => setAddressSelectedId(a.id)}
-                      disabled={isReadOnly}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox checked={checked} onCheckedChange={() => setAddressSelectedId(a.id)} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold truncate">{a.name}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground truncate">
-                              {a.streetName}, {a.number} • {a.neighborhood}
-                            </div>
-                            <div className="mt-0.5 text-xs text-muted-foreground truncate">
-                              {a.city} - {a.state} • {a.zipCode}
-                            </div>
-                          </div>
-                        </div>
-                        {a.isDefault ? (
-                          <Badge variant="secondary" className="shrink-0 h-5 px-2 text-[10px]">
-                            Padrão
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          <SheetFooter className="border-t p-4 flex-row justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setAddressSheetOpen(false)}
-              disabled={isSelectingAddress || isUpdatingCartAfterAddressSelect}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                if (!addressSelectedId) return
-                setSelectedAddressId(addressSelectedId)
-                selectCartAddress(addressSelectedId)
-                setAddressSheetOpen(false)
-              }}
-              disabled={
-                isReadOnly ||
-                !addressSelectedId ||
-                isSelectingAddress ||
-                isUpdatingCartAfterAddressSelect ||
-                addressSelectedId === (cart?.address?.id ?? null)
-              }
-            >
-              Aplicar
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }
 
 export function CartItemsTab({
-  cart,
+  products,
+  totalItems,
+  isLoading,
   openProducts,
   toggleProductOpen,
   setAddProductOpen,
@@ -444,7 +102,9 @@ export function CartItemsTab({
   updateItem,
   deleteItem,
 }: {
-  cart: Cart | undefined
+  products: ProductGroup[]
+  totalItems: number
+  isLoading: boolean
   openProducts: string[]
   toggleProductOpen: (productName: string) => void
   setAddProductOpen: (open: boolean) => void
@@ -457,7 +117,9 @@ export function CartItemsTab({
     <div className="rounded-xl border bg-background shadow-sm overflow-hidden flex flex-col min-h-[400px]">
       <div className="flex items-center justify-between border-b px-3 py-2">
         <h3 className="text-[13px] font-semibold flex items-center gap-2">
-          <ShoppingCart className="h-3.5 w-3.5" /> Itens ({cart?.totalItems || 0})
+          <ShoppingCart className="h-3.5 w-3.5" />
+          <span>Itens</span>
+          {isLoading ? <Skeleton className="h-4 w-10" /> : <span>({totalItems})</span>}
         </h3>
         <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAddProductOpen(true)} disabled={isReadOnly}>
           <Plus className="h-3 w-3 mr-1.5" /> Adicionar
@@ -465,7 +127,21 @@ export function CartItemsTab({
       </div>
 
       <div className="p-3 space-y-3 flex-1">
-        {(cart?.products || []).length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="border rounded-lg bg-card p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-[220px]" />
+                    <Skeleton className="h-3 w-[140px]" />
+                  </div>
+                  <Skeleton className="h-4 w-[80px]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <Empty className="gap-2">
               <EmptyMedia variant="icon">
@@ -480,9 +156,9 @@ export function CartItemsTab({
           </div>
         ) : (
           <div className="space-y-3">
-            {cart?.products.map((product) => {
+            {products.map((product) => {
               const isOpen = openProducts.includes(product.name)
-              const productTotalItems = product.totalItems || product.derivatedProducts.reduce((acc, item) => acc + item.amount, 0)
+              const productTotalItems = product.derivatedProducts.reduce((acc, item) => acc + item.amount, 0)
 
               return (
                 <Collapsible
@@ -603,6 +279,7 @@ export function CartItemsTab({
 
 export function CartCouponCard({
   cupons,
+  isLoading,
   couponCode,
   setCouponCode,
   applyCoupon,
@@ -612,7 +289,8 @@ export function CartCouponCard({
   setRemoveCouponOpen,
   isReadOnly,
 }: {
-  cupons: NonNullable<Cart["cupons"]>
+  cupons: CartCuponsResponse["cupons"]
+  isLoading: boolean
   couponCode: string
   setCouponCode: (next: string) => void
   applyCoupon: (code: string) => void
@@ -622,6 +300,8 @@ export function CartCouponCard({
   setRemoveCouponOpen: (open: boolean) => void
   isReadOnly: boolean
 }) {
+  const isBusy = isLoading || isApplyingCoupon || isRemovingCoupon
+
   return (
     <div className="rounded-xl border bg-background shadow-sm p-4">
       <div className="flex items-start justify-between gap-3">
@@ -632,13 +312,19 @@ export function CartCouponCard({
           <div className="min-w-0">
             <div className="text-[13px] font-semibold leading-none">Cupom de desconto</div>
             <div className="mt-1 text-xs text-muted-foreground truncate">
-              {cupons.length > 0 ? "Cupons aplicados no carrinho." : "Digite o código para aplicar no carrinho."}
+              {isLoading ? (
+                <Skeleton className="h-3 w-[220px]" />
+              ) : cupons.length > 0 ? (
+                "Cupons aplicados no carrinho."
+              ) : (
+                "Digite o código para aplicar no carrinho."
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {cupons.length > 0 ? (
+      {!isLoading && cupons.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {cupons.map((c) => (
             <Badge key={c.id} variant="secondary" className="font-mono gap-1 pr-1">
@@ -662,29 +348,33 @@ export function CartCouponCard({
       ) : null}
 
       <div className="mt-3 flex items-center gap-2">
-        <Input
-          className="h-9 text-sm"
-          value={couponCode}
-          onChange={(e) => {
-            setCouponCode(e.target.value.replace(/\s/g, "").toUpperCase())
-          }}
-          placeholder="XXX-XXX"
-          disabled={isReadOnly || isApplyingCoupon || isRemovingCoupon}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") return
-            e.preventDefault()
-            const nextCode = couponCode.trim()
-            if (!nextCode) return
-            if (isReadOnly || isApplyingCoupon || isRemovingCoupon) return
-            applyCoupon(nextCode)
-          }}
-        />
+        {isLoading ? (
+          <Skeleton className="h-9 flex-1" />
+        ) : (
+          <Input
+            className="h-9 text-sm"
+            value={couponCode}
+            onChange={(e) => {
+              setCouponCode(e.target.value.replace(/\s/g, "").toUpperCase())
+            }}
+            placeholder="XXX-XXX"
+            disabled={isReadOnly || isApplyingCoupon || isRemovingCoupon}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return
+              e.preventDefault()
+              const nextCode = couponCode.trim()
+              if (!nextCode) return
+              if (isReadOnly || isApplyingCoupon || isRemovingCoupon) return
+              applyCoupon(nextCode)
+            }}
+          />
+        )}
         <Button
           type="button"
           variant="outline"
           size="icon"
           className="h-9 w-9"
-          disabled={isReadOnly || !couponCode.trim() || isApplyingCoupon || isRemovingCoupon}
+          disabled={isReadOnly || isBusy || !couponCode.trim()}
           onClick={() => {
             const nextCode = couponCode.trim()
             if (!nextCode) return

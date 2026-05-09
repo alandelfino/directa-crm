@@ -14,6 +14,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator'
 import { PayInInstallmentEditSheet } from './pay-in-installment-edit-sheet'
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
 type PayInInstallment = {
   id: number
   payInId: number
@@ -27,13 +41,24 @@ type PayInInstallment = {
 
 type SortBy = 'id' | 'createdAt' | 'order' | 'label'
 
+type PayInInstallmentsResponse = {
+  page: number
+  limit: number
+  totalPages: number
+  total: number
+  payIn?: { id: number; name: string }
+  items: PayInInstallment[]
+}
+
 export function PayInInstallmentsSheet({
   payInId,
   payInName,
+  storeId,
   trigger,
 }: {
   payInId: number
   payInName?: string | null
+  storeId: number
   trigger?: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -54,33 +79,28 @@ export function PayInInstallmentsSheet({
   const selectedId = selectedIds.length === 1 ? selectedIds[0] : null
   const activeFilterCount = (search ? 1 : 0) + (sortBy !== 'order' ? 1 : 0) + (orderBy !== 'asc' ? 1 : 0)
 
-  const { data, isLoading, isRefetching, refetch, isError, error } = useQuery({
-    queryKey: ['pay-in-installments', payInId, currentPage, perPage, sortBy, orderBy, search],
-    enabled: open && Number(payInId) > 0,
+  const { data, isLoading, isRefetching, refetch, isError, error } = useQuery<PayInInstallmentsResponse, unknown>({
+    queryKey: ['pay-in-installments', storeId, payInId, currentPage, perPage, sortBy, orderBy, search],
+    enabled: open && Number(payInId) > 0 && Number(storeId) > 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit: perPage,
         payInId,
         sortBy,
         orderBy,
+        storeId,
       }
       if (search) params.search = search
-      const response = await privateInstance.get('/tenant/pay-in-installments', { params })
-      return response.data as {
-        page: number
-        limit: number
-        totalPages: number
-        total: number
-        payIn?: { id: number; name: string }
-        items: PayInInstallment[]
-      }
+      const response = await privateInstance.get<PayInInstallmentsResponse>('/tenant/pay-in-installments', { params })
+      return response.data
     },
   })
 
   useEffect(() => {
-    if (data) setTotalItems(Number((data as any)?.total) || 0)
+    if (!data) return
+    setTotalItems(typeof data.total === 'number' ? data.total : 0)
   }, [data])
 
   useEffect(() => {
@@ -101,7 +121,7 @@ export function PayInInstallmentsSheet({
 
   useEffect(() => {
     if (isError) {
-      const errorData = (error as any)?.response?.data
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao carregar parcelas', {
         description: errorData?.detail || 'Não foi possível carregar as parcelas.',
       })
@@ -325,6 +345,7 @@ export function PayInInstallmentsSheet({
               payInId={payInId}
               payInName={headerName || null}
               payInInstallmentId={selectedId}
+              storeId={storeId}
               disabled={!selectedId}
               onSaved={() => setSelectedIds([])}
             />

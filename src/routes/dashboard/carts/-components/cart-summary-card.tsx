@@ -1,28 +1,43 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { ArrowRight } from "lucide-react"
-import type { Cart, ShippingQuote } from "./edit-cart.types"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ArrowRight, Pencil } from "lucide-react"
+import type { CartStatus, ShippingQuote } from "./edit-cart.types"
 import { PaymentMethodsOverviewSheet } from "./payment-methods-overview-sheet"
 
 export function CartSummaryCard({
-  cart,
+  status,
+  totalItems,
+  productsValueCents,
+  discountsCents,
+  isLoadingBasic,
+  isLoadingProducts,
+  isLoadingCupons,
   selectedShippingQuote,
   selectedShippingPrice,
-  subtotalCents,
+  isLoadingShipping,
   totalWithShippingCents,
   formatBRL,
   cartId,
   isReadOnly,
+  onEditShipping,
 }: {
-  cart: Cart | undefined
+  status: CartStatus | null
+  totalItems: number
+  productsValueCents: number
+  discountsCents: number
+  isLoadingBasic: boolean
+  isLoadingProducts: boolean
+  isLoadingCupons: boolean
   selectedShippingQuote: ShippingQuote | null
   selectedShippingPrice: number
-  subtotalCents: number
+  isLoadingShipping: boolean
   totalWithShippingCents: number
   formatBRL: (valueInCents: number) => string
   cartId: number
   isReadOnly: boolean
+  onEditShipping?: () => void
 }) {
   return (
     <div className="rounded-xl border bg-background shadow-sm p-4 lg:sticky lg:top-6">
@@ -30,16 +45,26 @@ export function CartSummaryCard({
         <div className="flex flex-col gap-0.5">
           <span className="text-[13px] font-semibold">Resumo</span>
           <span className="text-xs text-muted-foreground">
-            {cart?.totalItems || 0} {(cart?.totalItems || 0) === 1 ? "item" : "itens"} no carrinho
+            {isLoadingProducts ? (
+              <Skeleton className="inline-block h-3 w-28 align-middle" />
+            ) : (
+              <>
+                {totalItems} {totalItems === 1 ? "item" : "itens"} no carrinho
+              </>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {cart && (
-            <Badge className="h-5 px-2 text-[10px]" variant={cart.status === "open" ? "outline" : cart.status === "abandoned" ? "destructive" : "default"}>
-              {cart.status === "open" ? "Aberto" : cart.status === "abandoned" ? "Abandonado" : "Finalizado"}
+          {isLoadingBasic ? (
+            <Skeleton className="h-5 w-20 rounded-full" />
+          ) : status ? (
+            <Badge className="h-5 px-2 text-[10px]" variant={status === "open" ? "outline" : status === "abandoned" ? "destructive" : "default"}>
+              {status === "open" ? "Aberto" : status === "abandoned" ? "Abandonado" : "Finalizado"}
             </Badge>
-          )}
-          {selectedShippingQuote ? (
+          ) : null}
+          {isLoadingShipping && !selectedShippingQuote ? (
+            <Skeleton className="h-5 w-20 rounded-full" />
+          ) : selectedShippingQuote ? (
             <Badge variant="secondary" className="h-5 px-2 text-[10px]">
               {selectedShippingQuote.carrierName}
             </Badge>
@@ -54,25 +79,42 @@ export function CartSummaryCard({
       <div className="mt-3 space-y-2 text-[13px]">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Produtos</span>
-          <span className="font-medium tabular-nums">{formatBRL(subtotalCents)}</span>
+          {isLoadingProducts ? <Skeleton className="h-4 w-20" /> : <span className="font-medium tabular-nums">{formatBRL(productsValueCents)}</span>}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Frete</span>
-          <span className="font-medium tabular-nums">{formatBRL(selectedShippingPrice)}</span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Frete</span>
+              {!isReadOnly && onEditShipping ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] font-normal text-blue-600 hover:bg-transparent hover:text-blue-600 hover:underline"
+                  onClick={onEditShipping}
+                >
+                  <Pencil className="h-3 w-3 mr-1.5" />
+                  Editar
+                </Button>
+              ) : null}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground truncate">
+              {isLoadingShipping ? (
+                <Skeleton className="h-3 w-[260px]" />
+              ) : selectedShippingQuote
+                ? `${selectedShippingQuote.carrierName} • ${selectedShippingQuote.serviceName} • ${selectedShippingQuote.deadline} dia(s)`
+                : "Selecione uma cotação de frete."}
+            </div>
+          </div>
+          {isLoadingShipping ? <Skeleton className="h-4 w-16" /> : <span className="font-medium tabular-nums">{formatBRL(selectedShippingPrice)}</span>}
         </div>
 
-        {(cart?.additions || []).length > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Adicionais</span>
-            <span className="font-medium tabular-nums">{formatBRL(cart?.totalAdditions || 0)}</span>
-          </div>
-        )}
-        {(cart?.discounts || []).length > 0 && (
+        {isLoadingCupons || discountsCents > 0 ? (
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Descontos</span>
-            <span className="font-medium tabular-nums">-{formatBRL(cart?.totalDiscounts || 0)}</span>
+            {isLoadingCupons ? <Skeleton className="h-4 w-16" /> : <span className="font-medium tabular-nums">-{formatBRL(discountsCents)}</span>}
           </div>
-        )}
+        ) : null}
 
         <div className="pt-2 space-y-3">
           <span className="text-muted-foreground">Métodos de pagamento</span>
@@ -99,7 +141,7 @@ export function CartSummaryCard({
       </div>
 
       <div className="mt-3">
-        <Button disabled={isReadOnly || !cart?.totalItems || cart?.totalItems === 0} className="w-full h-9 font-semibold gap-2 bg-green-500">
+        <Button disabled={isReadOnly || totalItems === 0} className="w-full h-9 font-semibold gap-2 bg-green-500">
           Finalizar Pedido <ArrowRight className="h-3.5 w-3.5" />
         </Button>
       </div>

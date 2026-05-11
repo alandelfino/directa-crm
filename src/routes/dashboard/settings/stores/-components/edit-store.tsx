@@ -132,7 +132,7 @@ export function EditStoreSheet({ storeId, onSaved }: { storeId: number, onSaved?
       }
     }
     if (open) run()
-  }, [open, storeId])
+  }, [open, storeId, form])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {

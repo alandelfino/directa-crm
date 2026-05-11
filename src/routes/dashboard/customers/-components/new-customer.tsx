@@ -102,7 +102,7 @@ export function NewCustomerSheet({ className, onOpenChange, onCreated, ...props 
     const current = onlyDigits(form.getValues('cpfOrCnpj'))
     const maxLen = personType === 'entity' ? 14 : 11
     form.setValue('cpfOrCnpj', current.slice(0, maxLen))
-  }, [personType])
+  }, [personType, form])
 
   const closeSheet = () => {
     setOpen(false)

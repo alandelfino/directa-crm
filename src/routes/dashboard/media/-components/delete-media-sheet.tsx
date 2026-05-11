@@ -96,7 +96,7 @@ export function BulkDeleteMediasSheet({ open, onOpenChange, ids, onDeleted }: { 
       setHasNotified(false)
       setConfirmed(false)
     }
-  }, [open, ids])
+  }, [open, ids, queue.length])
 
   useEffect(() => {
     if (!open) {

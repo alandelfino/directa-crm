@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 const formSchema = z.object({ name: z.string().min(1, { message: "Nome é obrigatório" }) })
 
@@ -22,7 +22,8 @@ export function EditWarehouseSheet({ className, warehouseId, onSaved, ...props }
 
   const closeSheet = () => { setOpen(false); form.reset() }
 
-  async function fetchItem() {
+  const fetchItem = useCallback(async () => {
+    if (!warehouseId) return
     try {
       setLoading(true)
       const response = await privateInstance.get(`/tenant/warehouses/${warehouseId}`)
@@ -35,9 +36,11 @@ export function EditWarehouseSheet({ className, warehouseId, onSaved, ...props }
         description: errorData?.detail || 'Não foi possível carregar os dados do depósito.'
       })
     } finally { setLoading(false) }
-  }
+  }, [form, warehouseId])
 
-  useEffect(() => { if (open && warehouseId) fetchItem() }, [open, warehouseId])
+  useEffect(() => {
+    if (open && warehouseId) fetchItem()
+  }, [open, warehouseId, fetchItem])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/warehouses/${warehouseId}`, values),

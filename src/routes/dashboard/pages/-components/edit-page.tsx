@@ -98,7 +98,7 @@ export function EditPageSheet({ pageId, onSaved }: { pageId: number, onSaved?: (
       }
     }
     if (open && pageId) run()
-  }, [open, pageId])
+  }, [open, pageId, form])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {

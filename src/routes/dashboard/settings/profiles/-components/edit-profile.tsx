@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
@@ -36,7 +36,8 @@ export function EditProfileSheet({
     form.reset()
   }
 
-  async function fetchProfile() {
+  const fetchProfile = useCallback(async () => {
+    if (!profileId) return
     try {
       setProfileLoading(true)
       const response = await privateInstance.get(`/tenant/user-profiles/${profileId}`)
@@ -53,13 +54,11 @@ export function EditProfileSheet({
     } finally {
       setProfileLoading(false)
     }
-  }
+  }, [form, profileId])
 
   useEffect(() => {
-    if (open && profileId) {
-      fetchProfile()
-    }
-  }, [open, profileId])
+    if (open) fetchProfile()
+  }, [open, fetchProfile])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {

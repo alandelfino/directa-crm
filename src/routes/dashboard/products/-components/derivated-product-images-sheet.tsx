@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
@@ -282,23 +282,25 @@ function DerivationImages({ derivation, isSelected, onToggleSelect }: { derivati
     }
   }
 
-  const rawItems: APIImageItem[] = data 
-    ? (Array.isArray(data) 
-        ? data 
-        : Array.isArray(data.data) 
-            ? data.data 
-            : Array.isArray(data.items) 
-                ? data.items 
-                : [])
-    : []
-  
-  const filteredItems = rawItems.filter(item => item.derivatedProductId === derivation.id)
-  const images = normalizeImages(filteredItems).items
+  const images = useMemo(() => {
+    const rawItems: APIImageItem[] = data
+      ? Array.isArray(data)
+        ? data
+        : Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.items)
+            ? data.items
+            : []
+      : []
+
+    const filteredItems = rawItems.filter((item) => item.derivatedProductId === derivation.id)
+    return normalizeImages(filteredItems).items
+  }, [data, derivation.id])
   const [orderedImages, setOrderedImages] = useState<ImageItem[]>([])
 
   useEffect(() => {
     setOrderedImages(images)
-  }, [JSON.stringify(images)])
+  }, [images])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -450,17 +452,19 @@ function ProductGeneralImages({ productId }: { productId: number }) {
     }
   })
 
-  const images: ImageItem[] = (data?.data || []).map(item => ({
-    id: item.id,
-    media_id: item.mediaId,
-    name: 'Imagem do Produto',
-    url: item.url,
-    original_url: item.url
-  }))
+  const images = useMemo<ImageItem[]>(() => {
+    return (data?.data || []).map((item) => ({
+      id: item.id,
+      media_id: item.mediaId,
+      name: 'Imagem do Produto',
+      url: item.url,
+      original_url: item.url
+    }))
+  }, [data])
 
   useEffect(() => {
     setOrderedImages(images)
-  }, [JSON.stringify(images)])
+  }, [images])
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event

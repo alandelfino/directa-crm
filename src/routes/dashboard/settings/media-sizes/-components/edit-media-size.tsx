@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -48,12 +48,13 @@ export function EditMediaSizeSheet({
     }
   })
 
-  const closeSheet = () => {
+  const closeSheet = useCallback(() => {
     setOpen(false)
     form.reset()
-  }
+  }, [form])
 
-  async function fetchMediaSize() {
+  const fetchMediaSize = useCallback(async () => {
+    if (!mediaSizeId) return
     try {
       setLoading(true)
       const response = await privateInstance.get(`/tenant/media-sizes/${mediaSizeId}`)
@@ -81,13 +82,11 @@ export function EditMediaSizeSheet({
     } finally {
       setLoading(false)
     }
-  }
+  }, [closeSheet, form, mediaSizeId])
 
   useEffect(() => {
-    if (open && mediaSizeId) {
-      fetchMediaSize()
-    }
-  }, [open, mediaSizeId])
+    if (open) fetchMediaSize()
+  }, [open, fetchMediaSize])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {

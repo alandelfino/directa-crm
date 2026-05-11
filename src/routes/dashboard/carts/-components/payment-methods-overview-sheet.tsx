@@ -30,11 +30,13 @@ const getApiErrorData = (err: unknown): { title?: string; detail?: string } | nu
 export function PaymentMethodsOverviewSheet({
   className,
   cartId,
+  storeId,
   trigger,
   formatBRL,
 }: {
   className?: string
   cartId: number
+  storeId?: number
   trigger: React.ReactNode
   formatBRL: (valueInCents: number) => string
 }) {
@@ -42,7 +44,7 @@ export function PaymentMethodsOverviewSheet({
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   const { data, isLoading, isError, error } = useQuery<PaymentMethodQuote[], unknown>({
-    queryKey: ["cart-payment-methods-overview", cartId],
+    queryKey: ["cart-payment-methods-overview", cartId, storeId],
     enabled: open && Number(cartId) > 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
@@ -52,6 +54,7 @@ export function PaymentMethodsOverviewSheet({
           limit: 100,
           sortBy: "name",
           orderBy: "asc",
+          ...(Number(storeId) > 0 ? { storeId } : {}),
         },
       })
 
@@ -182,7 +185,16 @@ export function PaymentMethodsOverviewSheet({
                   <AccordionTrigger className="px-4 py-3 bg-muted/20 hover:bg-muted/30 hover:no-underline">
                     <div className="flex flex-1 items-start justify-between gap-3 min-w-0">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold truncate">{q.paymentMethod.name}</div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="text-sm font-semibold truncate">{q.paymentMethod.name}</div>
+                          {q.paymentMethod.activeDiscount && (Number(q.paymentMethod.discountAmount ?? 0) || 0) > 0 ? (
+                            <span className="shrink-0 text-[11px] font-semibold text-destructive tabular-nums">
+                              {q.paymentMethod.discountType === "percent"
+                                ? `-${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format((Number(q.paymentMethod.discountAmount ?? 0) || 0) / 100)}%`
+                                : `-${formatBRL(Number(q.paymentMethod.discountAmount ?? 0) || 0)}`}
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="mt-0.5 text-xs text-muted-foreground">Condições disponíveis</div>
                       </div>
 

@@ -214,7 +214,7 @@ export function NewProductSheet({ onCreated }: { onCreated?: (product: any) => v
         categories: [],
       })
     }
-  }, [open])
+  }, [open, form, queryClient])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

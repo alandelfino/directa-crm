@@ -78,7 +78,7 @@ export function EditStoreMenuSheet({ storeMenuId, storeId, onSaved }: { storeMen
       }
     }
     if (open) run()
-  }, [open, storeMenuId])
+  }, [open, storeMenuId, form, initialStoreId])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {

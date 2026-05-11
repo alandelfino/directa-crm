@@ -29,8 +29,8 @@ const getApiErrorData = (err: unknown): { title?: string; detail?: string } | nu
 
 const formSchema = z.object({
   label: z.string().min(1, { message: 'Label é obrigatório' }),
-  interestRate: z.coerce.number().int().min(0, { message: 'Juros inválido' }),
-  intervalInDays: z.coerce.number().int().min(0, { message: 'Intervalo inválido' }),
+  interestRate: z.number().int().min(0, { message: 'Juros inválido' }),
+  intervalInDays: z.number().int().min(0, { message: 'Intervalo inválido' }),
 })
 
 type PayInInstallment = {
@@ -261,7 +261,15 @@ export function PayInInstallmentEditSheet({
                             inputMode="numeric"
                             min={0}
                             value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value)}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              if (raw === '') {
+                                field.onChange(0)
+                                return
+                              }
+                              const n = Number(raw)
+                              field.onChange(Number.isFinite(n) ? n : 0)
+                            }}
                             disabled={isPending}
                             placeholder="Ex: 30"
                           />

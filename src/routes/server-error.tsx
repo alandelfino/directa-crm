@@ -19,7 +19,7 @@ function ServerErrorPage() {
       await privateInstance.get('/tenant/check-token')
       // Se tiver sucesso, volta para o dashboard
       window.location.href = '/'
-    } catch (error) {
+    } catch {
       // Se falhar, continua na página de erro
       setIsChecking(false)
     }

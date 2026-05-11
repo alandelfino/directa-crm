@@ -85,7 +85,7 @@ export function MultiUploadSheet() {
       } catch {}
       setHasNotified(true)
     }
-  }, [open, queue, allProcessed, hasNotified])
+  }, [open, queue, allProcessed, hasNotified, queryClient])
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files || files.length === 0) return

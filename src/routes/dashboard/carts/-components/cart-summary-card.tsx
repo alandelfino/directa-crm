@@ -10,7 +10,7 @@ export function CartSummaryCard({
   status,
   totalItems,
   productsValueCents,
-  discountsCents,
+  cuponDiscountsCents,
   isLoadingBasic,
   isLoadingProducts,
   isLoadingCupons,
@@ -18,15 +18,18 @@ export function CartSummaryCard({
   selectedShippingPrice,
   isLoadingShipping,
   totalWithShippingCents,
+  baseTotalBeforeDiscountsCents,
   formatBRL,
   cartId,
+  storeId,
   isReadOnly,
   onEditShipping,
+  couponSection,
 }: {
   status: CartStatus | null
   totalItems: number
   productsValueCents: number
-  discountsCents: number
+  cuponDiscountsCents: number
   isLoadingBasic: boolean
   isLoadingProducts: boolean
   isLoadingCupons: boolean
@@ -34,17 +37,25 @@ export function CartSummaryCard({
   selectedShippingPrice: number
   isLoadingShipping: boolean
   totalWithShippingCents: number
+  baseTotalBeforeDiscountsCents: number
   formatBRL: (valueInCents: number) => string
   cartId: number
+  storeId: number
   isReadOnly: boolean
   onEditShipping?: () => void
+  couponSection?: React.ReactNode
 }) {
+  const showDiscounts = isLoadingCupons || cuponDiscountsCents > 0
+  const showPromoSection = Boolean(couponSection)
+  const showBaseTotal =
+    !isLoadingProducts && !isLoadingCupons && !isLoadingShipping && baseTotalBeforeDiscountsCents > totalWithShippingCents
+
   return (
     <div className="rounded-xl border bg-background shadow-sm p-4 lg:sticky lg:top-6">
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[13px] font-semibold">Resumo</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-base font-semibold">Resumo</span>
+          <span className="text-sm text-muted-foreground">
             {isLoadingProducts ? (
               <Skeleton className="inline-block h-3 w-28 align-middle" />
             ) : (
@@ -58,29 +69,32 @@ export function CartSummaryCard({
           {isLoadingBasic ? (
             <Skeleton className="h-5 w-20 rounded-full" />
           ) : status ? (
-            <Badge className="h-5 px-2 text-[10px]" variant={status === "open" ? "outline" : status === "abandoned" ? "destructive" : "default"}>
+            <Badge className="h-6 px-2 text-xs" variant={status === "open" ? "outline" : status === "abandoned" ? "destructive" : "default"}>
               {status === "open" ? "Aberto" : status === "abandoned" ? "Abandonado" : "Finalizado"}
             </Badge>
           ) : null}
           {isLoadingShipping && !selectedShippingQuote ? (
             <Skeleton className="h-5 w-20 rounded-full" />
           ) : selectedShippingQuote ? (
-            <Badge variant="secondary" className="h-5 px-2 text-[10px]">
+            <Badge variant="secondary" className="h-6 px-2 text-xs">
               {selectedShippingQuote.carrierName}
             </Badge>
           ) : (
-            <Badge variant="outline" className="h-5 px-2 text-[10px]">
+            <Badge variant="outline" className="h-6 px-2 text-xs">
               Sem frete
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="mt-3 space-y-2 text-[13px]">
+      <div className="mt-3 space-y-2 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Produtos</span>
           {isLoadingProducts ? <Skeleton className="h-4 w-20" /> : <span className="font-medium tabular-nums">{formatBRL(productsValueCents)}</span>}
         </div>
+
+        <Separator className="my-2.5" />
+
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -90,7 +104,7 @@ export function CartSummaryCard({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[11px] font-normal text-blue-600 hover:bg-transparent hover:text-blue-600 hover:underline"
+                  className="h-7 px-2 text-sm font-normal text-blue-600 hover:bg-transparent hover:text-blue-600 hover:underline"
                   onClick={onEditShipping}
                 >
                   <Pencil className="h-3 w-3 mr-1.5" />
@@ -98,7 +112,7 @@ export function CartSummaryCard({
                 </Button>
               ) : null}
             </div>
-            <div className="mt-0.5 text-xs text-muted-foreground truncate">
+            <div className="mt-0.5 text-sm text-muted-foreground truncate">
               {isLoadingShipping ? (
                 <Skeleton className="h-3 w-[260px]" />
               ) : selectedShippingQuote
@@ -109,20 +123,21 @@ export function CartSummaryCard({
           {isLoadingShipping ? <Skeleton className="h-4 w-16" /> : <span className="font-medium tabular-nums">{formatBRL(selectedShippingPrice)}</span>}
         </div>
 
-        {isLoadingCupons || discountsCents > 0 ? (
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Descontos</span>
-            {isLoadingCupons ? <Skeleton className="h-4 w-16" /> : <span className="font-medium tabular-nums">-{formatBRL(discountsCents)}</span>}
-          </div>
+        {showPromoSection ? (
+          <>
+            <Separator className="my-2.5" />
+            {couponSection ? <div className="pt-2">{couponSection}</div> : null}
+          </>
         ) : null}
 
         <div className="pt-2 space-y-3">
-          <span className="text-muted-foreground">Métodos de pagamento</span>
+          <span className="text-muted-foreground text-sm">Métodos de pagamento</span>
           <PaymentMethodsOverviewSheet
             cartId={cartId}
+            storeId={storeId}
             formatBRL={formatBRL}
             trigger={
-              <Button type="button" variant="link" className="w-full text-left justify-start text-xs font-light p-0 text-blue-600" disabled={isReadOnly || !cartId}>
+              <Button type="button" variant="link" className="w-full text-left justify-start text-sm font-normal p-0 text-blue-600" disabled={isReadOnly || !cartId}>
                 Ver todas as formas de pagamentos
               </Button>
             }
@@ -131,12 +146,26 @@ export function CartSummaryCard({
 
         <Separator className="my-2.5" />
 
+        {showDiscounts ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Descontos (cupons)</span>
+              {isLoadingCupons ? <Skeleton className="h-4 w-16" /> : <span className="font-medium tabular-nums">-{formatBRL(cuponDiscountsCents)}</span>}
+            </div>
+          </div>
+        ) : null}
+
+        {showDiscounts ? <Separator className="my-2.5" /> : null}
+
         <div className="flex items-end justify-between gap-2">
           <div className="flex flex-col">
-            <span className="text-[13px] font-semibold">Total</span>
-            <span className="text-xs text-muted-foreground">Inclui frete selecionado</span>
+            <span className="text-base font-semibold">Total</span>
+            <span className="text-sm text-muted-foreground">Inclui frete selecionado</span>
           </div>
-          <span className="text-xl font-semibold tracking-tight tabular-nums text-primary">{formatBRL(totalWithShippingCents)}</span>
+          <div className="flex flex-col items-end">
+            {showBaseTotal ? <span className="text-sm tabular-nums text-muted-foreground underline">{formatBRL(baseTotalBeforeDiscountsCents)}</span> : null}
+            <span className="text-xl font-semibold tracking-tight tabular-nums text-primary">{formatBRL(totalWithShippingCents)}</span>
+          </div>
         </div>
       </div>
 

@@ -34,19 +34,30 @@ const couponTypes: Array<{ value: (typeof couponTypeValues)[number]; label: stri
 ]
 
 const valueSchema = z
-  .any()
-  .refine((v) => typeof v === 'number' && Number.isFinite(v), { message: 'Valor é obrigatório' })
-  .transform((v) => v as number)
-  .refine((v) => Number.isInteger(v), { message: 'Valor deve ser um número inteiro' })
-  .refine((v) => v >= 0, { message: 'Valor mínimo é 0' })
+  .number({ required_error: 'Valor é obrigatório', invalid_type_error: 'Valor é obrigatório' })
+  .refine((v) => Number.isFinite(v), { message: 'Valor é obrigatório' })
+  .int({ message: 'Valor deve ser um número inteiro' })
+  .min(0, { message: 'Valor mínimo é 0' })
+
+const optionalNonEmptyString = (message: string) =>
+  z
+    .union([z.undefined(), z.literal(''), z.string().min(1, { message })])
+    .transform((v) => (v === '' || v === undefined ? undefined : v))
+
+const optionalDateTimeLocalString = z
+  .union([z.undefined(), z.literal(''), z.string().min(1, { message: 'Data inválida' })])
+  .transform((v) => (v === '' || v === undefined ? undefined : v))
+  .refine((v) => !v || !Number.isNaN(new Date(v).getTime()), { message: 'Data inválida' })
 
 const formSchema = z.object({
   code: z.string().min(1, { message: 'Código é obrigatório' }),
-  customerMessage: z.string().optional(),
+  customerMessage: optionalNonEmptyString('Mensagem deve ter pelo menos 1 caractere').optional(),
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   type: z.enum(couponTypeValues).default('fixed_in_total_value'),
   value: valueSchema,
   storeId: z.coerce.number().int().min(1, { message: 'Loja é obrigatória' }),
+  validFrom: optionalDateTimeLocalString.optional(),
+  validTo: optionalDateTimeLocalString.optional(),
 }).superRefine((data, ctx) => {
   if (String(data.type).startsWith('percent_')) {
     if (typeof data.value === 'number' && Number.isFinite(data.value) && data.value > 10000) {
@@ -66,6 +77,20 @@ type NewCouponSheetProps = React.ComponentProps<'form'> & {
 type Store = { id: number; name: string }
 
 const COUPON_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
 
 function generateCouponCode(): string {
   const pick = () => COUPON_CODE_CHARS[Math.floor(Math.random() * COUPON_CODE_CHARS.length)]!
@@ -105,7 +130,7 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
   const usedCodesRef = useRef(new Set<string>())
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       code: '',
       customerMessage: '',
@@ -113,6 +138,8 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
       type: 'fixed_in_total_value',
       value: undefined,
       storeId: 0,
+      validFrom: '',
+      validTo: '',
     },
   })
 
@@ -150,7 +177,12 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      return privateInstance.post('/tenant/cupons', values)
+      const payload = {
+        ...values,
+        validFrom: values.validFrom ? new Date(values.validFrom).toISOString() : undefined,
+        validTo: values.validTo ? new Date(values.validTo).toISOString() : undefined,
+      }
+      return privateInstance.post('/tenant/cupons', payload)
     },
     onSuccess: (response) => {
       if (response.status === 200 || response.status === 201) {
@@ -158,14 +190,12 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['cupons'] })
       } else {
-        const errorData = response.data as any
-        toast.error(errorData?.title || 'Erro ao cadastrar cupom', {
-          description: errorData?.detail || 'Não foi possível cadastrar o cupom.',
-        })
+        const errorData = getApiErrorData({ response } as unknown)
+        toast.error(errorData?.title || 'Erro ao cadastrar cupom', { description: errorData?.detail || 'Não foi possível cadastrar o cupom.' })
       }
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error: unknown) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao cadastrar cupom', {
         description: errorData?.detail || 'Não foi possível cadastrar o cupom.',
       })
@@ -368,6 +398,36 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="validFrom"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Válido a partir de</FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)} disabled={isPending} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="validTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Válido até</FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)} disabled={isPending} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <div className="mt-auto border-t p-4">

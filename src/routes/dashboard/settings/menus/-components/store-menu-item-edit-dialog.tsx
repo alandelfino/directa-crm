@@ -88,7 +88,7 @@ export function StoreMenuItemEditDialog({
       }
     }
     if (open) load()
-  }, [open, storeMenuId, itemId])
+  }, [open, storeMenuId, itemId, form])
 
   const options = useMemo(() => {
     return parentOptions

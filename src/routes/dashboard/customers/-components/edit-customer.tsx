@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -109,7 +109,8 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
     if (!newOpen) form.reset()
   }
 
-  async function fetchCustomer() {
+  const fetchCustomer = useCallback(async () => {
+    if (!customerId) return
     try {
       setLoading(true)
       const response = await privateInstance.get(`/tenant/customers/${customerId}`)
@@ -134,20 +135,18 @@ export function EditCustomerSheet({ className, customerId, onOpenChange, onSaved
     } finally {
       setLoading(false)
     }
-  }
+  }, [customerId, form])
 
   useEffect(() => {
-    if (open && customerId) {
-      fetchCustomer()
-    }
-  }, [open, customerId])
+    if (open) fetchCustomer()
+  }, [open, fetchCustomer])
 
   // Ajustar o tamanho do valor quando o tipo muda
   useEffect(() => {
     const current = onlyDigits(form.getValues('cpfOrCnpj'))
     const maxLen = personType === 'entity' ? 14 : 11
     form.setValue('cpfOrCnpj', current.slice(0, maxLen))
-  }, [personType])
+  }, [personType, form])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {

@@ -51,6 +51,8 @@ type Coupon = {
   type: CouponType | string
   value: number
   storeId: number
+  validFrom?: string | null
+  validTo?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -91,6 +93,22 @@ function formatCouponValue(type: string, value: number) {
     }
   }
   return formatMoneyFromCents(Number(value) || 0)
+}
+
+function fmtDateTime(v?: string | null) {
+  if (!v) return '-'
+  try {
+    const d = new Date(v)
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(d)
+  } catch {
+    return v
+  }
 }
 
 function RouteComponent() {
@@ -159,7 +177,7 @@ function RouteComponent() {
       filterStoreId,
     ],
     queryFn: async () => {
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit: perPage,
         sortBy,
@@ -204,11 +222,18 @@ function RouteComponent() {
       className: 'min-w-[180px]',
     },
     {
-      id: 'name',
-      header: 'Nome',
+      id: 'description',
+      header: 'Descrição',
+      cell: (row) => <span className="block truncate min-w-0" title={row.description}>{row.description}</span>,
+      headerClassName: 'min-w-[280px] border-r',
+      className: 'min-w-[280px]',
+    },
+    {
+      id: 'customerMessage',
+      header: 'Mensagem',
       cell: (row) => <span className="block truncate min-w-0" title={row.customerMessage}>{row.customerMessage}</span>,
-      headerClassName: 'min-w-[240px] border-r',
-      className: 'min-w-[240px]',
+      headerClassName: 'min-w-[260px] border-r',
+      className: 'min-w-[260px]',
     },
     {
       id: 'type',
@@ -238,6 +263,22 @@ function RouteComponent() {
       },
       headerClassName: 'min-w-[220px] border-r',
       className: 'min-w-[220px]',
+    },
+    {
+      id: 'validFrom',
+      header: 'Válido de',
+      cell: (row) => <span className="text-sm">{fmtDateTime(row.validFrom)}</span>,
+      width: '190px',
+      headerClassName: 'w-[190px] min-w-[190px] border-r',
+      className: 'w-[190px] min-w-[190px]',
+    },
+    {
+      id: 'validTo',
+      header: 'Válido até',
+      cell: (row) => <span className="text-sm">{fmtDateTime(row.validTo)}</span>,
+      width: '190px',
+      headerClassName: 'w-[190px] min-w-[190px] border-r',
+      className: 'w-[190px] min-w-[190px]',
     },
     {
       id: 'createdAt',

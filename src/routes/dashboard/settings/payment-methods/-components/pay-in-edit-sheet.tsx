@@ -29,7 +29,7 @@ const getApiErrorData = (err: unknown): { title?: string; detail?: string } | nu
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
-  numberOfInstallments: z.coerce.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
+  numberOfInstallments: z.number().int().min(1, { message: 'Número de parcelas é obrigatório' }),
   payInInterestType: z.enum(['simple', 'price_table']).optional(),
   installmentType: z.enum(['fixed', 'dynamic']).optional(),
   active: z.boolean().optional(),
@@ -223,7 +223,15 @@ export function PayInEditSheet({
                                 inputMode="numeric"
                                 min={1}
                                 value={field.value ?? ''}
-                                onChange={(e) => field.onChange(e.target.value)}
+                                onChange={(e) => {
+                                  const raw = e.target.value
+                                  if (raw === '') {
+                                    field.onChange(1)
+                                    return
+                                  }
+                                  const n = Number(raw)
+                                  field.onChange(Number.isFinite(n) ? n : 1)
+                                }}
                                 disabled={isPending}
                                 placeholder="Ex: 6"
                               />

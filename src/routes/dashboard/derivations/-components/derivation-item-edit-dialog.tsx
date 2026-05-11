@@ -48,7 +48,7 @@ export function DerivationItemEditDialog({ derivationType, item, onUpdated }: {
     if (open) {
       form.reset({ nome: item.name ?? '', value: item.value ?? '' })
     }
-  }, [open, item])
+  }, [open, item, form])
 
   const { isPending: updating, mutate: updateItem } = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {

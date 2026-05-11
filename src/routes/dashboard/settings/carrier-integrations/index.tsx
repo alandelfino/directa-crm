@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
@@ -88,13 +88,9 @@ function RouteComponent() {
     setSelectedItems([])
   }, [currentPage, perPage, sortBy, orderBy, filterName, filterNameOperator])
 
-  const toggleSelect = (id: number) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems([])
-    } else {
-      setSelectedItems([id])
-    }
-  }
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedItems((prev) => (prev.includes(id) ? [] : [id]))
+  }, [])
 
   const fmtDate = (v?: string) => {
     if (!v) return '-'
@@ -161,7 +157,7 @@ function RouteComponent() {
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     }
-  ], [selectedItems])
+  ], [selectedItems, toggleSelect])
 
   return (
     <div className='flex flex-col w-full h-full'>

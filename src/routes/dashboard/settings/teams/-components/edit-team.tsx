@@ -43,7 +43,7 @@ export function EditTeamSheet({ teamId, onSaved }: { teamId: number, onSaved?: (
     if (open && teamId) {
       run()
     }
-  }, [open, teamId])
+  }, [open, teamId, form])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {

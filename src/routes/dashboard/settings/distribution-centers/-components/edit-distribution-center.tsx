@@ -43,7 +43,7 @@ export function EditDistributionCenterSheet({ distributionCenterId, onSaved }: {
     if (open && distributionCenterId) {
       run()
     }
-  }, [open, distributionCenterId])
+  }, [open, distributionCenterId, form])
 
   const { isPending, mutateAsync } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {

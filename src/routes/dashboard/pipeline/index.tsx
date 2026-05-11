@@ -130,7 +130,7 @@ function PipelineRoute() {
   useEffect(() => {
     // Fecha o sidebar apenas na montagem inicial
     setOpen(false)
-  }, []) // Remove setOpen da dependência para rodar apenas uma vez
+  }, [setOpen]) // Remove setOpen da dependência para rodar apenas uma vez
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

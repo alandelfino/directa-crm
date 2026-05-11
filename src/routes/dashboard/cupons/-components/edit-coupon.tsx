@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -34,19 +34,30 @@ const couponTypes: Array<{ value: (typeof couponTypeValues)[number]; label: stri
 ]
 
 const valueSchema = z
-  .any()
-  .refine((v) => typeof v === 'number' && Number.isFinite(v), { message: 'Valor é obrigatório' })
-  .transform((v) => v as number)
-  .refine((v) => Number.isInteger(v), { message: 'Valor deve ser um número inteiro' })
-  .refine((v) => v >= 0, { message: 'Valor mínimo é 0' })
+  .number({ required_error: 'Valor é obrigatório', invalid_type_error: 'Valor é obrigatório' })
+  .refine((v) => Number.isFinite(v), { message: 'Valor é obrigatório' })
+  .int({ message: 'Valor deve ser um número inteiro' })
+  .min(0, { message: 'Valor mínimo é 0' })
+
+const optionalNonEmptyString = (message: string) =>
+  z
+    .union([z.undefined(), z.literal(''), z.string().min(1, { message })])
+    .transform((v) => (v === '' || v === undefined ? undefined : v))
+
+const optionalDateTimeLocalString = z
+  .union([z.undefined(), z.literal(''), z.string().min(1, { message: 'Data inválida' })])
+  .transform((v) => (v === '' || v === undefined ? undefined : v))
+  .refine((v) => !v || !Number.isNaN(new Date(v).getTime()), { message: 'Data inválida' })
 
 const formSchema = z.object({
   code: z.string().min(1, { message: 'Código é obrigatório' }),
-  customerMessage: z.string().optional(),
+  customerMessage: optionalNonEmptyString('Mensagem deve ter pelo menos 1 caractere').optional(),
   description: z.string().min(1, { message: 'Descrição é obrigatória' }),
   type: z.enum(couponTypeValues),
   value: valueSchema,
   storeId: z.coerce.number().int().min(1, { message: 'Loja é obrigatória' }),
+  validFrom: optionalDateTimeLocalString.optional(),
+  validTo: optionalDateTimeLocalString.optional(),
 }).superRefine((data, ctx) => {
   if (String(data.type).startsWith('percent_')) {
     if (typeof data.value === 'number' && Number.isFinite(data.value) && data.value > 10000) {
@@ -69,9 +80,38 @@ type Coupon = {
   type: (typeof couponTypeValues)[number] | string
   value: number
   storeId: number
+  validFrom?: string | null
+  validTo?: string | null
 }
 
 const COUPON_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+const getApiErrorData = (err: unknown): { title?: string; detail?: string } | null => {
+  if (!isRecord(err)) return null
+  const response = err.response
+  if (!isRecord(response)) return null
+  const data = response.data
+  if (!isRecord(data)) return null
+
+  const title = typeof data.title === 'string' ? data.title : undefined
+  const detail = typeof data.detail === 'string' ? data.detail : undefined
+  return title || detail ? { title, detail } : null
+}
+
+function toDateTimeLocalInputValue(v?: string | null): string {
+  if (!v) return ''
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  const MM = pad(d.getMonth() + 1)
+  const dd = pad(d.getDate())
+  const HH = pad(d.getHours())
+  const mm = pad(d.getMinutes())
+  return `${yyyy}-${MM}-${dd}T${HH}:${mm}`
+}
 
 function generateCouponCode(): string {
   const pick = () => COUPON_CODE_CHARS[Math.floor(Math.random() * COUPON_CODE_CHARS.length)]!
@@ -112,7 +152,7 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
   const usedCodesRef = useRef(new Set<string>())
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       code: '',
       customerMessage: '',
@@ -120,6 +160,8 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
       type: 'fixed_in_total_value',
       value: undefined,
       storeId: 0,
+      validFrom: '',
+      validTo: '',
     },
   })
 
@@ -141,14 +183,16 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
     enabled: open,
   })
 
-  async function fetchCoupon() {
+  const fetchCoupon = useCallback(async () => {
     if (!couponId) return
     try {
       setLoading(true)
       const response = await privateInstance.get(`/tenant/cupons/${couponId}`)
       if (response.status !== 200) throw new Error('Erro ao carregar cupom')
       const c = response.data as Coupon
-      const normalizedType = (couponTypeValues as readonly string[]).includes(String(c.type)) ? (c.type as any) : 'fixed_in_total_value'
+      const normalizedType = (couponTypeValues as readonly string[]).includes(String(c.type))
+        ? (String(c.type) as (typeof couponTypeValues)[number])
+        : 'fixed_in_total_value'
       const normalizedValueRaw = Number(c.value ?? 0)
       const normalizedValue = String(normalizedType).startsWith('percent_') ? Math.min(normalizedValueRaw, 10000) : normalizedValueRaw
       form.reset({
@@ -158,20 +202,22 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
         type: normalizedType,
         value: normalizedValue,
         storeId: Number(c.storeId ?? 0),
+        validFrom: toDateTimeLocalInputValue(c.validFrom),
+        validTo: toDateTimeLocalInputValue(c.validTo),
       })
-    } catch (error: any) {
-      const errorData = error?.response?.data
+    } catch (error: unknown) {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao carregar cupom', {
         description: errorData?.detail || 'Não foi possível carregar os dados do cupom.',
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [couponId, form])
 
   useEffect(() => {
     if (open) fetchCoupon()
-  }, [open, couponId])
+  }, [open, fetchCoupon])
 
   useEffect(() => {
     if (!open) return
@@ -189,7 +235,12 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      return privateInstance.put(`/tenant/cupons/${couponId}`, values)
+      const payload = {
+        ...values,
+        validFrom: values.validFrom ? new Date(values.validFrom).toISOString() : undefined,
+        validTo: values.validTo ? new Date(values.validTo).toISOString() : undefined,
+      }
+      return privateInstance.put(`/tenant/cupons/${couponId}`, payload)
     },
     onSuccess: (response) => {
       if (response.status === 200) {
@@ -197,14 +248,12 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
         closeSheet()
         queryClient.invalidateQueries({ queryKey: ['cupons'] })
       } else {
-        const errorData = response.data as any
-        toast.error(errorData?.title || 'Erro ao salvar cupom', {
-          description: errorData?.detail || 'Não foi possível atualizar o cupom.',
-        })
+        const errorData = getApiErrorData({ response } as unknown)
+        toast.error(errorData?.title || 'Erro ao salvar cupom', { description: errorData?.detail || 'Não foi possível atualizar o cupom.' })
       }
     },
-    onError: (error: any) => {
-      const errorData = error?.response?.data
+    onError: (error: unknown) => {
+      const errorData = getApiErrorData(error)
       toast.error(errorData?.title || 'Erro ao salvar cupom', {
         description: errorData?.detail || 'Não foi possível atualizar o cupom.',
       })
@@ -416,6 +465,46 @@ export function EditCouponSheet({ couponId, ...props }: React.ComponentProps<'fo
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="validFrom"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Válido a partir de</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="datetime-local"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          disabled={loading || isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="validTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Válido até</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="datetime-local"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          disabled={loading || isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <div className="mt-auto border-t p-4">

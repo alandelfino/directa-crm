@@ -9,8 +9,15 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+function formatCurrencyBRL(centavos: number) {
+  const value = typeof centavos === 'number' && !Number.isNaN(centavos) ? centavos : 0
+  const reais = Math.floor(value / 100)
+  const cents = Math.abs(value % 100)
+  return `R$ ${reais.toLocaleString('pt-BR')},${cents.toString().padStart(2, '0')}`
+}
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
@@ -24,12 +31,6 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const queryClient = useQueryClient()
-  const formatCurrencyBRL = (centavos: number) => {
-    const value = typeof centavos === 'number' && !isNaN(centavos) ? centavos : 0
-    const reais = Math.floor(value / 100)
-    const cents = Math.abs(value % 100)
-    return `R$ ${reais.toLocaleString('pt-BR')},${cents.toString().padStart(2, '0')}`
-  }
   const [priceDisplay, setPriceDisplay] = useState<string>(formatCurrencyBRL(0))
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -49,7 +50,8 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
     setPriceDisplay(formatCurrencyBRL(0))
   }
 
-  async function fetchWarranty() {
+  const fetchWarranty = useCallback(async () => {
+    if (!warrantyId) return
     try {
       setLoading(true)
       const response = await privateInstance.get(`/tenant/warranties/${warrantyId}`)
@@ -71,13 +73,11 @@ export function EditWarrantySheet({ className, warrantyId, ...props }: React.Com
     } finally {
       setLoading(false)
     }
-  }
+  }, [form, warrantyId])
 
   useEffect(() => {
-    if (open && warrantyId) {
-      fetchWarranty()
-    }
-  }, [open, warrantyId])
+    if (open && warrantyId) fetchWarranty()
+  }, [open, warrantyId, fetchWarranty])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => privateInstance.put(`/tenant/warranties/${warrantyId}`, values),

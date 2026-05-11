@@ -29,7 +29,7 @@ export function TopbarUser() {
       document.documentElement.classList.remove('dark')
       localStorage.setItem(darkModeKey, 'false')
     }
-  }, [darkMode])
+  }, [darkMode, darkModeKey])
 
   useEffect(() => {
     // Mesmo padrão de chave usado em lib/auth.ts (subdomínio + sufixo)

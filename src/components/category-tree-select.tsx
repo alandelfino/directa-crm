@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Tags, TagsTrigger, TagsValue, TagsContent } from '@/components/ui/shadcn-io/tags'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChevronRight, ChevronDown } from 'lucide-react'
@@ -31,7 +31,7 @@ export function CategoryTreeSelect({ value, onChange, disabled, items, rootChild
     return map
   }, [items])
 
-  const collectAllIds = () => {
+  const collectAllIds = useCallback(() => {
     const seen = new Set<string>()
     const q: string[] = [...rootChildren]
     while (q.length) {
@@ -42,7 +42,7 @@ export function CategoryTreeSelect({ value, onChange, disabled, items, rootChild
       for (const c of children) q.push(c)
     }
     return Array.from(seen)
-  }
+  }, [items, rootChildren])
 
   const getAncestors = (id: string) => {
     const out: string[] = []
@@ -75,9 +75,11 @@ export function CategoryTreeSelect({ value, onChange, disabled, items, rootChild
       for (const id of all) next[id] = true
       setExpanded(next)
     }
-  }, [open])
+  }, [collectAllIds, open])
 
-  const toggleExpand = (id: string) => { setExpanded({ ...expanded, [id]: !expanded[id] }) }
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
   const isChecked = (id: string) => (value || []).includes(Number(id))
   const toggleCheck = (id: string) => {
     const set = new Set(value || [])
@@ -96,7 +98,7 @@ export function CategoryTreeSelect({ value, onChange, disabled, items, rootChild
 
   const labelOf = (id: string) => items[id]?.name ?? id
 
-  const renderNodes = (ids: string[], level = 0): any => {
+  const renderNodes = (ids: string[], level = 0): ReactNode => {
     return ids.map((id) => {
       const children = items[id]?.children ?? []
       const hasChildren = Array.isArray(children) && children.length > 0

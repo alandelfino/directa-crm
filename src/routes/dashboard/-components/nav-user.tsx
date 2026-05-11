@@ -32,7 +32,7 @@ export function NavUser() {
             document.documentElement.classList.remove('dark')
             localStorage.setItem(darkModeKey, 'false')
         }
-    }, [darkMode])
+    }, [darkMode, darkModeKey])
 
     useEffect(() => {
         // Respeita o mesmo padrão de chave usado em lib/auth.ts (subdomínio + sufixo)

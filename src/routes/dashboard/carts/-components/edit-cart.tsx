@@ -13,8 +13,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { CartAddress, CartBasic, CartCuponsResponse, CartProductsResponse, CartShippingQuoteResponse, CustomerAddress, DerivatedProduct, ProductGroup } from "./edit-cart.types"
-import { CartCouponCard, CartCustomerInfoCard, CartItemsTab } from "./cart-items-tab"
+import { CartItemsTab } from "./cart-items-tab"
 import { CartSummaryCard } from "./cart-summary-card"
+import { CartCouponSection } from "./cart-coupon-section"
+import { CartCustomerInfoCard } from "./cart-customer-info-card"
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
 
@@ -74,7 +76,7 @@ export function EditCartSheet({
     },
   })
 
-  const { data: cartCupons, isLoading: isLoadingCartCupons } = useQuery<CartCuponsResponse>({
+  const { data: cartCupons, isLoading: isLoadingCartCupons, isFetching: isFetchingCartCupons } = useQuery<CartCuponsResponse>({
     queryKey: ["cart-cupons", cartId],
     enabled: !!cartId && open,
     refetchOnWindowFocus: false,
@@ -84,7 +86,7 @@ export function EditCartSheet({
     },
   })
 
-  const { data: cartShipping, isLoading: isLoadingCartShipping } = useQuery<CartShippingQuoteResponse>({
+  const { data: cartShipping, isLoading: isLoadingCartShipping, isFetching: isFetchingCartShipping } = useQuery<CartShippingQuoteResponse>({
     queryKey: ["cart-shipping-quote", cartId],
     enabled: !!cartId && open,
     refetchOnWindowFocus: false,
@@ -322,6 +324,7 @@ export function EditCartSheet({
       toast.success('Produtos adicionados com sucesso!')
       queryClient.invalidateQueries({ queryKey: ["cart-products", cartId] })
       queryClient.invalidateQueries({ queryKey: ["cart-shipping-quote", cartId] })
+      queryClient.invalidateQueries({ queryKey: ["cart-cupons", cartId] })
       setAddProductOpen(false)
     },
     onError: (error) => {
@@ -366,6 +369,7 @@ export function EditCartSheet({
         return { ...oldData, products: nextProducts }
       })
       queryClient.invalidateQueries({ queryKey: ["cart-shipping-quote", cartId] })
+      queryClient.invalidateQueries({ queryKey: ["cart-cupons", cartId] })
     },
     onError: () => {
       toast.error('Erro ao atualizar item.')
@@ -396,6 +400,7 @@ export function EditCartSheet({
         return { ...oldData, products: nextProducts }
       })
       queryClient.invalidateQueries({ queryKey: ["cart-shipping-quote", cartId] })
+      queryClient.invalidateQueries({ queryKey: ["cart-cupons", cartId] })
     },
     onError: () => {
       toast.error('Erro ao remover item.')
@@ -439,9 +444,22 @@ export function EditCartSheet({
     (acc, group) => acc + group.derivatedProducts.reduce((acc2, item) => acc2 + item.totalValue, 0),
     0
   )
-  const discountsCents = cupons.reduce((acc, c) => acc + (c.discountApplied || 0), 0)
-  const totalWithShippingCents = Math.max(0, productsValueCents + selectedShippingPrice - discountsCents)
+  const productsOriginalValueCents = productGroups.reduce(
+    (acc, group) =>
+      acc +
+      group.derivatedProducts.reduce((acc2, item) => {
+        const unitPrice = Math.max(Number(item.oldPrice) || 0, Number(item.price) || 0)
+        return acc2 + (Number(item.amount) || 0) * unitPrice
+      }, 0),
+    0
+  )
+  const cuponDiscountsCents = cupons.reduce((acc, c) => acc + (c.discountApplied || 0), 0)
+  const totalWithShippingCents = Math.max(0, productsValueCents + selectedShippingPrice - cuponDiscountsCents)
+  const baseTotalBeforeDiscountsCents = productsOriginalValueCents + selectedShippingPrice
   const formatBRL = (valueInCents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((valueInCents || 0) / 100)
+  const showCuponsSkeleton = isLoadingCartCupons || isFetchingCartCupons
+  const showShippingSkeleton =
+    isLoadingCartShipping || isFetchingCartShipping || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect
 
   return (
     <>
@@ -458,7 +476,7 @@ export function EditCartSheet({
                   </Avatar>
                   <div className="flex flex-col gap-0 min-w-0">
                     <SheetTitle className="text-base leading-snug truncate">Carrinho de compras</SheetTitle>
-                    <SheetDescription className="text-xs text-muted-foreground">
+                    <SheetDescription className="text-sm text-muted-foreground">
                       Revise os itens e finalize o pedido
                     </SheetDescription>
                   </div>
@@ -489,22 +507,9 @@ export function EditCartSheet({
                     updateItem={updateItem}
                     deleteItem={deleteItem}
                   />
-
-                  <CartCouponCard
-                    cupons={cupons}
-                    isLoading={isLoadingCartCupons}
-                    couponCode={couponCode}
-                    setCouponCode={(next) => setCouponCode(next)}
-                    applyCoupon={applyCoupon}
-                    isApplyingCoupon={isApplyingCoupon}
-                    isRemovingCoupon={isRemovingCoupon}
-                    setSelectedCouponCode={(code) => setSelectedCouponCode(code)}
-                    setRemoveCouponOpen={(next) => setRemoveCouponOpen(next)}
-                    isReadOnly={isReadOnly}
-                  />
                 </div>
 
-                <div className="lg:pl-0">
+                <div className="h-full min-h-0 overflow-y-auto lg:pl-0">
                   <div className="mb-3">
                     <CartCustomerInfoCard cart={cartBasic} customerId={customerId} isLoadingCartBasic={isLoadingCartBasic} />
                   </div>
@@ -512,18 +517,34 @@ export function EditCartSheet({
                     status={cartBasic?.status ?? null}
                     totalItems={totalItems}
                     productsValueCents={productsValueCents}
-                    discountsCents={discountsCents}
+                    cuponDiscountsCents={cuponDiscountsCents}
                     isLoadingBasic={isLoadingCartBasic}
                     isLoadingProducts={isLoadingCartProducts}
-                    isLoadingCupons={isLoadingCartCupons}
+                    isLoadingCupons={showCuponsSkeleton}
                     selectedShippingQuote={selectedShippingQuote}
                     selectedShippingPrice={selectedShippingPrice}
-                    isLoadingShipping={isLoadingCartShipping}
+                    isLoadingShipping={showShippingSkeleton}
                     totalWithShippingCents={totalWithShippingCents}
+                    baseTotalBeforeDiscountsCents={baseTotalBeforeDiscountsCents}
                     formatBRL={formatBRL}
                     cartId={cartId}
+                    storeId={cartBasic?.store?.id ?? 0}
                     isReadOnly={isReadOnly}
                     onEditShipping={() => setShippingSheetOpen(true)}
+                    couponSection={
+                      <CartCouponSection
+                        cupons={cupons}
+                        isLoading={showCuponsSkeleton}
+                        couponCode={couponCode}
+                        setCouponCode={(next) => setCouponCode(next)}
+                        applyCoupon={applyCoupon}
+                        isApplyingCoupon={isApplyingCoupon}
+                        isRemovingCoupon={isRemovingCoupon}
+                        setSelectedCouponCode={(code) => setSelectedCouponCode(code)}
+                        setRemoveCouponOpen={(next) => setRemoveCouponOpen(next)}
+                        isReadOnly={isReadOnly}
+                      />
+                    }
                   />
                 </div>
               </div>
@@ -551,8 +572,8 @@ export function EditCartSheet({
                   <span className="flex min-w-0 items-start gap-2">
                     <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 text-left">
-                      <span className="block text-[11px] text-muted-foreground">Endereço para cotação</span>
-                      <span className="block truncate text-xs font-medium">
+                      <span className="block text-sm text-muted-foreground">Endereço para cotação</span>
+                      <span className="block truncate text-sm font-medium">
                         {selectedAddress
                           ? `${selectedAddress.name} • ${selectedAddress.city} - ${selectedAddress.state}`
                           : "Selecionar endereço"}
@@ -616,7 +637,7 @@ export function EditCartSheet({
                   </div>
                 ))}
               </div>
-            ) : (isLoadingCartShipping || isSelectingShippingQuote || isUpdatingCartAfterShippingSelect) && shippingQuotes.length === 0 ? (
+            ) : showShippingSkeleton ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="rounded-lg border p-3">

@@ -291,7 +291,7 @@ export function StoreMenuItemsSheet({ storeMenuId, storeMenuName }: { storeMenuI
   useEffect(() => {
     if (!open) return
     setOrdered(flattened)
-  }, [open, orderedKey])
+  }, [open, orderedKey, flattened])
 
   const sensors = useSensors(
     useSensor(PointerSensor),

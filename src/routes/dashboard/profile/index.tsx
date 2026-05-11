@@ -100,7 +100,7 @@ function getSubdomain() {
       }
     }
     loadMe()
-  }, [])
+  }, [form])
 
   // userId local removido: os dados do usuário são inferidos pelo token e mantidos no localStorage
 

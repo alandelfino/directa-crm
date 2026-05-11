@@ -114,7 +114,7 @@ export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, 
     })
     setSelectedLogoMedia(null)
     setSelectedIconMedia(null)
-  }, [data, open])
+  }, [data, open, form])
 
   const logoPreviewUrl = useMemo(() => {
     if (selectedLogoMedia?.url) return selectedLogoMedia.url

@@ -4,7 +4,7 @@ import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Archive } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
@@ -96,6 +96,10 @@ function RouteComponent() {
   const [localFilterActive, setLocalFilterActive] = useState('all')
   const [localFilterActiveOperator, setLocalFilterActiveOperator] = useState('eq')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelected((prev) => (prev.includes(id) ? [] : [id]))
+  }, [])
 
   // Calculate active filters count
   const activeFilterCount = (filterName ? 1 : 0) + (filterSku ? 1 : 0) + (filterActive !== 'all' ? 1 : 0)
@@ -192,7 +196,7 @@ function RouteComponent() {
         </span>
       )
     }, headerClassName: 'w-[120px] min-w-[120px] border-r', className: 'w-[120px] min-w-[120px] p-2!' },
-  ], [items, selected])
+  ], [selected, toggleSelect])
 
   useEffect(() => {
     if (!data) return
@@ -216,8 +220,6 @@ function RouteComponent() {
   useEffect(() => { setSelected([]) }, [currentPage, perPage])
   useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
   useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])
-
-  const toggleSelect = (id: number) => { if (selected.includes(id)) setSelected([]); else setSelected([id]) }
 
   return (
     <div className='flex flex-col w-full h-full overflow-x-hidden'>

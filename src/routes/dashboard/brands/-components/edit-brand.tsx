@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 
 
@@ -39,7 +39,8 @@ export function EditBrandSheet({
         form.reset()
     }
 
-    async function fetchBrand() {
+    const fetchBrand = useCallback(async () => {
+        if (!brandId) return
         try {
             setBrandLoading(true)
             const response = await privateInstance.get(`/api:tc5G7www/brands/${brandId}`)
@@ -56,13 +57,11 @@ export function EditBrandSheet({
         } finally {
             setBrandLoading(false)
         }
-    }
+    }, [brandId, form])
 
     useEffect(() => {
-        if (open && brandId) {
-            fetchBrand()
-        }
-    }, [open, brandId])
+        if (open) fetchBrand()
+    }, [open, fetchBrand])
 
     const { isPending, mutate } = useMutation({
         mutationFn: (values: z.infer<typeof formSchema>) => {

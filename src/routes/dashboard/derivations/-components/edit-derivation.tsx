@@ -58,7 +58,7 @@ export function EditDerivationSheet({ derivationId, onUpdated }: { derivationId:
       nomeCatalogo: data.storeName,
       type: (data.type as 'text' | 'color' | 'image') ?? 'text',
     })
-  }, [data])
+  }, [data, form])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {

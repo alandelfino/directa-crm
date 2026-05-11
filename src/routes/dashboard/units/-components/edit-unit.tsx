@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { toast } from "sonner"
 import { privateInstance } from "@/lib/auth"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Nome é obrigatório" }),
@@ -39,7 +39,8 @@ export function EditUnitSheet({
     form.reset()
   }
 
-  async function fetchUnit() {
+  const fetchUnit = useCallback(async () => {
+    if (!unitId) return
     try {
       setUnitLoading(true)
       const response = await privateInstance.get(`/tenant/unit-of-measurement/${unitId}`)
@@ -56,13 +57,11 @@ export function EditUnitSheet({
     } finally {
       setUnitLoading(false)
     }
-  }
+  }, [form, unitId])
 
   useEffect(() => {
-    if (open && unitId) {
-      fetchUnit()
-    }
-  }, [open, unitId])
+    if (open) fetchUnit()
+  }, [open, fetchUnit])
 
   const { isPending, mutate } = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {

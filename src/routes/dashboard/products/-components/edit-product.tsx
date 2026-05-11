@@ -15,7 +15,7 @@ import { toast } from 'sonner'
 import { privateInstance } from '@/lib/auth'
 import { Switch } from '@/components/ui/switch'
 import { buildCategoryTree } from '@/utils/category-tree'
-import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useState, useMemo, lazy, Suspense } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Lazy load auxiliary creation sheets
@@ -178,7 +178,7 @@ export function EditProductSheet({
     }).filter(n => Number.isFinite(n))
   }
 
-  async function fetchProduct() {
+  const fetchProduct = useCallback(async () => {
     if (!productId) return
     try {
       setLoading(true)
@@ -206,13 +206,11 @@ export function EditProductSheet({
     } finally {
       setLoading(false)
     }
-  }
+  }, [form, productId, setOpen])
 
   useEffect(() => {
-    if (open && productId) {
-      fetchProduct()
-    }
-  }, [open, productId])
+    if (open && productId) fetchProduct()
+  }, [open, productId, fetchProduct])
 
   const { isPending, mutate } = useMutation({
     mutationFn: async (values: ProductFormValues) => {

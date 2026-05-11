@@ -121,7 +121,7 @@ export function EditCompanySheet({ open, onOpenChange }: { open: boolean; onOpen
       localStorage.setItem(`${sub}-directa-company`, JSON.stringify(data))
       try { window.dispatchEvent(new CustomEvent('directa:company-updated', { detail: data })) } catch {}
     } catch {}
-  }, [data, open])
+  }, [data, open, form])
 
   function handlePickLogo() {
     fileInputRef.current?.click()

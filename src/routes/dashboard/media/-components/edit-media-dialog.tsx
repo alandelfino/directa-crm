@@ -25,7 +25,7 @@ export function EditMediaDialog({ media, onClose, onSaved }: { media: MediaItem 
   useEffect(() => {
     if (!media) return
     form.reset({ name: media.name ?? '', to: media.to ?? 'product' })
-  }, [media])
+  }, [media, form])
 
   const submit = async (values: z.infer<typeof schema>) => {
     if (!media) return

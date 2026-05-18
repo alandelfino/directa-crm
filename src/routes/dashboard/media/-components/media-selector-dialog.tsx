@@ -135,7 +135,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="flex flex-col h-[calc(100vh-20px)] w-[calc(100vw-20px)] max-w-[calc(100vw-20px)] min-w-[calc(100vw-20px)] overflow-hidden p-0 gap-0">
+      <DialogContent className="flex flex-col h-[85vh] w-[90vw] max-w-[90vw] min-w-[90vw] overflow-hidden p-0 gap-0">
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Galeria de Mídias</DialogTitle>
         </DialogHeader>
@@ -143,7 +143,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
         {/* Content */}
         <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
           {/* Actions */}
-          <div className='border-b flex w-full items-center p-2 gap-4 bg-muted/20'>
+          <div className='border-b flex w-full items-center px-6 py-4 gap-4 bg-background'>
             <div className='flex items-center gap-2 flex-1'>
                {onSelect && (
                  <Button onClick={handleConfirmSelection} disabled={selectedIds.length === 0} size="sm" className="gap-2">
@@ -168,12 +168,12 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
           </div>
 
           {/* Grid de arquivos */}
-          <div className='flex-1 overflow-auto p-4 bg-muted/10'>
+          <div className='flex-1 overflow-auto p-6 bg-background'>
             {isLoading || isRefetching || isPending ? (
               <div className='grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4'>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div key={i} className="rounded-lg border border-transparent p-1 bg-background">
-                    <Skeleton className="aspect-square w-full rounded-md bg-muted" />
+                    <Skeleton className="aspect-square w-full rounded-lg bg-muted" />
                     <div className="p-2 space-y-2">
                       <Skeleton className="h-3 w-full bg-muted" />
                       <Skeleton className="h-3 w-1/2 bg-muted" />
@@ -207,13 +207,13 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
                   <div 
                     key={m.id} 
                     className={cn(
-                      "group relative rounded-lg border border-transparent p-1 bg-background hover:bg-neutral-100 transition-all overflow-hidden",
-                      isSelected(m.id) ? 'ring-2 ring-primary border-primary shadow-sm' : 'hover:shadow-sm'
+                      "group relative rounded-lg border border-transparent p-1 bg-background hover:bg-neutral-100 transition-shadow overflow-hidden",
+                      isSelected(m.id) ? 'ring-2 ring-primary' : ''
                     )}
                   >
-                    <div className='aspect-square w-full bg-muted flex items-center justify-center rounded-md overflow-hidden'>
+                    <div className='aspect-square w-full bg-muted flex items-center justify-center'>
                       {m.url ? (
-                        <img src={m.url} alt={m.name ?? 'media'} className='object-cover w-full h-full' />
+                        <img src={m.url} alt={m.name ?? 'media'} className='object-cover w-full h-full rounded-lg' />
                       ) : (
                         <div className='flex flex-col items-center justify-center text-muted-foreground'>
                           <Images className='w-10 h-10' />
@@ -232,7 +232,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
                     <div className='p-2 flex items-center justify-between gap-2'>
                       <div className='flex-1 min-w-0'>
                         <div className='text-xs font-medium truncate' title={m.name ?? ''}>{m.name ?? 'Mídia'}</div>
-                        <div className='mt-1 text-xs text-muted-foreground'>
+                        <div className='mt-1 text-xs 2xl:text-sm text-muted-foreground'>
                           <span>{m.mime ?? getExtension(m.name, null)}</span>
                           <span> • {formatBytes(m.size ?? null)}</span>
                         </div>
@@ -252,14 +252,15 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
             const endIndex = totalItems > 0 ? Math.min(startIndex + medias.length, startIndex + perPage, totalItems) : 0
 
             return (
-              <div className='border-t h-12 w-full p-2 flex items-center bg-background'>
-                <span className='text-sm text-muted-foreground ml-2'>
-                  {totalItems > 0 ? `${startIndex + 1}-${endIndex} de ${totalItems}` : '0 itens'}
+              <div className='border-t h-12 w-full px-6 py-2 flex items-center bg-background'>
+                <span className='text-sm text-muted-foreground'>
+                  Mostrando do {totalItems > 0 ? startIndex + 1 : 0} ao {endIndex} de {totalItems} itens.
                 </span>
 
                 <div className='flex items-center gap-2 flex-1 justify-end'>
+                  <span className='text-sm text-muted-foreground'>Itens por página</span>
                   <Select value={perPage.toString()} onValueChange={(v) => { const next = parseInt(v); if (!Number.isNaN(next)) { setPage(1); setPerPage(next) } }}>
-                    <SelectTrigger className='w-[70px] h-8 text-xs'>
+                    <SelectTrigger className='w-[90px]'>
                       <SelectValue placeholder={perPage.toString()} />
                     </SelectTrigger>
                     <SelectContent>
@@ -273,22 +274,22 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
 
                   <Separator orientation='vertical' className="h-4" />
 
-                  <span className='text-xs text-muted-foreground'>Pág. {payload.page}/{totalPages}</span>
+                  <span className='text-sm text-muted-foreground'>Página {payload.page} de {totalPages}</span>
 
                   <Separator orientation='vertical' className="h-4" />
 
                   <div className="flex gap-1">
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage(1)} disabled={payload.page === 1}>
-                      <ChevronsLeft className="size-3" />
+                    <Button variant={'outline'} size={'sm'} onClick={() => setPage(1)} disabled={payload.page === 1}>
+                      <ChevronsLeft className="size-[0.85rem]" />
                     </Button>
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={payload.page === 1}>
-                      <ChevronLeft className="size-3" />
+                    <Button variant={'outline'} size={'sm'} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={payload.page === 1}>
+                      <ChevronLeft className="size-[0.85rem]" />
                     </Button>
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage((p) => p + 1)} disabled={payload.page >= totalPages}>
-                      <ChevronRight className="size-3" />
+                    <Button variant={'outline'} size={'sm'} onClick={() => setPage((p) => p + 1)} disabled={payload.page >= totalPages}>
+                      <ChevronRight className="size-[0.85rem]" />
                     </Button>
-                    <Button variant={'outline'} size={'icon'} className="h-8 w-8" onClick={() => setPage(totalPages)} disabled={payload.page >= totalPages}>
-                      <ChevronsRight className="size-3" />
+                    <Button variant={'outline'} size={'sm'} onClick={() => setPage(totalPages)} disabled={payload.page >= totalPages}>
+                      <ChevronsRight className="size-[0.85rem]" />
                     </Button>
                   </div>
                 </div>

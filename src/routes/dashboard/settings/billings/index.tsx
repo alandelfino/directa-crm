@@ -93,6 +93,14 @@ function RouteComponent() {
       className: 'w-[70px] min-w-[70px]'
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r !px-4 py-3'
+    },
+    {
       id: 'info',
       header: 'Período',
       cell: (i) => {
@@ -162,6 +170,13 @@ function RouteComponent() {
       headerClassName: 'w-[200px] min-w-[200px] border-r',
       className: 'w-[200px] min-w-[200px]'
     },
+    {
+      id: 'updated_at',
+      header: 'Atualizado em',
+      cell: (i) => <span className='text-sm'>{i.updated_at ? dataTime(normalizeEpoch(i.updated_at)) : '-'}</span>,
+      headerClassName: 'w-[200px] min-w-[200px] border-r',
+      className: 'w-[200px] min-w-[200px]'
+    },
     
   ]
 
@@ -174,10 +189,11 @@ function RouteComponent() {
   }, [data, perPage])
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Cobranças</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Cobranças</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie o faturamento e faturas do workspace.</p>
         </div>
         <div className='flex items-center gap-3'>
           <Button
@@ -243,7 +259,7 @@ function RouteComponent() {
       </div>
 
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={billings}

@@ -86,6 +86,14 @@ function RouteComponent() {
       className: 'w-[3.75rem] min-w-[3.75rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'name',
       header: 'Nome',
       cell: (team) => team.name,
@@ -100,6 +108,16 @@ function RouteComponent() {
       cell: (team) => {
         const val = team.created_at ?? team.createdAt
         return <span className='text-sm text-muted-foreground'>{dataTime(val)}</span>
+      },
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'updated_at',
+      header: 'Atualizado em',
+      cell: (team) => {
+        const val = team.updated_at ?? team.updatedAt
+        return <span className='text-sm text-muted-foreground'>{val ? dataTime(val) : '-'}</span>
       },
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
@@ -121,10 +139,11 @@ function RouteComponent() {
   }, [isError])
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Equipes</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Equipes</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie as equipes de trabalho do workspace.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
@@ -146,7 +165,7 @@ function RouteComponent() {
       </div>
 
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={teams}

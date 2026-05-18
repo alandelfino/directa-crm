@@ -605,7 +605,7 @@ function ProductGeneralImages({ productId }: { productId: number }) {
   )
 }
 
-export function ProductImagesSheet({ productId }: { productId: number }) {
+export function ProductImagesSheet({ productId, trigger }: { productId: number, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
@@ -708,10 +708,12 @@ export function ProductImagesSheet({ productId }: { productId: number }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant={'outline'} size={'sm'} className="gap-2">
-          <ImageIcon className="size-[0.85rem]" />
-          Imagens
-        </Button>
+        {trigger || (
+          <Button variant={'outline'} size={'sm'} className="gap-2">
+            <ImageIcon className="size-[0.85rem]" />
+            Imagens
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className="flex flex-col h-full sm:max-w-[600px] p-0 gap-0 bg-background/95 backdrop-blur-sm">
         <div className="px-4 py-3 border-b space-y-3">

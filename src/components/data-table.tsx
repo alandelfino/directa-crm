@@ -264,7 +264,7 @@ export function DataTable<T extends { id?: number | string }>({
                           <TableCell
                             key={col.id}
                             className={`border-r !px-4 ${col.className ?? ''}`}
-                            style={fixedCellWidthPx ? { width: `${fixedCellWidthPx}px` } : col.width ? { width: col.width } : undefined}
+                            style={fixedCellWidthPx ? { width: `${fixedCellWidthPx}px`, minWidth: `${fixedCellWidthPx}px` } : col.width ? { width: col.width, minWidth: col.width } : undefined}
                           >
                             {cellContent}
                           </TableCell>
@@ -292,7 +292,7 @@ export function DataTable<T extends { id?: number | string }>({
                             <DragHandle id={id} disabled={reorderDisabled} />
                           </TableCell>
                           {columns.map((col) => (
-                            <TableCell key={col.id} className={`border-r !px-4 ${col.className ?? ''}`} style={col.width ? { width: col.width } : undefined}>
+                            <TableCell key={col.id} className={`border-r !px-4 ${col.className ?? ''}`} style={col.width ? { width: col.width, minWidth: col.width } : undefined}>
                               {col.cell(item)}
                             </TableCell>
                           ))}
@@ -309,7 +309,7 @@ export function DataTable<T extends { id?: number | string }>({
                         className={`${rowClassName ?? 'h-10'} ${index % 2 === 0 ? '' : 'bg-neutral-50/20'}`}
                       >
                         {columns.map((col) => (
-                          <TableCell key={col.id} className={`border-r !px-4 ${col.className ?? ''}`} style={col.width ? { width: col.width } : undefined}>
+                          <TableCell key={col.id} className={`border-r !px-4 ${col.className ?? ''}`} style={col.width ? { width: col.width, minWidth: col.width } : undefined}>
                             {col.cell(item)}
                           </TableCell>
                         ))}
@@ -450,7 +450,7 @@ export function DataTable<T extends { id?: number | string }>({
                           <TableCell
                             key={col.id}
                             className={`border-r !px-4 ${col.className ?? ''}`}
-                            style={fixedCellWidthPx ? { width: `${fixedCellWidthPx}px` } : col.width ? { width: col.width } : undefined}
+                            style={fixedCellWidthPx ? { width: `${fixedCellWidthPx}px`, minWidth: `${fixedCellWidthPx}px` } : col.width ? { width: col.width, minWidth: col.width } : undefined}
                           >
                             {cellContent}
                           </TableCell>
@@ -466,7 +466,7 @@ export function DataTable<T extends { id?: number | string }>({
                   {items.map((item, index) => (
                     <TableRow key={(item as any).id ?? index} className={`${rowClassName ?? 'h-10'} ${index % 2 === 0 ? '' : 'bg-neutral-50/20'}`}>
                       {columns.map((col) => (
-                        <TableCell key={col.id} className={`border-r !px-4 ${col.className ?? ''}`} style={col.width ? { width: col.width } : undefined}>
+                        <TableCell key={col.id} className={`border-r !px-4 ${col.className ?? ''}`} style={col.width ? { width: col.width, minWidth: col.width } : undefined}>
                           {col.cell(item)}
                         </TableCell>
                       ))}

@@ -158,7 +158,7 @@ function EditablePriceCell({
   )
 }
 
-export function ProductPricesSheet({ productId }: { productId: number }) {
+export function ProductPricesSheet({ productId, trigger }: { productId: number, trigger?: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -354,9 +354,11 @@ export function ProductPricesSheet({ productId }: { productId: number }) {
   return (
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) refetch() }}>
       <SheetTrigger asChild>
-        <Button size={'sm'} variant={'outline'}>
-          <BadgeDollarSign className="size-[0.85rem]" /> Preços
-        </Button>
+        {trigger || (
+          <Button size={'sm'} variant={'outline'}>
+            <BadgeDollarSign className="size-[0.85rem]" /> Preços
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className='w-4xl sm:max-w-[1000px] p-0'>
         <SheetHeader className='px-4 py-4'>

@@ -210,10 +210,11 @@ function RouteComponent() {
   }, [items, selected])
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Menus</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Menus</h2>
+          <p className='text-sm text-muted-foreground'>Configure a estrutura de menus de navegação.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Popover open={isFilterOpen} onOpenChange={(open) => {
@@ -380,7 +381,7 @@ function RouteComponent() {
       </div>
 
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={items}

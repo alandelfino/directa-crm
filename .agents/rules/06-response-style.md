@@ -15,6 +15,11 @@
 
 ## Ao editar código
 
+### Boas Práticas (Evitar falhas da ferramenta nativa)
+
+- **Ler o arquivo imediatamente antes de editar**: Sempre leia a seção exata do arquivo usando a ferramenta `view_file` imediatamente antes de chamar a ferramenta de substituição (`replace_file_content`). Isso garante a precisão absoluta do intervalo de linhas (`StartLine`/`EndLine`) e captura a indentação e quebras de linha exatas do sistema local.
+- **Reduzir o tamanho do bloco alvo (Target)**: Evite substituir blocos grandes de código de uma só vez. Foque na menor porção de código possível que sofre a alteração real (ex: apenas a linha modificada ou 2-3 linhas no máximo). Isso minimiza divergências invisíveis de bytes.
+
 Informe:
 
 - O que foi alterado.

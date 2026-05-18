@@ -16,10 +16,11 @@ function RouteComponent() {
   ]
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Integrações</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Integrações</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie as integrações com serviços externos.</p>
         </div>
       </div>
 

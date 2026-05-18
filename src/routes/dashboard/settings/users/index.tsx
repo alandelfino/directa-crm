@@ -152,14 +152,22 @@ function RouteComponent() {
       cell: (row) => <span className='text-sm text-muted-foreground'>{dataTime(row.createdAt)}</span>,
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
-    }
+    },
+    {
+      id: 'updated_at',
+      header: 'Atualizado em',
+      cell: (row) => <span className='text-sm text-muted-foreground'>{dataTime(row.updatedAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
   ]
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Usuários</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Usuários</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie os usuários que têm acesso ao workspace.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { refetch() }}>
@@ -184,7 +192,7 @@ function RouteComponent() {
         </div>
       </div>
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={users}

@@ -3,7 +3,7 @@ import { Suspense, lazy } from 'react'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Archive } from 'lucide-react'
+import { Edit, Trash, Package, GitFork, RefreshCw, BadgeDollarSign, Image as ImageIcon, Funnel, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Archive, ChevronDown } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -20,6 +20,7 @@ const ProductPricesSheet = lazy(() => import('./-components/product-prices/produ
 const ProductImagesSheet = lazy(() => import('./-components/derivated-product-images-sheet').then(m => ({ default: m.ProductImagesSheet })))
 const ProductStockSheet = lazy(() => import('./-components/product-stock-sheet').then(m => ({ default: m.ProductStockSheet })))
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -459,32 +460,67 @@ function RouteComponent() {
             </Popover>
 
             {selected.length === 1 ? (
-              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><Archive className="size-[0.85rem]" /> Estoque</Button>}>
-                <ProductStockSheet productId={selected[0]} />
-              </Suspense>
-            ) : (
-              <Button variant={'outline'} disabled size={'sm'}>
-                <Archive className="size-[0.85rem]" /> Estoque
-              </Button>
-            )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={'outline'} size={'sm'} className="gap-1">
+                    Mais opções <ChevronDown className="size-[0.85rem]" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[180px]">
+                  {canManageChilds ? (
+                    <Suspense fallback={<DropdownMenuItem disabled className="gap-2"><GitFork className="size-[0.85rem]" /> Derivações</DropdownMenuItem>}>
+                      <DerivatedProductsSheet
+                        productId={selected[0]}
+                        trigger={
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2">
+                            <GitFork className="size-[0.85rem]" /> Derivações
+                          </DropdownMenuItem>
+                        }
+                      />
+                    </Suspense>
+                  ) : (
+                    <DropdownMenuItem disabled className="gap-2">
+                      <GitFork className="size-[0.85rem]" /> Derivações
+                    </DropdownMenuItem>
+                  )}
 
-            {selected.length === 1 ? (
-              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><ImageIcon className="size-[0.85rem]" /> Imagens</Button>}>
-                <ProductImagesSheet productId={selected[0]} />
-              </Suspense>
-            ) : (
-              <Button variant={'outline'} disabled size={'sm'}>
-                <ImageIcon className="size-[0.85rem]" /> Imagens
-              </Button>
-            )}
+                  <Suspense fallback={<DropdownMenuItem disabled className="gap-2"><BadgeDollarSign className="size-[0.85rem]" /> Preços</DropdownMenuItem>}>
+                    <ProductPricesSheet
+                      productId={selected[0]}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2">
+                          <BadgeDollarSign className="size-[0.85rem]" /> Preços
+                        </DropdownMenuItem>
+                      }
+                    />
+                  </Suspense>
 
-            {selected.length === 1 ? (
-              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><BadgeDollarSign className="size-[0.85rem]" /> Preços</Button>}>
-                <ProductPricesSheet productId={selected[0]} />
-              </Suspense>
+                  <Suspense fallback={<DropdownMenuItem disabled className="gap-2"><ImageIcon className="size-[0.85rem]" /> Imagens</DropdownMenuItem>}>
+                    <ProductImagesSheet
+                      productId={selected[0]}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2">
+                          <ImageIcon className="size-[0.85rem]" /> Imagens
+                        </DropdownMenuItem>
+                      }
+                    />
+                  </Suspense>
+
+                  <Suspense fallback={<DropdownMenuItem disabled className="gap-2"><Archive className="size-[0.85rem]" /> Estoque</DropdownMenuItem>}>
+                    <ProductStockSheet
+                      productId={selected[0]}
+                      trigger={
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2">
+                          <Archive className="size-[0.85rem]" /> Estoque
+                        </DropdownMenuItem>
+                      }
+                    />
+                  </Suspense>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Button variant={'outline'} disabled size={'sm'}>
-                <BadgeDollarSign className="size-[0.85rem]" /> Preços
+              <Button variant={'outline'} disabled size={'sm'} className="gap-1">
+                Mais opções <ChevronDown className="size-[0.85rem]" />
               </Button>
             )}
 
@@ -505,15 +541,6 @@ function RouteComponent() {
             ) : (
               <Button variant={'outline'} disabled size={'sm'}>
                 <Edit className="size-[0.85rem]" /> Editar
-              </Button>
-            )}
-            {selected.length === 1 && canManageChilds ? (
-              <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><GitFork className="size-[0.85rem]" /> Derivações</Button>}>
-                <DerivatedProductsSheet productId={selected[0]} />
-              </Suspense>
-            ) : (
-              <Button variant={'outline'} disabled size={'sm'}>
-                <GitFork className="size-[0.85rem]" /> Derivações
               </Button>
             )}
             <Suspense fallback={<Button variant={'outline'} size="sm" disabled><Package className="size-[0.85rem]" /> Novo</Button>}>

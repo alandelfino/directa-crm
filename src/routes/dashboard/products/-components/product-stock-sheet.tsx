@@ -49,9 +49,10 @@ type ProductStockResponse = {
 
 type ProductStockSheetProps = {
   productId: number
+  trigger?: React.ReactNode
 }
 
-export function ProductStockSheet({ productId }: ProductStockSheetProps) {
+export function ProductStockSheet({ productId, trigger }: ProductStockSheetProps) {
   const [open, setOpen] = useState(false)
 
   const { data, isLoading, isRefetching, refetch } = useQuery<ProductStockResponse>({
@@ -229,9 +230,11 @@ export function ProductStockSheet({ productId }: ProductStockSheetProps) {
       }}
     >
       <SheetTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Archive className="size-[0.85rem]" /> Estoque
-        </Button>
+        {trigger || (
+          <Button size="sm" variant="outline">
+            <Archive className="size-[0.85rem]" /> Estoque
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className="w-[80vw] sm:max-w-none p-0">
         <div className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">

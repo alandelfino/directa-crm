@@ -6,6 +6,7 @@ import { RefreshCw, Edit, Trash, MapPin } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { privateInstance } from '@/lib/auth'
+import { dataTime } from '@/lib/format'
 import { NewCarrierIntegrationPostalCodeRangeSheet } from './new-carrier-integration-postal-code-range'
 import { EditCarrierIntegrationPostalCodeRangeSheet } from './edit-carrier-integration-postal-code-range'
 import { DeleteCarrierIntegrationPostalCodeRangeDialog } from './delete-carrier-integration-postal-code-range'
@@ -137,20 +138,34 @@ export function CarrierIntegrationPostalCodeRangesSheet({ carrierIntegrationId, 
           </span>
         ),
         headerClassName: 'min-w-[100px] border-r text-right',
-        className: 'min-w-[100px] !px-4 text-right',
+        className: 'min-w-[100px] border-r !px-4 text-right',
+    },
+    {
+      id: 'createdAt',
+      header: 'Criado em',
+      cell: (i) => <span className='text-sm text-muted-foreground'>{dataTime(i.createdAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r !px-4 py-3'
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (i) => <span className='text-sm text-muted-foreground'>{dataTime(i.updatedAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] !px-4 py-3'
     },
   ]
 
   return (
     <Sheet open={true} onOpenChange={onOpenChange}>
-      <SheetContent className='w-full sm:max-w-[920px] p-0'>
-        <SheetHeader className='px-4 py-4'>
+      <SheetContent className='w-full sm:max-w-[920px] p-0 flex flex-col h-full overflow-hidden'>
+        <SheetHeader className='px-6 pt-6 pb-4'>
           <SheetTitle>Faixas de CEP</SheetTitle>
           <SheetDescription>Gerencie as faixas de CEP e preços para este serviço.</SheetDescription>
         </SheetHeader>
 
         <div className='flex flex-col flex-1 overflow-hidden'>
-          <div className='flex items-center gap-2 px-2 justify-end'>
+          <div className='flex items-center gap-2 px-6 justify-end'>
             <Button
               size="sm"
               variant="ghost"
@@ -187,7 +202,7 @@ export function CarrierIntegrationPostalCodeRangesSheet({ carrierIntegrationId, 
             />
           </div>
 
-          <div className='mt-2 mb-0 flex-1 flex flex-col overflow-hidden'>
+          <div className='mt-2 px-6 pb-6 flex-1 flex flex-col overflow-hidden'>
             <DataTable<CarrierIntegrationPostalCodeRange>
               columns={columns}
               data={items}

@@ -146,6 +146,14 @@ function RouteComponent() {
       className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'name',
       header: 'Nome',
       cell: (s) => (
@@ -191,10 +199,11 @@ function RouteComponent() {
   ], [selected])
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Tabelas de Preço</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Tabelas de Preço</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie as tabelas de preço para os produtos.</p>
         </div>
           <div className='flex items-center gap-2'>
             <Popover open={isFilterOpen} onOpenChange={(open) => {
@@ -336,7 +345,7 @@ function RouteComponent() {
       </div>
       
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={items}

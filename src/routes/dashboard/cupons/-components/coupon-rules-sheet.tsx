@@ -125,6 +125,14 @@ export function CouponRulesSheet({
       headerClassName: 'w-[180px] min-w-[180px] border-r',
       className: 'w-[180px] min-w-[180px] p-2!',
     },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (row) => <span className="text-sm">{dataTime(row.updatedAt)}</span>,
+      width: '180px',
+      headerClassName: 'w-[180px] min-w-[180px] border-r',
+      className: 'w-[180px] min-w-[180px] p-2!',
+    },
   ]
 
   const { isPending: isDeleting, mutate: deleteRule } = useMutation({

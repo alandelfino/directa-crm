@@ -158,6 +158,14 @@ function RouteComponent() {
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      width: '12.5rem',
+      cell: (i) => <span className='text-sm'>{dataTime(i.updatedAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
   ]
 
   return (

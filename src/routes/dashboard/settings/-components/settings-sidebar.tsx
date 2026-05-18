@@ -21,7 +21,7 @@ export function SettingsSidebar() {
     { label: 'Integrações', href: '/dashboard/settings/integrations' },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks' },
     { label: 'Transportadoras', href: '/dashboard/settings/carrier-integrations' },
-    { label: 'Métodos de pagamento', href: '/dashboard/settings/payment-methods' },
+    { label: 'Pagamentos', href: '/dashboard/settings/payment-methods' },
     { label: 'Status de pedidos', href: '/dashboard/settings/order-status' },
   ]
   return (

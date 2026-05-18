@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { privateInstance } from '@/lib/auth'
+import { dataTime } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable, type ColumnDef } from '@/components/data-table'
@@ -19,8 +20,8 @@ export const Route = createFileRoute('/dashboard/settings/profiles/')({
 
 type Profile = {
   id: number
-  created_at?: number
-  updated_at?: number
+  createdAt?: string
+  updatedAt?: string
   name: string
   users?: number | any
   company_id?: number
@@ -36,6 +37,8 @@ type ProfilesResponse = {
   itemsTotal?: number
   pageTotal?: number
   items?: Profile[]
+  total?: number
+  totalPages?: number
 }
 
 function RouteComponent() {
@@ -59,6 +62,14 @@ function RouteComponent() {
 
   const [profiles, setProfiles] = useState<Profile[]>([])
 
+  const normalizeEpoch = (v?: number): number | undefined => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return undefined
+    const abs = Math.abs(v)
+    if (abs < 1e11) return Math.round(v * 1000)
+    if (abs > 1e14) return Math.round(v / 1000)
+    return v
+  }
+
   const columns: ColumnDef<Profile>[] = [
     {
       id: 'select',
@@ -78,6 +89,14 @@ function RouteComponent() {
       className: 'w-[3.75rem] min-w-[3.75rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'name',
       header: 'Nome',
       cell: (profile) => (
@@ -92,24 +111,18 @@ function RouteComponent() {
       className: 'min-w-[15rem] border-r border-neutral-200 !px-4 py-3'
     },
     {
-      id: 'users',
-      header: 'Usuários',
-      width: '8.75rem',
-      cell: (profile) => {
-        const users: any = (profile as any).users
-        if (typeof users === 'number') return users
-        if (Array.isArray(users)) return users.length
-        if (users && typeof users === 'object') {
-          const items = (users as any).items
-          const total = (users as any).total ?? (users as any).count ?? (users as any).itemsTotal
-          if (Array.isArray(items)) return items.length
-          if (typeof total === 'number') return total
-          return '-'
-        }
-        return '-'
-      },
-      headerClassName: 'w-[8.75rem] min-w-[8.75rem] border-r border-neutral-200 px-4 py-2.5',
-      className: 'w-[8.75rem] min-w-[8.75rem] border-r border-neutral-200 !px-4 py-3'
+      id: 'createdAt',
+      header: 'Criado em',
+      cell: (profile) => <span className='text-sm text-muted-foreground'>{profile.createdAt ? dataTime(profile.createdAt) : '-'}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (profile) => <span className='text-sm text-muted-foreground'>{profile.updatedAt ? dataTime(profile.updatedAt) : '-'}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
   ]
 
@@ -119,10 +132,10 @@ function RouteComponent() {
     const items = Array.isArray(data.items) ? data.items : []
     setProfiles(items)
 
-    const itemsTotal = typeof data.itemsTotal === 'number' ? data.itemsTotal : items.length
+    const itemsTotal = typeof data.total === 'number' ? data.total : (typeof data.itemsTotal === 'number' ? data.itemsTotal : items.length)
     setTotalItems(itemsTotal)
 
-    const pageTotal = typeof data.pageTotal === 'number' ? data.pageTotal : Math.max(1, Math.ceil(itemsTotal / perPage))
+    const pageTotal = typeof data.totalPages === 'number' ? data.totalPages : (typeof data.pageTotal === 'number' ? data.pageTotal : Math.max(1, Math.ceil(itemsTotal / perPage)))
     setTotalPages(pageTotal)
   }, [data, perPage])
 
@@ -163,10 +176,11 @@ function RouteComponent() {
   const canEditDelete = !!selectedProfile && selectedProfile.company_id !== 0
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Perfis</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Perfis de Acesso</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie os perfis e permissões dos usuários.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedProfiles([]); refetch() }}>
@@ -193,7 +207,7 @@ function RouteComponent() {
       </div>
 
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={profiles}

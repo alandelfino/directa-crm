@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
-import { RefreshCw, Store as StoreIcon, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Funnel, Trash, Edit as EditStoreIcon } from 'lucide-react'
+import { RefreshCw, Store as StoreIcon, ArrowUpDown, ArrowDownAZ, ArrowUpZA, Funnel, Trash, Edit as EditStoreIcon, Palette, Settings, ChevronDown } from 'lucide-react'
 import { privateInstance } from '@/lib/auth'
 import { Checkbox } from '@/components/ui/checkbox'
 import { EditStoreSheet } from './-components/edit-store'
@@ -19,6 +19,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { dataTime } from '@/lib/format'
 
 type StoreItem = {
   id: number
@@ -141,6 +143,14 @@ function RouteComponent() {
       className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'color',
       header: 'Cor',
       width: '80px',
@@ -189,14 +199,29 @@ function RouteComponent() {
       ),
       headerClassName: 'w-[100px] min-w-[100px] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[100px] min-w-[100px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'createdAt',
+      header: 'Criado em',
+      cell: (row) => <span className='text-sm text-muted-foreground'>{dataTime(row.createdAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (row) => <span className='text-sm text-muted-foreground'>{dataTime(row.updatedAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     }
   ], [selected])
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Lojas</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Lojas</h2>
+          <p className='text-sm text-muted-foreground'>Gerencie as lojas conectadas ao workspace.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Popover open={isFilterOpen} onOpenChange={(open) => {
@@ -318,24 +343,39 @@ function RouteComponent() {
             {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin' />) : (<RefreshCw />)}
           </Button>
 
-          {selected.length === 1 ? (
-            <StoreThemeFieldsSheet
-              storeId={selected[0]}
-              storeName={items.find((i) => i.id === selected[0])?.name}
-            />
-          ) : (
-            <Button variant={'outline'} size="sm" disabled>
-              Ajustes do tema
-            </Button>
-          )}
-
-          {selected.length === 1 ? (
-            <EditStoreSettingsSheet storeId={selected[0]} onSaved={() => { refetch() }} />
-          ) : (
-            <Button variant={'outline'} size="sm" disabled>
-              Configurações
-            </Button>
-          )}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={selected.length !== 1}>
+                Mais opções <ChevronDown className="ml-1.5 size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[180px]">
+              {selected.length === 1 && (
+                <>
+                  <StoreThemeFieldsSheet
+                    storeId={selected[0]}
+                    storeName={items.find((i) => i.id === selected[0])?.name}
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                        <Palette className="mr-2 size-4" />
+                        Ajustes do tema
+                      </DropdownMenuItem>
+                    }
+                  />
+                  <EditStoreSettingsSheet
+                    storeId={selected[0]}
+                    onSaved={() => { refetch() }}
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                        <Settings className="mr-2 size-4" />
+                        Configurações
+                      </DropdownMenuItem>
+                    }
+                  />
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {selected.length === 1 ? (
             <DeleteStore storeId={selected[0]} onDeleted={() => { setSelected([]); refetch(); }} />
@@ -357,7 +397,7 @@ function RouteComponent() {
       </div>
 
       <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='rounded-tl-lg overflow-hidden h-full flex flex-col flex-1'>
+        <div className='overflow-hidden h-full flex flex-col flex-1'>
           <DataTable
             columns={columns}
             data={items}

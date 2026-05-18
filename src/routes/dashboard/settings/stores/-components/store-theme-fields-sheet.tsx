@@ -930,9 +930,11 @@ function ThemeFieldEditor({
 export function StoreThemeFieldsSheet({
   storeId,
   storeName,
+  trigger,
 }: {
   storeId: number
   storeName?: string
+  trigger?: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -1132,9 +1134,11 @@ export function StoreThemeFieldsSheet({
   return (
     <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (o) refetch() }}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Palette className="size-[0.85rem] mr-2" /> Ajustes do tema
-        </Button>
+        {trigger || (
+          <Button variant="outline" size="sm">
+            <Palette className="size-[0.85rem] mr-2" /> Ajustes do tema
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-[1100px] p-0">
         <SheetHeader className="px-4 py-4">

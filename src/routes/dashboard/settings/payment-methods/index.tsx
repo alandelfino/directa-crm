@@ -5,7 +5,8 @@ import { privateInstance } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Edit, Funnel, RefreshCw, ShieldCheck, Trash } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Edit, Funnel, RefreshCw, ShieldCheck, Trash, ChevronDown } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
@@ -191,6 +192,14 @@ function RouteComponent() {
       className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'name',
       header: 'Nome',
       cell: (row) => (
@@ -244,14 +253,28 @@ function RouteComponent() {
       },
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      width: '12.5rem',
+      cell: (row) => {
+        const d = dataTime(row.updatedAt)
+        return (
+          <span className='text-sm text-muted-foreground'>{d || '-'}</span>
+        )
+      },
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     }
   ], [formatDiscountValue, selectedItems, storesById, toggleSelect])
 
   return (
-    <div className='flex flex-col w-full h-full'>
-      <div className='flex items-center justify-between p-2'>
-        <div className='flex flex-col'>
-          <h2 className='text-lg font-semibold'>Métodos de pagamento</h2>
+    <div className='flex flex-col w-full h-full p-6 space-y-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex flex-col space-y-1'>
+          <h2 className='text-2xl font-bold tracking-tight text-foreground'>Métodos de Pagamento</h2>
+          <p className='text-sm text-muted-foreground'>Configure os métodos de pagamento aceitos.</p>
         </div>
         <div className='flex items-center gap-2'>
           <Popover open={isFilterOpen} onOpenChange={(open) => {
@@ -393,16 +416,27 @@ function RouteComponent() {
             {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
           </Button>
 
-          <PayInsSheet
-            paymentMethodId={selectedPaymentMethod?.id ?? 0}
-            paymentMethodName={selectedPaymentMethod?.name ?? null}
-            storeId={selectedPaymentMethod?.storeId ?? storeId ?? 0}
-            trigger={(
-              <Button variant={'outline'} size="sm" disabled={selectedItems.length !== 1}>
-                <ShieldCheck className="size-[0.85rem]" /> Condições de pagamento
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={selectedItems.length !== 1}>
+                Mais opções <ChevronDown className="ml-1.5 size-4" />
               </Button>
-            )}
-          />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              {selectedItems.length === 1 && (
+                <PayInsSheet
+                  paymentMethodId={selectedPaymentMethod?.id ?? 0}
+                  paymentMethodName={selectedPaymentMethod?.name ?? null}
+                  storeId={selectedPaymentMethod?.storeId ?? storeId ?? 0}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                      <ShieldCheck className="mr-2 size-4" /> Condições de pagamento
+                    </DropdownMenuItem>
+                  }
+                />
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {selectedItems.length === 1 ? (
             <Button variant={'outline'} size="sm" onClick={() => setDeleteId(selectedItems[0])}>

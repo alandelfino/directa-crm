@@ -55,7 +55,7 @@ function toNullIfEmpty(v: unknown) {
   return s.length === 0 ? null : s
 }
 
-export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, onSaved?: () => void }) {
+export function EditStoreSettingsSheet({ storeId, onSaved, trigger }: { storeId: number, onSaved?: () => void, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const [selectedLogoMedia, setSelectedLogoMedia] = useState<MediaItem | null>(null)
@@ -177,9 +177,11 @@ export function EditStoreSettingsSheet({ storeId, onSaved }: { storeId: number, 
       }
     }}>
       <SheetTrigger asChild>
-        <Button variant={'outline'} size="sm">
-          <Settings className="size-[0.85rem]" /> Configurações
-        </Button>
+        {trigger || (
+          <Button variant={'outline'} size="sm">
+            <Settings className="size-[0.85rem]" /> Configurações
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className='min-w-[500px] sm:w-[640px] overflow-y-auto'>
         <Form {...form}>

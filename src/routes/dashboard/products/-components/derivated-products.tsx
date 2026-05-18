@@ -111,7 +111,7 @@ function EditableDimensionCell({ value, onChange, isWeight }: EditableDimensionC
   )
 }
 
-export function DerivatedProductsSheet({ productId }: { productId: number }) {
+export function DerivatedProductsSheet({ productId, trigger }: { productId: number, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<DerivatedProduct[]>([])
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -313,9 +313,11 @@ export function DerivatedProductsSheet({ productId }: { productId: number }) {
       }
     }}>
       <SheetTrigger asChild>
-        <Button variant={'outline'} size={'sm'}>
-          <GitFork className="size-[0.85rem]" /> Derivações
-        </Button>
+        {trigger || (
+          <Button variant={'outline'} size={'sm'}>
+            <GitFork className="size-[0.85rem]" /> Derivações
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className='w-4xl sm:max-w-[1000px] p-0'>
         <SheetHeader className='px-4 py-4 space-y-3'>

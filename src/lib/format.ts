@@ -426,3 +426,20 @@ export function formatarDataFlex(value: number | Date, key: string = 'default'):
   if (!cfg) return formatDateByCompany(value)
   return formatDateWithConfig(value, cfg)
 }
+
+export function dataTime(value?: number | Date | string | null): string {
+  if (!value) return '-'
+  const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value
+  if (!(d instanceof Date) || isNaN(d.getTime())) return '-'
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  const dd = pad(d.getDate())
+  const mm = pad(d.getMonth() + 1)
+  const yyyy = d.getFullYear()
+  const HH = pad(d.getHours())
+  const MM = pad(d.getMinutes())
+  const ss = pad(d.getSeconds())
+
+  return `${dd}/${mm}/${yyyy} às ${HH}:${MM}:${ss}`
+}

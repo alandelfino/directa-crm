@@ -161,8 +161,9 @@ function RouteComponent() {
     {
       id: 'select',
       width: '60px',
-      // Sem seleção geral: apenas seleção única por linha
-      header: () => (<div className="flex justify-center items-center" />),
+      header: () => (
+        <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
+      ),
       cell: (row) => (
         <div className="flex justify-center items-center">
           <Checkbox
@@ -171,8 +172,16 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r !px-2',
-      className: 'font-medium border-r !p-0 !px-2'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.category.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'name',
@@ -192,53 +201,42 @@ function RouteComponent() {
             )
           })
           return (
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden w-full">
               {guides}
               <div style={{ paddingLeft: `${row.depth * indent}px` }} className={hasChildren ? 'font-semibold flex items-center gap-2' : 'flex items-center gap-2'}>
                 {hasChildren ? (
-                  <>
-                    <span>{row.category.name ?? row.category.nome ?? 'Categoria'}</span>
-                  </>
+                  <span>{row.category.name ?? row.category.nome ?? 'Categoria'}</span>
                 ) : (
-                  <>
-                    <span className='text-neutral-700'>{row.category.name ?? row.category.nome ?? 'Categoria'}</span>
-                  </>
+                  <span className='text-neutral-700'>{row.category.name ?? row.category.nome ?? 'Categoria'}</span>
                 )}
-
               </div>
             </div>
           )
         })()
       ),
-      headerClassName: 'border-r !px-3',
-      className: 'border-r !p-0 !px-3'
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
     },
   ]
 
   return (
     <div className='flex flex-col w-full h-full'>
-
       <Topbar title="Categorias" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Categorias', href: '/dashboard/categories', isLast: true }]} />
-
-      {/* Content */}
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-
-        {/* Actions */}
-        <div className='flex w-full items-center p-2 gap-4 justify-end'>
-
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Categorias</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie a árvore de categorias de produtos do sistema.</p>
+          </div>
           <div className='flex items-center gap-2'>
-            <Button className='font-normal' variant={'ghost'} size={'sm'} disabled={isLoading || isRefetching} onClick={() => { setSelectedCategories([]); refetch() }}>
-              {
-                (isLoading || isRefetching)
-                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
-                  : <RefreshCw className='size-[0.85rem]' />
-              }
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedCategories([]); refetch() }}>
+              {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
             </Button>
 
             {selectedCategories.length === 1 ? (
               <DeleteCategory categoryId={selectedCategories[0]} />
             ) : (
-              <Button className='font-normal' variant={'outline'} disabled size={'sm'}>
+              <Button variant={'outline'} disabled size="sm">
                 <Trash className='size-[0.85rem]' /> Excluir
               </Button>
             )}
@@ -246,17 +244,15 @@ function RouteComponent() {
             {selectedCategories.length === 1 ? (
               <EditCategorySheet categoryId={selectedCategories[0]} categories={categories} />
             ) : (
-              <Button className='font-normal' variant={'outline'} disabled size={'sm'}>
+              <Button variant={'outline'} disabled size="sm">
                 <Edit className='size-[0.85rem]' /> Editar
               </Button>
             )}
 
             <NewCategorySheet />
           </div>
-
         </div>
 
-        {/* Table */}
         <DataTable
           columns={columns}
           data={flattenedCategories}
@@ -293,7 +289,6 @@ function RouteComponent() {
             refetch()
           }}
         />
-
       </div>
     </div>
   )

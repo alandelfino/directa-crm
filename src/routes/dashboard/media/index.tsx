@@ -119,16 +119,17 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <Topbar title="Midias" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Midias', href: '/dashboard/media', isLast: true }]} />
+      <Topbar title="Mídias" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Mídias', href: '/dashboard/media', isLast: true }]} />
 
       {/* Content */}
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
 
-        {/* Actions */}
-        <div className='flex w-full items-center p-2 gap-4'>
-
-          <div className='flex items-center gap-2 flex-1' />
-
+        {/* Header and Actions */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Mídias</h2>
+            <p className="text-sm text-muted-foreground">Gerencie o acervo de imagens, logotipos e banners da sua operação.</p>
+          </div>
           <div className='flex items-center gap-2'>
             <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => refetch()} size={'sm'}>
               {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
@@ -141,7 +142,6 @@ function RouteComponent() {
             </Button>
             <MultiUploadSheet />
           </div>
-
         </div>
 
         {/* Grid de arquivos */}

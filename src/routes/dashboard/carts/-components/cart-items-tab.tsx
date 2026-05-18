@@ -80,13 +80,6 @@ export function CartItemsTab({
               const isOpen = openProducts.includes(product.name)
               const productTotalItems = product.derivatedProducts.reduce((acc, item) => acc + item.amount, 0)
               const productTotalValueCents = product.derivatedProducts.reduce((acc, item) => acc + (Number(item.totalValue) || 0), 0)
-              const summaryParts = product.derivatedProducts
-                .filter((i) => (Number(i.amount) || 0) > 0)
-                .map((i) => `${i.name}: ${i.amount}`)
-              const summaryText =
-                summaryParts.length <= 4
-                  ? summaryParts.join(" - ")
-                  : `${summaryParts.slice(0, 4).join(" - ")} +${summaryParts.length - 4}`
 
               return (
                 <Collapsible
@@ -111,7 +104,7 @@ export function CartItemsTab({
                             <span className="text-sm font-semibold text-foreground/90 truncate">{product.name}</span>
                           </div>
                           <div className="text-sm text-muted-foreground truncate">
-                            {summaryText || `${productTotalItems} ${productTotalItems === 1 ? "item" : "itens"}`}
+                            {`${productTotalItems} ${productTotalItems === 1 ? "item" : "itens"}`}
                           </div>
                         </div>
                         <div className="ml-auto flex items-center gap-2 pl-2">

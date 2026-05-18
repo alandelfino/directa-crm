@@ -10,6 +10,7 @@ import { Users, ArrowUpRight, Trash, Edit, RefreshCw } from 'lucide-react'
 import { NewTeamSheet } from './-components/new-team'
 import { EditTeamSheet } from './-components/edit-team'
 import { DeleteTeam } from './-components/delete-team'
+import { dataTime } from '@/lib/format'
 
 export const Route = createFileRoute('/dashboard/settings/teams/')({
   component: RouteComponent,
@@ -98,32 +99,7 @@ function RouteComponent() {
       header: 'Criado em',
       cell: (team) => {
         const val = team.created_at ?? team.createdAt
-        if (!val) return '-'
-        
-        let ms: number | undefined
-        
-        if (typeof val === 'number') {
-          const normalizeEpoch = (v: number): number => {
-            const abs = Math.abs(v)
-            if (abs < 1e11) return Math.round(v * 1000)
-            if (abs > 1e14) return Math.round(v / 1000)
-            return v
-          }
-          ms = normalizeEpoch(val)
-        } else if (typeof val === 'string') {
-          const parsed = Date.parse(val)
-          if (!Number.isNaN(parsed)) ms = parsed
-        }
-        
-        if (!ms) return '-'
-        return new Intl.DateTimeFormat('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).format(new Date(ms))
+        return <span className='text-sm text-muted-foreground'>{dataTime(val)}</span>
       },
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'

@@ -29,16 +29,16 @@ const getApiErrorData = (err: unknown): { title?: string; detail?: string } | nu
 }
 
 const discountAmountSchema = z
-  .preprocess((v) => (v === '' || v === null ? undefined : v), z.number())
+  .number()
+  .int({ message: 'Valor deve ser um número inteiro' })
+  .min(0, { message: 'Valor mínimo é 0' })
   .optional()
-  .refine((v) => v === undefined || Number.isInteger(v), { message: 'Valor deve ser um número inteiro' })
-  .refine((v) => v === undefined || v >= 0, { message: 'Valor mínimo é 0' })
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
-  storeId: z.coerce.number().int().min(1, { message: 'Loja é obrigatória' }),
-  paymentGatewayId: z.coerce.number().int().min(1, { message: 'Gateway é obrigatório' }),
-  activeDiscount: z.boolean().default(false),
+  storeId: z.number().int().min(1, { message: 'Loja é obrigatória' }),
+  paymentGatewayId: z.number().int().min(1, { message: 'Gateway é obrigatório' }),
+  activeDiscount: z.boolean(),
   discountType: z.enum(['percent', 'fixed']).optional(),
   discountAmount: discountAmountSchema,
 }).superRefine((data, ctx) => {

@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { dataTime } from '@/lib/format'
 
 export const Route = createFileRoute('/dashboard/warranties/')({
   component: RouteComponent,
@@ -101,12 +102,7 @@ function RouteComponent() {
       id: 'select',
       width: '60px',
       header: () => (
-        <div className='flex justify-center items-center'>
-          <Checkbox
-            checked={items.length > 0 && selected.length === items.length}
-            onCheckedChange={toggleSelectAll}
-          />
-        </div>
+        <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
       cell: (row) => (
         <div className='flex justify-center items-center'>
@@ -116,11 +112,31 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r !px-4',
-      className: 'font-medium border-r'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
-    { id: 'name', header: 'Nome', cell: (w) => w.name, headerClassName: 'border-r !px-4', className: 'border-r' },
-    { id: 'storeName', header: 'Nome na loja', cell: (w) => w.storeName, headerClassName: 'border-r !px-4', className: 'border-r' },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (w) => <span className="font-mono text-xs">{w.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'name',
+      header: 'Nome',
+      cell: (w) => <span className='font-semibold text-foreground block truncate min-w-0' title={w.name}>{w.name}</span>,
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'storeName',
+      header: 'Nome na loja',
+      cell: (w) => <span className='text-neutral-700 block truncate min-w-0' title={w.storeName}>{w.storeName}</span>,
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
+    },
     { 
       id: 'period', 
       header: 'Período', 
@@ -128,18 +144,33 @@ function RouteComponent() {
         const map: Record<string, string> = { days: 'Dias', months: 'Meses', years: 'Anos' }
         return map[w.period] || w.period
       }, 
-      headerClassName: 'w-[90px] border-r !px-4', 
-      className: 'w-[120px] border-r' 
+      width: '120px',
+      headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5', 
+      className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3' 
     },
-    { id: 'amount', header: 'Qtd.', cell: (w) => w.amount, headerClassName: 'w-[70px] border-r !px-4', className: 'w-[90px] border-r' },
-    { id: 'price', header: 'Preço', cell: (w) => formatCurrencyBRL(w.price), headerClassName: 'w-[90px] border-r !px-4', className: 'w-[140px] border-r' },
+    {
+      id: 'amount',
+      header: 'Qtd.',
+      cell: (w) => w.amount,
+      width: '90px',
+      headerClassName: 'w-[90px] min-w-[90px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[90px] min-w-[90px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'price',
+      header: 'Preço',
+      cell: (w) => formatCurrencyBRL(w.price),
+      width: '140px',
+      headerClassName: 'w-[140px] min-w-[140px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[140px] min-w-[140px] border-r border-neutral-200 !px-4 py-3'
+    },
     { 
       id: 'createdAt', 
       header: 'Criado em', 
-      cell: (w) => w.createdAt ? new Date(w.createdAt).toLocaleDateString('pt-BR') : '-',
-      width: '120px',
-      headerClassName: 'w-[120px] border-r !px-4', 
-      className: 'w-[120px] border-r'
+      cell: (w) => <div>{dataTime(w.createdAt)}</div>,
+      width: '12.5rem',
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5', 
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     }
   ]
 
@@ -166,15 +197,28 @@ function RouteComponent() {
   useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
   useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])
 
-  const toggleSelectAll = () => { if (selected.length === items.length) setSelected([]); else setSelected(items.map(i => i.id)) }
-  const toggleSelect = (id: number) => { if (selected.includes(id)) setSelected(selected.filter(s => s !== id)); else setSelected([...selected, id]) }
+  const toggleSelect = (id: number) => {
+    if (selected.includes(id)) {
+      setSelected([])
+    } else {
+      setSelected([id])
+    }
+  }
 
   return (
     <div className='flex flex-col w-full h-full'>
       <Topbar title="Garantias" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Garantias', href: '/dashboard/warranties', isLast: true }]} />
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='flex w-full items-center p-2 gap-4'>
-          <div className='flex items-center gap-2 flex-1'>
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Garantias</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie os prazos e valores de garantia dos produtos.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+              {isLoading || isRefetching ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
+            </Button>
+
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
@@ -190,7 +234,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -296,11 +340,6 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-          <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-              {isLoading || isRefetching ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
-            </Button>
 
             {selected.length === 1 ? (
               <DeleteWarranty warrantyId={selected[0]} />

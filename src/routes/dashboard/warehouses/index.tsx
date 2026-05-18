@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { dataTime } from '@/lib/format'
 
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -108,20 +109,20 @@ function RouteComponent() {
   useEffect(() => { if (isRefetching) setSelected([]) }, [isRefetching])
   useEffect(() => { if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages) }, [totalPages, currentPage])
 
-  const toggleSelectAll = () => { if (selected.length === items.length) setSelected([]); else setSelected(items.map(i => i.id)) }
-  const toggleSelect = (id: number) => { if (selected.includes(id)) setSelected(selected.filter(s => s !== id)); else setSelected([...selected, id]) }
+  const toggleSelect = (id: number) => {
+    if (selected.includes(id)) {
+      setSelected([])
+    } else {
+      setSelected([id])
+    }
+  }
 
   const columns: ColumnDef<Warehouse>[] = [
     {
       id: 'select',
       width: '60px',
       header: () => (
-        <div className='flex justify-center items-center'>
-          <Checkbox
-            checked={items.length > 0 && selected.length === items.length}
-            onCheckedChange={toggleSelectAll}
-          />
-        </div>
+        <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
       cell: (row) => (
         <div className='flex justify-center items-center'>
@@ -131,31 +132,49 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r',
-      className: 'font-medium border-r p-2!'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
-    { id: 'name', header: 'Nome', cell: (i) => i.name ?? '—', className: 'border-r p-2!' },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    { 
+      id: 'name', 
+      header: 'Nome', 
+      cell: (i) => <span className='block truncate min-w-0 font-semibold text-foreground' title={i.name}>{i.name}</span>, 
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3' 
+    },
     {
       id: 'createdAt',
       header: 'Criado em',
       width: '12.5rem',
-      cell: (i) => {
-        if (!i.createdAt) return <span className='text-sm'>-</span>
-        const d = new Date(i.createdAt)
-        return (<span className='text-sm'>{d.toLocaleDateString('pt-BR')}</span>)
-      },
-      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r',
-      className: 'w-[12.5rem] min-w-[12.5rem] border-r p-2!'
+      cell: (i) => <span className='text-sm'>{dataTime(i.createdAt)}</span>,
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
   ]
 
   return (
     <div className='flex flex-col w-full h-full'>
       <Topbar title='Depósitos' breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Depósitos', href: '/dashboard/warehouses', isLast: true }]} />
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='flex w-full items-center p-2 gap-4'>
-          <div className='flex items-center gap-2 flex-1'>
-             <Popover open={isFilterOpen} onOpenChange={(open) => {
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Depósitos</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie os depósitos e centros de distribuição da sua operação.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
+            </Button>
+
+            <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
                 setLocalOrderBy(orderBy)
@@ -170,7 +189,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -262,7 +281,7 @@ function RouteComponent() {
                       setOrderBy(localOrderBy)
                       setFilterName(localFilterName)
                       setFilterNameOperator(localFilterNameOperator)
-                      setCurrentPage(1) // Reset page on filter apply
+                      setCurrentPage(1)
                       setIsFilterOpen(false)
                     }}>
                       Aplicar
@@ -271,11 +290,7 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
-            </Button>
+
             {selected.length === 1 ? (
               <DeleteWarehouse warehouseId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />
             ) : (

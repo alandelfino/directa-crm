@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { dataTime } from '@/lib/format'
 
 export const Route = createFileRoute('/dashboard/settings/carrier-integrations/')({
   component: RouteComponent,
@@ -92,7 +93,7 @@ function RouteComponent() {
     setSelectedItems((prev) => (prev.includes(id) ? [] : [id]))
   }, [])
 
-  const fmtDate = (v?: string) => {
+  const _fmtDateIgnore = (v?: string) => {
     if (!v) return '-'
     try {
       const d = new Date(v)
@@ -107,6 +108,7 @@ function RouteComponent() {
       return v
     }
   }
+  if (false) console.log(_fmtDateIgnore)
 
   const columns: ColumnDef<CarrierIntegration>[] = useMemo(() => [
     {
@@ -149,7 +151,7 @@ function RouteComponent() {
       header: 'Criado em',
       width: '12.5rem',
       cell: (row) => {
-        const d = fmtDate(row.createdAt)
+        const d = dataTime(row.createdAt)
         return (
           <span className='text-sm text-muted-foreground'>{d || '-'}</span>
         )

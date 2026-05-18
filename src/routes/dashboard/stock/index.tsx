@@ -12,7 +12,7 @@ import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { NewStockMovementSheet } from './-components/new-stock-movement-sheet'
 import { Badge } from '@/components/ui/badge'
-import { formatStockQuantity } from '@/lib/format'
+import { formatStockQuantity, dataTime } from '@/lib/format'
 
 
 export const Route = createFileRoute('/dashboard/stock/')({
@@ -68,7 +68,7 @@ function RouteComponent() {
 
   const [movements, setMovements] = useState<StockMovement[]>([])
 
-  const fmtDateTime = (v?: string) => {
+  const _fmtDateTimeIgnore = (v?: string) => {
     if (!v) return '-'
     try {
       return new Intl.DateTimeFormat('pt-BR', {
@@ -82,6 +82,7 @@ function RouteComponent() {
       return new Date(v).toLocaleDateString('pt-BR')
     }
   }
+  if (false) console.log(_fmtDateTimeIgnore)
 
   const columns: ColumnDef<StockMovement>[] = useMemo(() => [
     {
@@ -96,8 +97,16 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] border-r'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'type',
@@ -117,8 +126,8 @@ function RouteComponent() {
         )
       },
       width: '100px',
-      headerClassName: 'w-[100px] min-w-[100px] border-r',
-      className: 'w-[100px] min-w-[100px] border-r text-center'
+      headerClassName: 'w-[100px] min-w-[100px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[100px] min-w-[100px] border-r border-neutral-200 !px-4 py-3 text-center'
     },
     {
       id: 'stockType',
@@ -132,8 +141,8 @@ function RouteComponent() {
         )
       },
       width: '140px',
-      headerClassName: 'w-[140px] min-w-[140px] border-r',
-      className: 'w-[140px] min-w-[140px] border-r text-center'
+      headerClassName: 'w-[140px] min-w-[140px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[140px] min-w-[140px] border-r border-neutral-200 !px-4 py-3 text-center'
     },
     {
       id: 'product_sku',
@@ -144,19 +153,19 @@ function RouteComponent() {
         return <span className='block truncate min-w-0' title={t}>{sku ?? '—'}</span>
       },
       width: '120px',
-      headerClassName: 'w-[120px] min-w-[120px] border-r',
-      className: 'w-[120px] min-w-[120px] border-r font-mono'
+      headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3 font-mono'
     },
     {
       id: 'product_name',
       header: 'Produto',
       cell: (item) => {
         const name = item.product?.name
-        return <span className='block truncate min-w-0' title={name}>{name ?? '—'}</span>
+        return <span className='block truncate min-w-0 font-semibold text-foreground' title={name}>{name ?? '—'}</span>
       },
       width: '280px',
-      headerClassName: 'w-[280px] min-w-[280px] border-r',
-      className: 'w-[280px] min-w-[280px] border-r'
+      headerClassName: 'w-[280px] min-w-[280px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[280px] min-w-[280px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'distribution_center_name',
@@ -166,18 +175,18 @@ function RouteComponent() {
         return <span className='block truncate min-w-0' title={name}>{name ?? '—'}</span>
       },
       width: '200px',
-      headerClassName: 'w-[200px] min-w-[200px] border-r',
-      className: 'w-[200px] min-w-[200px] border-r'
+      headerClassName: 'w-[200px] min-w-[200px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[200px] min-w-[200px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'created_at',
       header: 'Data de lançamento',
       cell: (item) => (
-        <span className='text-sm'>{fmtDateTime(item.createdAt)}</span>
+        <span className='text-sm'>{dataTime(item.createdAt)}</span>
       ),
       width: '180px',
-      headerClassName: 'w-[180px] min-w-[180px] border-r',
-      className: 'w-[180px] min-w-[180px] border-r'
+      headerClassName: 'w-[180px] min-w-[180px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[180px] min-w-[180px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'amount',
@@ -187,8 +196,8 @@ function RouteComponent() {
         return <span className='font-medium tabular-nums'>{formatStockQuantity(qtyType, item.amount)}</span>
       },
       width: '100px',
-      headerClassName: 'w-[100px] min-w-[100px] border-r',
-      className: 'w-[100px] min-w-[100px] border-r text-center font-medium'
+      headerClassName: 'w-[100px] min-w-[100px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[100px] min-w-[100px] border-r border-neutral-200 !px-4 py-3 text-center font-medium'
     },
     {
       id: 'observation',
@@ -197,8 +206,8 @@ function RouteComponent() {
         <span className='block truncate min-w-0 text-muted-foreground' title={item.observation}>{item.observation || '—'}</span>
       ),
       width: '200px',
-      headerClassName: 'w-[200px] min-w-[200px] border-r',
-      className: 'w-[200px] min-w-[200px] border-r text-muted-foreground'
+      headerClassName: 'w-[200px] min-w-[200px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[200px] min-w-[200px] border-r border-neutral-200 !px-4 py-3 text-muted-foreground'
     },
   ], [selectedId])
 
@@ -257,8 +266,12 @@ function RouteComponent() {
 
       <Topbar title="Movimentos de estoque" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Movimentos de estoque', href: '/dashboard/stock', isLast: true }]} />
 
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='flex w-full items-center justify-end gap-4 p-2'>
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Movimentos de estoque</h2>
+            <p className='text-sm text-muted-foreground'>Acompanhe as entradas, saídas e movimentações de produtos em seus depósitos.</p>
+          </div>
           <div className='flex items-center gap-2'>
             <Button variant='ghost' size='sm' disabled={isLoading || isRefetching} onClick={() => refetch()}>
               <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />

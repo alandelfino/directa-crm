@@ -34,7 +34,7 @@ const couponTypes: Array<{ value: (typeof couponTypeValues)[number]; label: stri
 ]
 
 const valueSchema = z
-  .number({ required_error: 'Valor é obrigatório', invalid_type_error: 'Valor é obrigatório' })
+  .number({ message: 'Valor é obrigatório' })
   .refine((v) => Number.isFinite(v), { message: 'Valor é obrigatório' })
   .int({ message: 'Valor deve ser um número inteiro' })
   .min(0, { message: 'Valor mínimo é 0' })
@@ -129,7 +129,7 @@ export function NewCouponSheet({ className, trigger, ...props }: NewCouponSheetP
   const queryClient = useQueryClient()
   const usedCodesRef = useRef(new Set<string>())
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.input<typeof formSchema>, any, z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       code: '',

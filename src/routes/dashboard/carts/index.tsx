@@ -28,6 +28,7 @@ export const Route = createFileRoute('/dashboard/carts/')({
 })
 
 import { Badge } from '@/components/ui/badge'
+import { dataTime } from '@/lib/format'
 
 type Cart = {
   id: number
@@ -112,7 +113,7 @@ function RouteComponent() {
       id: 'select',
       width: '60px',
       header: (
-        <div className='flex items-center justify-center text-xs text-muted-foreground'>Sel.</div>
+        <div className='flex items-center justify-center text-xs text-neutral-500'>Sel.</div>
       ),
       cell: (cart) => (
         <div className='flex items-center justify-center'>
@@ -122,16 +123,16 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] font-medium border-r whitespace-nowrap'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'id',
       header: 'ID',
-      width: '80px',
-      cell: (c) => c.id,
-      headerClassName: 'w-[80px] min-w-[80px] border-r',
-      className: 'w-[80px] min-w-[80px] border-r font-mono whitespace-nowrap'
+      width: '40px',
+      cell: (c) => <span className="font-mono text-xs">{c.id}</span>,
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3 font-mono'
     },
     {
       id: 'customer',
@@ -139,10 +140,10 @@ function RouteComponent() {
       width: '200px',
       cell: (c) => {
         const name = c.customer?.name || `Cliente #${c.customerId}`
-        return <span className="block min-w-0 whitespace-nowrap truncate" title={name}>{name}</span>
+        return <span className="block min-w-0 font-semibold text-foreground truncate" title={name}>{name}</span>
       },
-      headerClassName: 'w-[200px] min-w-[200px] border-r',
-      className: 'w-[200px] min-w-[200px] max-w-[400px] border-r whitespace-nowrap'
+      headerClassName: 'w-[200px] min-w-[200px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[200px] min-w-[200px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'store',
@@ -157,8 +158,8 @@ function RouteComponent() {
           {name}
         </span>
       },
-      headerClassName: 'w border-r',
-      className: 'w border-r whitespace-nowrap'
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'status',
@@ -172,44 +173,44 @@ function RouteComponent() {
         const status = statusMap[c.status] || { label: c.status, variant: 'secondary' }
         return <Badge variant={status.variant} className="text-[10px] h-5">{status.label}</Badge>
       },
-      headerClassName: 'w-[120px] min-w-[120px] border-r',
-      className: 'w-[120px] min-w-[120px] border-r text-center whitespace-nowrap'
+      headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3 text-center'
     },
     {
       id: 'totalItems',
       header: 'Itens',
       cell: (c) => c.totalItems ?? 0,
-      headerClassName: 'w-[90px] min-w-[90px] border-r',
-      className: 'w-[90px] min-w-[90px] border-r text-center whitespace-nowrap'
+      headerClassName: 'w-[90px] min-w-[90px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[90px] min-w-[90px] border-r border-neutral-200 !px-4 py-3 text-center'
     },
     {
       id: 'totalValue',
       header: 'Total',
       cell: (c) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((c.totalValue ?? 0) / 100),
-      headerClassName: 'w-[160px] min-w-[160px] border-r text-right',
-      className: 'w-[160px] min-w-[160px] border-r text-right font-medium whitespace-nowrap'
+      headerClassName: 'w-[160px] min-w-[160px] border-r border-neutral-200 px-4 py-2.5 text-right',
+      className: 'w-[160px] min-w-[160px] border-r border-neutral-200 !px-4 py-3 text-right font-medium'
     },
     {
       id: 'createdAt',
       header: 'Criado em',
       cell: (c) => (
-        <span className="whitespace-nowrap">
-          {new Date(c.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        <span className="whitespace-nowrap text-sm">
+          {dataTime(c.createdAt)}
         </span>
       ),
-      headerClassName: 'w-[190px] min-w-[190px] border-r',
-      className: 'w-[190px] min-w-[190px] border-r whitespace-nowrap'
+      headerClassName: 'w-[190px] min-w-[190px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[190px] min-w-[190px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'updatedAt',
       header: 'Atualizado em',
       cell: (c) => (
-        <span className="whitespace-nowrap">
-          {new Date(c.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        <span className="whitespace-nowrap text-sm">
+          {dataTime(c.updatedAt)}
         </span>
       ),
-      headerClassName: 'w-[190px] min-w-[190px] border-r',
-      className: 'w-[190px] min-w-[190px] border-r whitespace-nowrap'
+      headerClassName: 'w-[190px] min-w-[190px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[190px] min-w-[190px] border-r border-neutral-200 !px-4 py-3'
     }
   ]
 
@@ -223,13 +224,16 @@ function RouteComponent() {
   return (
     <div className='flex flex-col w-full h-full'>
       <Topbar title="Carrinhos" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Carrinhos', href: '/dashboard/carts', isLast: true }]} />
-
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='flex w-full items-center p-2 gap-4 justify-end'>
-          <Button variant='ghost' size='sm' onClick={() => refetch()} disabled={isLoading || isRefetching}>
-            <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
-          </Button>
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Carrinhos</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie os carrinhos de compras ativos, finalizados e abandonados da sua operação.</p>
+          </div>
           <div className='flex items-center gap-2'>
+            <Button variant='ghost' size='sm' onClick={() => refetch()} disabled={isLoading || isRefetching}>
+              <RefreshCw className={`size-[0.85rem] ${isRefetching ? 'animate-spin' : ''}`} />
+            </Button>
             <Button
               variant='outline'
               size='sm'
@@ -253,50 +257,48 @@ function RouteComponent() {
             >
               <Trash className="size-[0.85rem]" /> Excluir
             </Button>
+            <NewCartSheet
+              onCreated={() => {
+                refetch()
+                setIsEditSheetOpen(false)
+              }}
+              onOpenChange={(open) => {
+                if (!open) refetch()
+              }}
+            />
           </div>
-          <NewCartSheet
-            onCreated={() => {
-              refetch()
-              setIsEditSheetOpen(false)
-            }}
-            onOpenChange={(open) => {
-              if (!open) refetch()
-            }}
-          />
         </div>
 
-        <div className='flex-1 overflow-hidden px-2'>
-          <DataTable
-            columns={columns}
-            data={carts}
-            loading={isLoading || isRefetching}
-            page={currentPage}
-            totalItems={totalItems}
-            perPage={perPage}
-            onChange={(vals) => {
-              if (vals.page) setCurrentPage(vals.page)
-              if (vals.perPage) setPerPage(vals.perPage)
-            }}
-            onRowClick={(row) => toggleSelect(row.id)}
-            emptySlot={
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia><ShoppingCart className="size-10" /></EmptyMedia>
-                  <EmptyTitle>Nenhum carrinho encontrado</EmptyTitle>
-                  <EmptyDescription>Crie um novo carrinho para começar.</EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <NewCartSheet onCreated={(id) => {
-                    refetch()
-                    setSelectedCarts([id])
-                    isEditSheetDirtyRef.current = false
-                    setIsEditSheetOpen(true)
-                  }} />
-                </EmptyContent>
-              </Empty>
-            }
-          />
-        </div>
+        <DataTable
+          columns={columns}
+          data={carts}
+          loading={isLoading || isRefetching}
+          page={currentPage}
+          totalItems={totalItems}
+          perPage={perPage}
+          onChange={(vals) => {
+            if (vals.page) setCurrentPage(vals.page)
+            if (vals.perPage) setPerPage(vals.perPage)
+          }}
+          onRowClick={(row) => toggleSelect(row.id)}
+          emptySlot={
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia><ShoppingCart className="size-10" /></EmptyMedia>
+                <EmptyTitle>Nenhum carrinho encontrado</EmptyTitle>
+                <EmptyDescription>Crie um novo carrinho para começar.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <NewCartSheet onCreated={(id) => {
+                  refetch()
+                  setSelectedCarts([id])
+                  isEditSheetDirtyRef.current = false
+                  setIsEditSheetOpen(true)
+                }} />
+              </EmptyContent>
+            </Empty>
+          }
+        />
       </div>
 
       {selectedCarts.length === 1 && isEditSheetOpen && (

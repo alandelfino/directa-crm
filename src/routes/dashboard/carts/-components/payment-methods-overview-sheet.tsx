@@ -198,23 +198,7 @@ export function PaymentMethodsOverviewSheet({
                         <div className="mt-0.5 text-xs text-muted-foreground">Condições disponíveis</div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
-                        {q.paymentMethod.activeDiscount && (Number(q.totals?.discountApplied ?? 0) || 0) > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <span className="tabular-nums text-xs text-muted-foreground line-through">
-                              {formatBRL(Number(q.totals?.baseTotalValue ?? 0) || 0)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">por</span>
-                            <span className="tabular-nums text-sm font-semibold text-foreground">
-                              {formatBRL(Number(q.totals?.discountedTotalValue ?? 0) || 0)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="tabular-nums text-sm font-semibold text-foreground">
-                            {formatBRL(Number(q.totals?.discountedTotalValue ?? 0) || 0)}
-                          </span>
-                        )}
-                      </div>
+
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pb-0">
@@ -232,43 +216,58 @@ export function PaymentMethodsOverviewSheet({
                                   {p.noInterestRate ? <div className="mt-0.5 text-[11px] text-muted-foreground">sem juros</div> : null}
                                 </div>
 
-                                <div className="shrink-0 tabular-nums text-xs font-semibold text-foreground">
-                                  {p.installmentType === "dynamic" ? (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                                          Ver parcelas
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent align="end" className="w-[260px] p-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div className="text-sm font-semibold">Parcelas</div>
-                                          <div className="text-xs text-muted-foreground">
-                                            Total: <span className="tabular-nums font-semibold text-foreground">{formatBRL(Number(p.totals?.totalValue ?? 0) || 0)}</span>
-                                          </div>
-                                        </div>
-                                        <div className="mt-2 max-h-[240px] overflow-y-auto">
-                                          {Array.isArray(p.installmentValues) && p.installmentValues.length > 0 ? (
-                                            <div className="space-y-1">
-                                              {p.installmentValues
-                                                .filter((n) => typeof n === "number")
-                                                .map((v, idx) => (
-                                                  <div key={`${p.id}-${idx}`} className="flex items-center justify-between text-xs">
-                                                    <span className="text-muted-foreground">{idx + 1}ª parcela</span>
-                                                    <span className="tabular-nums font-semibold">{formatBRL(v)}</span>
-                                                  </div>
-                                                ))}
+                                <div className="flex flex-col items-end gap-0.5 text-right">
+                                  <div className="shrink-0 tabular-nums text-xs font-semibold text-foreground">
+                                    {p.installmentType === "dynamic" ? (
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                                            Ver parcelas
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent align="end" className="w-[260px] p-3">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="text-sm font-semibold">Parcelas</div>
+                                            <div className="text-xs text-muted-foreground">
+                                              Total: <span className="tabular-nums font-semibold text-foreground">{formatBRL(Number(p.totals?.totalValue ?? 0) || 0)}</span>
                                             </div>
-                                          ) : (
-                                            <div className="text-xs text-muted-foreground">Nenhuma parcela disponível.</div>
-                                          )}
-                                        </div>
-                                      </PopoverContent>
-                                    </Popover>
-                                  ) : typeof p.installmentValue === "number" ? (
-                                    formatBRL(p.installmentValue)
-                                  ) : (
-                                    "—"
+                                          </div>
+                                          <div className="mt-2 max-h-[240px] overflow-y-auto">
+                                            {Array.isArray(p.installmentValues) && p.installmentValues.length > 0 ? (
+                                              <div className="space-y-1">
+                                                {p.installmentValues
+                                                  .filter((n) => typeof n === "number")
+                                                  .map((v, idx) => (
+                                                    <div key={`${p.id}-${idx}`} className="flex items-center justify-between text-xs">
+                                                      <span className="text-muted-foreground">{idx + 1}ª parcela</span>
+                                                      <span className="tabular-nums font-semibold">{formatBRL(v)}</span>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                            ) : (
+                                              <div className="text-xs text-muted-foreground">Nenhuma parcela disponível.</div>
+                                            )}
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
+                                    ) : typeof p.installmentValue === "number" ? (
+                                      formatBRL(p.installmentValue)
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </div>
+                                  {p.totals && (
+                                    <div className="text-[10px] text-muted-foreground tabular-nums">
+                                      {Number(p.totals.discountApplied ?? 0) > 0 ? (
+                                        <span className="flex items-center gap-1 justify-end">
+                                          <span className="line-through">{formatBRL(Number(p.totals.baseTotalValue ?? 0))}</span>
+                                          <span>por</span>
+                                          <span className="font-semibold text-foreground">{formatBRL(Number(p.totals.totalValue ?? 0))}</span>
+                                        </span>
+                                      ) : (
+                                        <span>Total: {formatBRL(Number(p.totals.totalValue ?? 0))}</span>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               </div>

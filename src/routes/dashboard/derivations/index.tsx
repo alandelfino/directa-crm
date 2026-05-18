@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { dataTime } from '@/lib/format'
 
 export const Route = createFileRoute('/dashboard/derivations/')({
   component: RouteComponent,
@@ -100,31 +101,41 @@ function RouteComponent() {
     {
       id: 'select',
       width: '60px',
-      header: (
-        <div className='flex items-center justify-center text-xs text-muted-foreground'>Sel.</div>
+      header: () => (
+        <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
       cell: (derivation) => (
-        <div className='flex items-center justify-center'>
+        <div className='flex justify-center items-center'>
           <Checkbox
             checked={selectedDerivations.includes(derivation.id)}
             onCheckedChange={() => toggleSelect(derivation.id)}
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r',
-      className: 'font-medium border-r'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (d) => <span className="font-mono text-xs">{d.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'name',
       header: 'Nome',
-      cell: (d) => d.name,
-      className: 'border-r'
+      cell: (d) => <span className='block truncate min-w-0 font-semibold text-foreground' title={d.name}>{d.name}</span>,
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'catalog',
       header: 'Nome no catálogo',
-      cell: (d) => d.storeName,
-      className: 'border-r'
+      cell: (d) => <span className='block truncate min-w-0 text-neutral-700' title={d.storeName}>{d.storeName}</span>,
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'type',
@@ -140,15 +151,17 @@ function RouteComponent() {
           </Badge>
         )
       },
-      headerClassName: 'w-[120px] border-r',
-      className: 'w-[120px]'
+      width: '120px',
+      headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3'
     },
     {
-      id: 'items',
+      id: 'createdAt',
       header: 'Criado em',
-      cell: (d) => d.createdAt ? new Date(d.createdAt).toLocaleDateString('pt-BR') : '-',
-      headerClassName: 'w-[120px] border-r',
-      className: 'w-[120px]'
+      cell: (d) => <div>{dataTime(d.createdAt)}</div>,
+      width: '12.5rem',
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
   ]
 
@@ -190,17 +203,18 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-
       <Topbar title="Derivações" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Derivações', href: '/dashboard/derivations', isLast: true }]} />
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Derivações</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie as derivações de produtos e atributos como cor, tamanho e imagem.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedDerivations([]); refetch() }}>
+              {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
+            </Button>
 
-      {/* Content */}
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-
-        {/* Actions */}
-        <div className='flex w-full items-center p-2 gap-4'>
-
-          {/* Filters */}
-          <div className='flex items-center gap-2 flex-1'>
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
@@ -220,7 +234,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -374,7 +388,7 @@ function RouteComponent() {
                       setFilterStoreNameOperator(localFilterStoreNameOperator)
                       setFilterType(localFilterType)
                       setFilterTypeOperator(localFilterTypeOperator)
-                      setCurrentPage(1) // Reset page on filter apply
+                      setCurrentPage(1)
                       setIsFilterOpen(false)
                     }}>
                       Aplicar
@@ -383,16 +397,6 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedDerivations([]); refetch() }}>
-              {
-                (isLoading || isRefetching)
-                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
-                  : <RefreshCw className="size-[0.85rem]" />
-              }
-            </Button>
 
             {selectedDerivations.length === 1 ? (
               <DeleteDerivation derivationId={selectedDerivations[0]} onDeleted={() => { setSelectedDerivations([]); refetch() }} />
@@ -419,10 +423,8 @@ function RouteComponent() {
             )}
             <NewDerivationSheet onCreated={() => { setSelectedDerivations([]); refetch() }} />
           </div>
-
         </div>
 
-        {/* Table */}
         <DataTable
           columns={columns}
           data={derivations}
@@ -446,7 +448,7 @@ function RouteComponent() {
                 <div className='flex gap-2'>
                   <NewDerivationSheet onCreated={() => { setSelectedDerivations([]); refetch() }} />
                   <Button variant={'outline'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedDerivations([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <><RefreshCw className='animate-spin size-[0.85rem]' /></> : <><RefreshCw className="size-[0.85rem]" /></>}
+                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
                 </div>
               </EmptyContent>
@@ -465,8 +467,8 @@ function RouteComponent() {
             if (typeof page === 'number') setCurrentPage(page)
             if (typeof perPage === 'number') setPerPage(perPage)
             refetch()
-          }} />
-
+          }}
+        />
       </div>
     </div>
   )

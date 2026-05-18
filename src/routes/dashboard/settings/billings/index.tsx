@@ -7,7 +7,7 @@ import { DataTable, type ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
 import { RefreshCw, FileText, CreditCard } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { formatarMoeda, fromCents } from '@/lib/format'
+import { formatarMoeda, fromCents, dataTime } from '@/lib/format'
 
 export const Route = createFileRoute('/dashboard/settings/billings/')({
   component: RouteComponent,
@@ -75,49 +75,7 @@ function RouteComponent() {
     return v
   }
   const fmtCurrency = (v?: number) => formatarMoeda(fromCents(v))
-  const fmtDateOnly = (v?: number) => {
-    const ms = normalizeEpoch(v)
-    if (!ms) return '-'
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const d = new Date(ms)
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        hour12: false,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).formatToParts(d)
-      const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
-      const dd = get('day')
-      const MM = get('month')
-      const yyyy = get('year')
-      return `${dd}/${MM}/${yyyy}`
-    } catch {
-      return new Date(ms).toLocaleDateString('pt-BR')
-    }
-  }
-  const fmtTimeOnly = (v?: number) => {
-    const ms = normalizeEpoch(v)
-    if (!ms) return ''
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const d = new Date(ms)
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      }).formatToParts(d)
-      const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
-      return `${get('hour')}:${get('minute')}:${get('second')}`
-    } catch {
-      return ''
-    }
-  }
   
-
   const columns: ColumnDef<Billing>[] = [
     {
       id: 'select',
@@ -138,21 +96,13 @@ function RouteComponent() {
       id: 'info',
       header: 'Período',
       cell: (i) => {
-        const start = fmtDateOnly(i.period_start)
-        const end = fmtDateOnly(i.period_end)
-        const startT = fmtTimeOnly(i.period_start)
-        const endT = fmtTimeOnly(i.period_end)
+        const start = dataTime(normalizeEpoch(i.period_start))
+        const end = dataTime(normalizeEpoch(i.period_end))
         return (
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center'>
-              <span className='text-sm'>{start}</span>
-              {startT ? <span className='ml-1 text-sm'>{startT}</span> : null}
-            </div>
-            <span className='text-sm'>até</span>
-            <div className='flex items-center'>
-              <span className='text-sm'>{end}</span>
-              {endT ? <span className='ml-1 text-sm'>{endT}</span> : null}
-            </div>
+          <div className='flex items-center gap-4 text-sm'>
+            <span>{start}</span>
+            <span>até</span>
+            <span>{end}</span>
           </div>
         )
       },
@@ -162,16 +112,7 @@ function RouteComponent() {
     {
       id: 'due_date',
       header: 'Vencimento',
-      cell: (i) => {
-        const d = fmtDateOnly(i.due_date)
-        const t = fmtTimeOnly(i.due_date)
-        return (
-          <div className='flex items-center'>
-            <span className='text-sm'>{d || '-'}</span>
-            {t ? <span className='ml-1 text-sm'>{t}</span> : null}
-          </div>
-        )
-      },
+      cell: (i) => <span className='text-sm'>{dataTime(normalizeEpoch(i.due_date))}</span>,
       headerClassName: 'w-[140px] min-w-[140px] border-r',
       className: 'w-[140px] min-w-[140px]'
     },
@@ -217,16 +158,7 @@ function RouteComponent() {
     {
       id: 'created_at',
       header: 'Criado em',
-      cell: (i) => {
-        const d = fmtDateOnly(i.created_at)
-        const t = fmtTimeOnly(i.created_at)
-        return (
-          <div className='flex items-center'>
-            <span className='text-sm'>{d || '-'}</span>
-            {t ? <span className='ml-1 text-sm'>{t}</span> : null}
-          </div>
-        )
-      },
+      cell: (i) => <span className='text-sm'>{dataTime(normalizeEpoch(i.created_at))}</span>,
       headerClassName: 'w-[200px] min-w-[200px] border-r',
       className: 'w-[200px] min-w-[200px]'
     },

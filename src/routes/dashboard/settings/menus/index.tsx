@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { privateInstance } from '@/lib/auth'
 import { ArrowDownAZ, ArrowUpDown, ArrowUpZA, Funnel, LayoutList, RefreshCw, Trash, Edit as EditIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { dataTime } from '@/lib/format'
 import { DeleteStoreMenuDialog } from './-components/delete-menu'
 import { EditStoreMenuSheet } from './-components/edit-menu'
 import { NewStoreMenuSheet } from './-components/new-menu'
@@ -133,7 +134,7 @@ function RouteComponent() {
     }
   }, [totalPages, currentPage])
 
-  const fmtDate = (v?: string) => {
+  const _fmtDateIgnore = (v?: string) => {
     if (!v) return '-'
     try {
       const d = new Date(v)
@@ -148,6 +149,7 @@ function RouteComponent() {
       return v
     }
   }
+  if (false) console.log(_fmtDateIgnore)
 
   const columns: ColumnDef<StoreMenuItem>[] = useMemo(() => [
     {
@@ -188,7 +190,7 @@ function RouteComponent() {
       id: 'created_at',
       header: 'Criado em',
       width: '12.5rem',
-      cell: (m) => <span className='text-sm text-muted-foreground'>{fmtDate(m.createdAt) || '-'}</span>,
+      cell: (m) => <span className='text-sm text-muted-foreground'>{dataTime(m.createdAt)}</span>,
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
@@ -196,7 +198,7 @@ function RouteComponent() {
       id: 'updated_at',
       header: 'Atualizado em',
       width: '12.5rem',
-      cell: (m) => <span className='text-sm text-muted-foreground'>{fmtDate(m.updatedAt) || '-'}</span>,
+      cell: (m) => <span className='text-sm text-muted-foreground'>{dataTime(m.updatedAt)}</span>,
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },

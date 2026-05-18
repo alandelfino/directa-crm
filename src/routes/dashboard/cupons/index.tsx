@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { formatMoneyFromCents } from '@/lib/utils'
+import { dataTime } from '@/lib/format'
 import { NewCouponSheet } from './-components/new-coupon'
 import { EditCouponSheet } from './-components/edit-coupon'
 import { DeleteCoupon } from './-components/delete-coupon'
@@ -93,22 +94,6 @@ function formatCouponValue(type: string, value: number) {
     }
   }
   return formatMoneyFromCents(Number(value) || 0)
-}
-
-function fmtDateTime(v?: string | null) {
-  if (!v) return '-'
-  try {
-    const d = new Date(v)
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d)
-  } catch {
-    return v
-  }
 }
 
 function RouteComponent() {
@@ -202,56 +187,62 @@ function RouteComponent() {
       id: 'select',
       width: '60px',
       header: () => (
-        <div className="flex justify-center items-center">
-          <Checkbox checked={items.length > 0 && selectedIds.length === items.length} onCheckedChange={toggleSelectAll} />
-        </div>
+        <div className="flex justify-center items-center text-xs text-neutral-500">Sel.</div>
       ),
       cell: (row) => (
         <div className="flex justify-center items-center">
           <Checkbox checked={selectedIds.includes(row.id)} onCheckedChange={() => toggleSelectItem(row.id)} />
         </div>
       ),
-      headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] font-medium border-r',
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3',
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'code',
       header: 'Código',
-      cell: (row) => <span className="block truncate min-w-0" title={row.code}>{row.code}</span>,
-      headerClassName: 'min-w-[180px] border-r',
-      className: 'min-w-[180px]',
+      cell: (row) => <span className="block font-semibold text-foreground truncate min-w-0" title={row.code}>{row.code}</span>,
+      headerClassName: 'min-w-[180px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[180px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'description',
       header: 'Descrição',
       cell: (row) => <span className="block truncate min-w-0" title={row.description}>{row.description}</span>,
-      headerClassName: 'min-w-[280px] border-r',
-      className: 'min-w-[280px]',
+      headerClassName: 'min-w-[280px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[280px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'customerMessage',
       header: 'Mensagem',
       cell: (row) => <span className="block truncate min-w-0" title={row.customerMessage}>{row.customerMessage}</span>,
-      headerClassName: 'min-w-[260px] border-r',
-      className: 'min-w-[260px]',
+      headerClassName: 'min-w-[260px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[260px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'type',
       header: 'Tipo',
       cell: (row) => (
-        <Badge variant="secondary" className="font-normal">
+        <Badge variant="secondary" className="font-normal text-[10px] h-5">
           {getCouponTypeLabel(row.type)}
         </Badge>
       ),
-      headerClassName: 'min-w-[200px] border-r',
-      className: 'min-w-[200px]',
+      headerClassName: 'min-w-[200px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[200px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'value',
       header: 'Valor',
-      cell: (row) => <span className="tabular-nums">{formatCouponValue(row.type, row.value)}</span>,
-      headerClassName: 'w-[170px] min-w-[170px] border-r text-right',
-      className: 'w-[170px] min-w-[170px] text-right',
+      cell: (row) => <span className="tabular-nums font-medium">{formatCouponValue(row.type, row.value)}</span>,
+      headerClassName: 'w-[170px] min-w-[170px] border-r border-neutral-200 px-4 py-2.5 text-right',
+      className: 'w-[170px] min-w-[170px] border-r border-neutral-200 !px-4 py-3 text-right',
     },
     {
       id: 'store',
@@ -261,40 +252,40 @@ function RouteComponent() {
         const label = store?.name ?? `#${row.storeId}`
         return <span className="block truncate min-w-0" title={label}>{label}</span>
       },
-      headerClassName: 'min-w-[220px] border-r',
-      className: 'min-w-[220px]',
+      headerClassName: 'min-w-[220px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'min-w-[220px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'validFrom',
       header: 'Válido de',
-      cell: (row) => <span className="text-sm">{fmtDateTime(row.validFrom)}</span>,
+      cell: (row) => <span className="text-sm">{dataTime(row.validFrom)}</span>,
       width: '190px',
-      headerClassName: 'w-[190px] min-w-[190px] border-r',
-      className: 'w-[190px] min-w-[190px]',
+      headerClassName: 'w-[190px] min-w-[190px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[190px] min-w-[190px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'validTo',
       header: 'Válido até',
-      cell: (row) => <span className="text-sm">{fmtDateTime(row.validTo)}</span>,
+      cell: (row) => <span className="text-sm">{dataTime(row.validTo)}</span>,
       width: '190px',
-      headerClassName: 'w-[190px] min-w-[190px] border-r',
-      className: 'w-[190px] min-w-[190px]',
+      headerClassName: 'w-[190px] min-w-[190px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[190px] min-w-[190px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'createdAt',
       header: 'Criado em',
-      cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString('pt-BR') : '-'}</span>,
+      cell: (row) => <span className="text-sm">{dataTime(row.createdAt)}</span>,
       width: '180px',
-      headerClassName: 'w-[180px] min-w-[180px] border-r',
-      className: 'w-[180px] min-w-[180px]',
+      headerClassName: 'w-[180px] min-w-[180px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[180px] min-w-[180px] border-r border-neutral-200 !px-4 py-3',
     },
     {
       id: 'updatedAt',
       header: 'Atualizado em',
-      cell: (row) => <span className="text-sm">{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString('pt-BR') : '-'}</span>,
+      cell: (row) => <span className="text-sm">{dataTime(row.updatedAt)}</span>,
       width: '180px',
-      headerClassName: 'w-[180px] min-w-[180px] border-r',
-      className: 'w-[180px] min-w-[180px]',
+      headerClassName: 'w-[180px] min-w-[180px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[180px] min-w-[180px] border-r border-neutral-200 !px-4 py-3',
     },
   ]
 
@@ -326,14 +317,12 @@ function RouteComponent() {
     if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages)
   }, [totalPages, currentPage])
 
-  function toggleSelectAll() {
-    if (selectedIds.length === items.length) setSelectedIds([])
-    else setSelectedIds(items.map((i) => i.id))
-  }
-
   function toggleSelectItem(id: number) {
-    if (selectedIds.includes(id)) setSelectedIds(selectedIds.filter((i) => i !== id))
-    else setSelectedIds([...selectedIds, id])
+    if (selectedIds.includes(id)) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds([id])
+    }
   }
 
   return (
@@ -346,9 +335,29 @@ function RouteComponent() {
         ]}
       />
 
-      <div className="flex flex-col w-full h-full flex-1 overflow-hidden">
-        <div className="flex w-full items-center p-2 gap-4">
-          <div className="flex items-center gap-2 flex-1">
+      <div className="flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Cupons</h2>
+            <p className="text-sm text-muted-foreground">Crie e gerencie cupons de desconto e campanhas promocionais da sua operação.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isLoading || isRefetching}
+              onClick={() => {
+                setSelectedIds([])
+                refetch()
+              }}
+            >
+              {(isLoading || isRefetching) ? (
+                <RefreshCw className="animate-spin size-[0.85rem]" />
+              ) : (
+                <RefreshCw className="size-[0.85rem]" />
+              )}
+            </Button>
+
             <Popover
               open={isFilterOpen}
               onOpenChange={(open) => {
@@ -375,7 +384,7 @@ function RouteComponent() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[380px] p-5" align="start">
+              <PopoverContent className="w-[380px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -565,24 +574,6 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={isLoading || isRefetching}
-              onClick={() => {
-                setSelectedIds([])
-                refetch()
-              }}
-            >
-              {(isLoading || isRefetching) ? (
-                <RefreshCw className="animate-spin size-[0.85rem]" />
-              ) : (
-                <RefreshCw className="size-[0.85rem]" />
-              )}
-            </Button>
 
             {selectedIds.length === 1 ? (
               <CouponRulesSheet cuponId={selectedIds[0]} />
@@ -612,53 +603,51 @@ function RouteComponent() {
           </div>
         </div>
 
-        <div className="px-2 h-full">
-          <DataTable
-            columns={columns}
-            data={items}
-            loading={isLoading || isRefetching}
-            page={currentPage}
-            perPage={perPage}
-            totalItems={totalItems}
-            emptyMessage="Nenhum cupom encontrado"
-            emptySlot={
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <TicketPercent className="h-6 w-6" />
-                  </EmptyMedia>
-                  <EmptyTitle>Nenhum cupom ainda</EmptyTitle>
-                  <EmptyDescription>Você ainda não criou nenhum cupom. Comece criando seu primeiro cupom.</EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <div className="flex gap-2">
-                    <NewCouponSheet />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={isLoading || isRefetching}
-                      onClick={() => {
-                        setSelectedIds([])
-                        refetch()
-                      }}
-                    >
-                      {(isLoading || isRefetching) ? (
-                        <RefreshCw className="animate-spin size-[0.85rem]" />
-                      ) : (
-                        <RefreshCw className="size-[0.85rem]" />
-                      )}
-                    </Button>
-                  </div>
-                </EmptyContent>
-              </Empty>
-            }
-            onChange={({ page, perPage }) => {
-              if (typeof page === 'number') setCurrentPage(page)
-              if (typeof perPage === 'number') setPerPage(perPage)
-              refetch()
-            }}
-          />
-        </div>
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={isLoading || isRefetching}
+          page={currentPage}
+          perPage={perPage}
+          totalItems={totalItems}
+          emptyMessage="Nenhum cupom encontrado"
+          emptySlot={
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <TicketPercent className="h-6 w-6" />
+                </EmptyMedia>
+                <EmptyTitle>Nenhum cupom ainda</EmptyTitle>
+                <EmptyDescription>Você ainda não criou nenhum cupom. Comece criando seu primeiro cupom.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <div className="flex gap-2">
+                  <NewCouponSheet />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isLoading || isRefetching}
+                    onClick={() => {
+                      setSelectedIds([])
+                      refetch()
+                    }}
+                  >
+                    {(isLoading || isRefetching) ? (
+                      <RefreshCw className="animate-spin size-[0.85rem]" />
+                    ) : (
+                      <RefreshCw className="size-[0.85rem]" />
+                    )}
+                  </Button>
+                </div>
+              </EmptyContent>
+            </Empty>
+          }
+          onChange={({ page, perPage }) => {
+            if (typeof page === 'number') setCurrentPage(page)
+            if (typeof perPage === 'number') setPerPage(perPage)
+            refetch()
+          }}
+        />
       </div>
     </div>
   )

@@ -8,6 +8,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { DataTable, type ColumnDef } from '@/components/data-table'
 import { privateInstance } from '@/lib/auth'
 import { formatMoneyFromCents } from '@/lib/utils'
+import { dataTime } from '@/lib/format'
 import { RefreshCw, ShieldCheck } from 'lucide-react'
 import { CouponRuleCreateSheet } from './coupon-rule-create-sheet'
 import { CouponRuleDeleteDialog } from './coupon-rule-delete-dialog'
@@ -119,7 +120,7 @@ export function CouponRulesSheet({
     {
       id: 'createdAt',
       header: 'Criado em',
-      cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString('pt-BR') : '-'}</span>,
+      cell: (row) => <span className="text-sm">{dataTime(row.createdAt)}</span>,
       width: '180px',
       headerClassName: 'w-[180px] min-w-[180px] border-r',
       className: 'w-[180px] min-w-[180px] p-2!',

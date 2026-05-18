@@ -174,11 +174,19 @@ function RouteComponent() {
       className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3',
     },
     {
+      id: 'id',
+      header: 'ID',
+      cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
       id: 'name',
       header: 'Página',
       cell: (p) => (
         <div className="flex flex-col min-w-0">
-          <span className="font-medium truncate">{p.title ?? '—'}</span>
+          <span className="font-semibold text-foreground truncate">{p.title ?? '—'}</span>
           <span className="text-xs text-muted-foreground truncate">{p.path ?? '—'}</span>
         </div>
       ),
@@ -190,7 +198,7 @@ function RouteComponent() {
       header: 'Tipo',
       width: 'fit',
       cell: (p) => (
-        <span className="text-sm">{pageTypes.find((t) => t.value === p.type)?.label ?? p.type}</span>
+        <span className="text-sm font-medium">{pageTypes.find((t) => t.value === p.type)?.label ?? p.type}</span>
       ),
       headerClassName: 'border-r border-neutral-200 px-4 py-2.5 min-w-fit w-fit',
       className: 'border-r border-neutral-200 !px-4 py-3 min-w-fit w-fit',
@@ -228,9 +236,17 @@ function RouteComponent() {
           { label: 'Páginas', href: '/dashboard/pages', isLast: true },
         ]}
       />
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-        <div className='flex w-full items-center p-2 gap-4'>
-          <div className='flex items-center gap-2 flex-1'>
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Páginas</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie as páginas customizadas e seções do e-commerce das suas lojas.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
+            </Button>
+
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
@@ -251,7 +267,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -432,12 +448,6 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
-            </Button>
 
             {selected.length === 1 ? (
               <PageContentSheet

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
+import { dataTime } from '@/lib/format'
 
 type PriceTableItem = {
   id: number
@@ -114,7 +115,7 @@ function RouteComponent() {
     }
   }, [totalPages, currentPage])
 
-  const fmtDate = (v?: string) => {
+  const _fmtDateIgnore = (v?: string) => {
     if (!v) return '-'
     try {
       const d = new Date(v)
@@ -129,6 +130,7 @@ function RouteComponent() {
       return v
     }
   }
+  if (false) console.log(_fmtDateIgnore)
 
   const columns: ColumnDef<PriceTableItem>[] = useMemo(() => [
     {
@@ -170,12 +172,9 @@ function RouteComponent() {
       id: 'created_at',
       header: 'Criado em',
       width: '12.5rem',
-      cell: (s) => {
-        const d = fmtDate(s.createdAt)
-        return (
-          <span className='text-sm text-muted-foreground'>{d || '-'}</span>
-        )
-      },
+      cell: (s) => (
+        <span className='text-sm text-muted-foreground'>{dataTime(s.createdAt)}</span>
+      ),
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
@@ -183,12 +182,9 @@ function RouteComponent() {
       id: 'updated_at',
       header: 'Atualizado em',
       width: '12.5rem',
-      cell: (s) => {
-        const d = fmtDate(s.updatedAt)
-        return (
-          <span className='text-sm text-muted-foreground'>{d || '-'}</span>
-        )
-      },
+      cell: (s) => (
+        <span className='text-sm text-muted-foreground'>{dataTime(s.updatedAt)}</span>
+      ),
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },

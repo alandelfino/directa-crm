@@ -46,33 +46,33 @@ export function MultiUploadSheet() {
     const nextIndex = queue.findIndex((q) => q.status === 'pending')
     if (nextIndex >= 0) {
       uploadingRef.current = true
-      ;(async () => {
-        const item = queue[nextIndex]
-        try {
-          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'uploading', progress: 0, error: undefined } : q))
-          const fd = new FormData()
-          fd.append('name', item.name)
-          fd.append('to', item.to)
-          fd.append('type', 'file')
-          fd.append('file', item.file)
-          const res = await privateInstance.post('/tenant/medias', fd, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-            onUploadProgress: (e) => {
-              const total = e.total ?? item.file.size
-              const prog = total > 0 ? Math.round((e.loaded / total) * 100) : 0
-              setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, progress: prog } : q))
-            },
-          })
-          if (res.status !== 200 && res.status !== 201) throw new Error('Falha ao enviar')
-          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done', progress: 100 } : q))
-        } catch (err: any) {
-          const errorData = err?.response?.data
-          const msg = errorData?.title || errorData?.detail || err?.message || 'Erro ao enviar'
-          setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
-        } finally {
-          uploadingRef.current = false
-        }
-      })()
+        ; (async () => {
+          const item = queue[nextIndex]
+          try {
+            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'uploading', progress: 0, error: undefined } : q))
+            const fd = new FormData()
+            fd.append('name', item.name)
+            fd.append('to', item.to)
+            fd.append('type', 'file')
+            fd.append('file', item.file)
+            const res = await privateInstance.post('/tenant/medias', fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              onUploadProgress: (e) => {
+                const total = e.total ?? item.file.size
+                const prog = total > 0 ? Math.round((e.loaded / total) * 100) : 0
+                setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, progress: prog } : q))
+              },
+            })
+            if (res.status !== 200 && res.status !== 201) throw new Error('Falha ao enviar')
+            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'done', progress: 100 } : q))
+          } catch (err: any) {
+            const errorData = err?.response?.data
+            const msg = errorData?.title || errorData?.detail || err?.message || 'Erro ao enviar'
+            setQueue((prev) => prev.map((q, i) => i === nextIndex ? { ...q, status: 'error', error: msg } : q))
+          } finally {
+            uploadingRef.current = false
+          }
+        })()
     } else if (queue.length > 0 && allProcessed && !hasNotified) {
       const ok = queue.filter((q) => q.status === 'done').length
       const fail = queue.filter((q) => q.status === 'error').length
@@ -81,8 +81,8 @@ export function MultiUploadSheet() {
         queryClient.invalidateQueries({ queryKey: ['medias'] })
         try {
           window.dispatchEvent(new CustomEvent('directa:medias-updated'))
-        } catch {}
-      } catch {}
+        } catch { }
+      } catch { }
       setHasNotified(true)
     }
   }, [open, queue, allProcessed, hasNotified, queryClient])
@@ -120,6 +120,27 @@ export function MultiUploadSheet() {
     }
   }
 
+  const [isDragActive, setIsDragActive] = useState(false)
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true)
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesSelected(e.dataTransfer.files)
+    }
+  }
+
   return (
     <>
       <input ref={inputRef} type='file' accept='image/*' multiple className='hidden' onChange={(e) => handleFilesSelected(e.target.files)} />
@@ -151,10 +172,32 @@ export function MultiUploadSheet() {
                 </Select>
               </div>
 
-              <div className='flex justify-end'>
-                <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={isUploading}>
-                  Selecionar arquivos
-                </Button>
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => {
+                  if (!isUploading) {
+                    inputRef.current?.click()
+                  }
+                }}
+                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 gap-3 min-h-[140px] select-none ${isDragActive
+                  ? 'border-primary bg-primary/5 scale-[0.98]'
+                  : 'border-neutral-200 hover:border-primary/50 hover:bg-neutral-50/50 dark:border-neutral-800 dark:hover:border-primary/50 dark:hover:bg-neutral-900/50'
+                  } ${isUploading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+              >
+                <div className={`p-2.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 transition-transform duration-300 ${isDragActive ? 'scale-110 text-primary' : ''}`}>
+                  <UploadCloud className="h-5 w-5" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold text-foreground">
+                    Arraste e solte as imagens aqui ou clique para selecionar
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    JPG, PNG, WEBP, GIF (apenas imagens)
+                  </p>
+                </div>
               </div>
             </div>
 

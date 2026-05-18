@@ -95,7 +95,7 @@ function RouteComponent() {
     {
       id: 'select',
       width: '60px',
-      header: (
+      header: () => (
         <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
       cell: (unit) => (
@@ -106,28 +106,39 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] border-r',
-      className: 'font-medium border-r p-2!'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (unit) => <span className="font-mono text-xs">{unit.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'name',
       header: 'Nome',
-      cell: (unit) => unit.name,
-      className: 'border-r p-2!'
+      cell: (unit) => <span className='font-semibold text-foreground' title={unit.name}>{unit.name}</span>,
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'type',
       header: 'Tipo',
       cell: (unit) => unit.numberType === 'integer' ? 'Inteiro' : 'Decimal',
-      headerClassName: 'w-[140px] border-r',
-      className: 'w-[140px] p-2!'
+      width: '140px',
+      headerClassName: 'w-[140px] min-w-[140px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[140px] min-w-[140px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'products',
       header: 'Produtos',
-      cell: (unit) => (typeof unit.products === 'number' ? unit.products : 0),
-      headerClassName: 'w-[90px] border-r',
-      className: 'w-[100px] p-2!'
+      cell: (unit) => <span className='font-mono text-neutral-700'>{typeof unit.products === 'number' ? unit.products : 0}</span>,
+      width: '100px',
+      headerClassName: 'w-[100px] min-w-[100px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[100px] min-w-[100px] border-r border-neutral-200 !px-4 py-3'
     },
   ]
 
@@ -182,17 +193,18 @@ function RouteComponent() {
 
   return (
     <div className='flex flex-col w-full h-full'>
-
       <Topbar title="Unidades de Medida" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Unidades de Medida', href: '/dashboard/units', isLast: true }]} />
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Unidades de Medida</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie as unidades de medida para fracionamento de produtos no catálogo.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedUnits([]); refetch() }}>
+              {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
+            </Button>
 
-      {/* Content */}
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-
-        {/* Actions */}
-        <div className='flex w-full items-center p-2 gap-4'>
-
-          {/* Filters */}
-          <div className='flex items-center gap-2 flex-1'>
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
@@ -208,7 +220,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -300,7 +312,7 @@ function RouteComponent() {
                       setOrderBy(localOrderBy)
                       setFilterName(localFilterName)
                       setFilterNameOperator(localFilterNameOperator)
-                      setCurrentPage(1) // Reset page on filter apply
+                      setCurrentPage(1)
                       setIsFilterOpen(false)
                     }}>
                       Aplicar
@@ -309,16 +321,6 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedUnits([]); refetch() }}>
-              {
-                (isLoading || isRefetching)
-                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
-                  : <RefreshCw className="size-[0.85rem]" />
-              }
-            </Button>
 
             {selectedUnits.length === 1 ? (
               <DeleteUnit unitId={selectedUnits[0]} />
@@ -335,12 +337,11 @@ function RouteComponent() {
                 <Edit className="size-[0.85rem]" /> Editar
               </Button>
             )}
+
             <NewUnitSheet />
           </div>
-
         </div>
 
-        {/* Table */}
         <DataTable
           columns={columns}
           data={units}
@@ -373,10 +374,9 @@ function RouteComponent() {
           onChange={({ page, perPage }) => {
             if (typeof page === 'number') setCurrentPage(page)
             if (typeof perPage === 'number') setPerPage(perPage)
-            // Disparar refetch quando houver mudança
             refetch()
-          }} />
-
+          }}
+        />
       </div>
     </div>
   )

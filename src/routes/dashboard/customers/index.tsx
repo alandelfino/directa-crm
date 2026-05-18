@@ -177,9 +177,7 @@ function RouteComponent() {
             id: 'select',
             width: '60px',
             header: () => (
-                <div className='flex justify-center items-center'>
-                   
-                </div>
+                <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
             ),
             cell: (row) => (
                 <div className='flex justify-center items-center'>
@@ -189,8 +187,16 @@ function RouteComponent() {
                     />
                 </div>
             ),
-            headerClassName: 'w-[60px] min-w-[60px] border-r',
-            className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
+            headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+            className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
+        },
+        {
+            id: 'id',
+            header: 'ID',
+            cell: (row) => <span className="font-mono text-xs">{row.id}</span>,
+            width: '40px',
+            headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+            className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
         },
         { 
             id: 'store', 
@@ -208,23 +214,31 @@ function RouteComponent() {
                     <span className="truncate">{c.store?.name ?? '—'}</span>
                 </div>
             ), 
-            headerClassName: 'w-[200px] min-w-[200px] border-r', 
-            className: 'w-[200px] min-w-[200px] p-2! px-4!' 
+            headerClassName: 'w-[200px] min-w-[200px] border-r border-neutral-200 px-4 py-2.5', 
+            className: 'w-[200px] min-w-[200px] border-r border-neutral-200 !px-4 py-3' 
         },
-        { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! px-4!' },
-        { id: 'companyName', header: 'Razão Social', width: '400px', cell: (c) => c.companyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r', className: 'w-[400px] min-w-[400px] p-2! px-4!' },
-        { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r', className: 'w-[260px] min-w-[260px] p-2! px-4!' },
-        { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r', className: 'w-[180px] min-w-[180px] p-2! px-4!' },
-        { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r', className: 'w-[150px] min-w-[150px] p-2! px-4!' },
-        { id: 'personType', header: 'Tipo', width: '120px', cell: (c) => ({ natural: 'Física', entity: 'Jurídica' }[c.personType] || c.personType), headerClassName: 'w-[120px] min-w-[120px] border-r', className: 'w-[120px] min-w-[120px] p-2! px-4!' },
+        { id: 'nameOrTradeName', header: 'Nome / Fantasia', width: '280px', cell: (c) => c.nameOrTradeName ?? '—', headerClassName: 'w-[280px] min-w-[280px] border-r border-neutral-200 px-4 py-2.5', className: 'w-[280px] min-w-[280px] border-r border-neutral-200 !px-4 py-3' },
+        { id: 'companyName', header: 'Razão Social', width: '400px', cell: (c) => c.companyName ?? '—', headerClassName: 'w-[400px] min-w-[400px] border-r border-neutral-200 px-4 py-2.5', className: 'w-[400px] min-w-[400px] border-r border-neutral-200 !px-4 py-3' },
+        { id: 'email', header: 'Email', width: '260px', cell: (c) => c.email ?? '—', headerClassName: 'w-[260px] min-w-[260px] border-r border-neutral-200 px-4 py-2.5', className: 'w-[260px] min-w-[260px] border-r border-neutral-200 !px-4 py-3' },
+        { id: 'cpfOrCnpj', header: 'CPF/CNPJ', width: '180px', cell: (c) => (c.personType === 'entity' ? formatCnpj(c.cpfOrCnpj ?? '') : formatCpf(c.cpfOrCnpj ?? '')) || '—', headerClassName: 'w-[180px] min-w-[180px] border-r border-neutral-200 px-4 py-2.5', className: 'w-[180px] min-w-[180px] border-r border-neutral-200 !px-4 py-3' },
+        { id: 'phone', header: 'Telefone', width: '150px', cell: (c) => c.phone ?? '—', headerClassName: 'w-[150px] min-w-[150px] border-r border-neutral-200 px-4 py-2.5', className: 'w-[150px] min-w-[150px] border-r border-neutral-200 !px-4 py-3' },
+        { id: 'personType', header: 'Tipo', width: '120px', cell: (c) => ({ natural: 'Física', entity: 'Jurídica' }[c.personType] || c.personType), headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5', className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3' },
     ]
 
     return (
-        <div className='flex flex-col w-full h-full overflow-x-hidden'>
+        <div className='flex flex-col w-full h-full'>
             <Topbar title="Clientes" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Clientes', href: '/dashboard/customers', isLast: true }]} />
-            <div className='flex flex-col w-full h-full flex-1 overflow-hidden min-w-0'>
-                <div className='flex w-full items-center p-2 gap-4 max-w-full overflow-hidden'>
-                    <div className='flex items-center gap-4 flex-1'>
+            <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden min-w-0'>
+                <div className='flex items-center justify-between'>
+                    <div className='flex flex-col space-y-1'>
+                        <h2 className='text-2xl font-bold tracking-tight text-foreground'>Clientes</h2>
+                        <p className='text-sm text-muted-foreground'>Gerencie os clientes cadastrados em suas lojas.</p>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                        <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
+                            {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
+                        </Button>
+
                         <Popover open={isFilterOpen} onOpenChange={(open) => {
                             if (open) {
                                 setLocalSortBy(sortBy)
@@ -246,7 +260,7 @@ function RouteComponent() {
                                     {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[340px] p-5" align="start">
+                            <PopoverContent className="w-[340px] p-5" align="end">
                                 <div className="flex flex-col gap-5">
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-2">
@@ -291,161 +305,156 @@ function RouteComponent() {
                                             <h4 className="font-semibold leading-none">Filtros</h4>
                                         </div>
                                         <div className="grid gap-3">
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome / Fantasia</Label>
-                                            <div className="flex gap-2">
-                                                <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
-                                                    <SelectTrigger className="w-[130px] h-9">
-                                                        <SelectValue placeholder="Op." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="cont">Contém</SelectItem>
-                                                        <SelectItem value="eq">Igual</SelectItem>
-                                                        <SelectItem value="ne">Diferente</SelectItem>
-                                                        <SelectItem value="sw">Começa com</SelectItem>
-                                                        <SelectItem value="ew">Termina com</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Input
-                                                    id="name"
-                                                    value={localFilterName}
-                                                    onChange={(e) => setLocalFilterName(e.target.value)}
-                                                    className="h-9 flex-1"
-                                                    placeholder="Filtrar por nome..."
-                                                />
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Nome / Fantasia</Label>
+                                                <div className="flex gap-2">
+                                                    <Select value={localFilterNameOperator} onValueChange={setLocalFilterNameOperator}>
+                                                        <SelectTrigger className="w-[130px] h-9">
+                                                            <SelectValue placeholder="Op." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="cont">Contém</SelectItem>
+                                                            <SelectItem value="eq">Igual</SelectItem>
+                                                            <SelectItem value="ne">Diferente</SelectItem>
+                                                            <SelectItem value="sw">Começa com</SelectItem>
+                                                            <SelectItem value="ew">Termina com</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Input
+                                                        id="name"
+                                                        value={localFilterName}
+                                                        onChange={(e) => setLocalFilterName(e.target.value)}
+                                                        className="h-9 flex-1"
+                                                        placeholder="Filtrar por nome..."
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="companyName" className="text-xs font-medium text-muted-foreground">Razão Social</Label>
-                                            <div className="flex gap-2">
-                                                <Select value={localFilterCompanyNameOperator} onValueChange={setLocalFilterCompanyNameOperator}>
-                                                    <SelectTrigger className="w-[130px] h-9">
-                                                        <SelectValue placeholder="Op." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="cont">Contém</SelectItem>
-                                                        <SelectItem value="eq">Igual</SelectItem>
-                                                        <SelectItem value="ne">Diferente</SelectItem>
-                                                        <SelectItem value="sw">Começa com</SelectItem>
-                                                        <SelectItem value="ew">Termina com</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Input
-                                                    id="companyName"
-                                                    value={localFilterCompanyName}
-                                                    onChange={(e) => setLocalFilterCompanyName(e.target.value)}
-                                                    className="h-9 flex-1"
-                                                    placeholder="Filtrar por razão social..."
-                                                />
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="companyName" className="text-xs font-medium text-muted-foreground">Razão Social</Label>
+                                                <div className="flex gap-2">
+                                                    <Select value={localFilterCompanyNameOperator} onValueChange={setLocalFilterCompanyNameOperator}>
+                                                        <SelectTrigger className="w-[130px] h-9">
+                                                            <SelectValue placeholder="Op." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="cont">Contém</SelectItem>
+                                                            <SelectItem value="eq">Igual</SelectItem>
+                                                            <SelectItem value="ne">Diferente</SelectItem>
+                                                            <SelectItem value="sw">Começa com</SelectItem>
+                                                            <SelectItem value="ew">Termina com</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Input
+                                                        id="companyName"
+                                                        value={localFilterCompanyName}
+                                                        onChange={(e) => setLocalFilterCompanyName(e.target.value)}
+                                                        className="h-9 flex-1"
+                                                        placeholder="Filtrar por razão social..."
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="cpf" className="text-xs font-medium text-muted-foreground">CPF/CNPJ</Label>
-                                            <div className="flex gap-2">
-                                                <Select value={localFilterCpfOperator} onValueChange={setLocalFilterCpfOperator}>
-                                                    <SelectTrigger className="w-[130px] h-9">
-                                                        <SelectValue placeholder="Op." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="cont">Contém</SelectItem>
-                                                        <SelectItem value="eq">Igual</SelectItem>
-                                                        <SelectItem value="ne">Diferente</SelectItem>
-                                                        <SelectItem value="sw">Começa com</SelectItem>
-                                                        <SelectItem value="ew">Termina com</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Input
-                                                    id="cpf"
-                                                    value={localFilterCpf}
-                                                    onChange={(e) => setLocalFilterCpf(e.target.value)}
-                                                    className="h-9 flex-1"
-                                                    placeholder="Filtrar por CPF/CNPJ..."
-                                                />
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="cpf" className="text-xs font-medium text-muted-foreground">CPF/CNPJ</Label>
+                                                <div className="flex gap-2">
+                                                    <Select value={localFilterCpfOperator} onValueChange={setLocalFilterCpfOperator}>
+                                                        <SelectTrigger className="w-[130px] h-9">
+                                                            <SelectValue placeholder="Op." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="cont">Contém</SelectItem>
+                                                            <SelectItem value="eq">Igual</SelectItem>
+                                                            <SelectItem value="ne">Diferente</SelectItem>
+                                                            <SelectItem value="sw">Começa com</SelectItem>
+                                                            <SelectItem value="ew">Termina com</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Input
+                                                        id="cpf"
+                                                        value={localFilterCpf}
+                                                        onChange={(e) => setLocalFilterCpf(e.target.value)}
+                                                        className="h-9 flex-1"
+                                                        placeholder="Filtrar por CPF/CNPJ..."
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="grid gap-1.5">
-                                            <Label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</Label>
-                                            <div className="flex gap-2">
-                                                <Select value={localFilterEmailOperator} onValueChange={setLocalFilterEmailOperator}>
-                                                    <SelectTrigger className="w-[130px] h-9">
-                                                        <SelectValue placeholder="Op." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="cont">Contém</SelectItem>
-                                                        <SelectItem value="eq">Igual</SelectItem>
-                                                        <SelectItem value="ne">Diferente</SelectItem>
-                                                        <SelectItem value="sw">Começa com</SelectItem>
-                                                        <SelectItem value="ew">Termina com</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Input
-                                                    id="email"
-                                                    value={localFilterEmail}
-                                                    onChange={(e) => setLocalFilterEmail(e.target.value)}
-                                                    className="h-9 flex-1"
-                                                    placeholder="Filtrar por email..."
-                                                />
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</Label>
+                                                <div className="flex gap-2">
+                                                    <Select value={localFilterEmailOperator} onValueChange={setLocalFilterEmailOperator}>
+                                                        <SelectTrigger className="w-[130px] h-9">
+                                                            <SelectValue placeholder="Op." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="cont">Contém</SelectItem>
+                                                            <SelectItem value="eq">Igual</SelectItem>
+                                                            <SelectItem value="ne">Diferente</SelectItem>
+                                                            <SelectItem value="sw">Começa com</SelectItem>
+                                                            <SelectItem value="ew">Termina com</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Input
+                                                        id="email"
+                                                        value={localFilterEmail}
+                                                        onChange={(e) => setLocalFilterEmail(e.target.value)}
+                                                        className="h-9 flex-1"
+                                                        placeholder="Filtrar por email..."
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex gap-2 pt-2">
-                                    <Button variant="outline" size="default" className="flex-1" onClick={() => {
-                                        setLocalSortBy('createdAt')
-                                        setLocalOrderBy('desc')
-                                        setLocalFilterName('')
-                                        setLocalFilterNameOperator('cont')
-                                        setLocalFilterCompanyName('')
-                                        setLocalFilterCompanyNameOperator('cont')
-                                        setLocalFilterCpf('')
-                                        setLocalFilterCpfOperator('cont')
-                                        setLocalFilterEmail('')
-                                        setLocalFilterEmailOperator('cont')
-                                        
-                                        setSortBy('createdAt')
-                                        setOrderBy('desc')
-                                        setFilterName('')
-                                        setFilterNameOperator('cont')
-                                        setFilterCompanyName('')
-                                        setFilterCompanyNameOperator('cont')
-                                        setFilterCpf('')
-                                        setFilterCpfOperator('cont')
-                                        setFilterEmail('')
-                                        setFilterEmailOperator('cont')
-                                        setCurrentPage(1)
-                                        setIsFilterOpen(false)
-                                    }}>
-                                        Limpar tudo
-                                    </Button>
-                                    <Button size="sm" className="flex-1" onClick={() => {
-                                        setSortBy(localSortBy)
-                                        setOrderBy(localOrderBy)
-                                        setFilterName(localFilterName)
-                                        setFilterNameOperator(localFilterNameOperator)
-                                        setFilterCompanyName(localFilterCompanyName)
-                                        setFilterCompanyNameOperator(localFilterCompanyNameOperator)
-                                        setFilterCpf(localFilterCpf)
-                                        setFilterCpfOperator(localFilterCpfOperator)
-                                        setFilterEmail(localFilterEmail)
-                                        setFilterEmailOperator(localFilterEmailOperator)
-                                        setCurrentPage(1)
-                                        setIsFilterOpen(false)
-                                    }}>
-                                        Aplicar
-                                    </Button>
+                                    <div className="flex gap-2 pt-2">
+                                        <Button variant="outline" size="default" className="flex-1" onClick={() => {
+                                            setLocalSortBy('createdAt')
+                                            setLocalOrderBy('desc')
+                                            setLocalFilterName('')
+                                            setLocalFilterNameOperator('cont')
+                                            setLocalFilterCompanyName('')
+                                            setLocalFilterCompanyNameOperator('cont')
+                                            setLocalFilterCpf('')
+                                            setLocalFilterCpfOperator('cont')
+                                            setLocalFilterEmail('')
+                                            setLocalFilterEmailOperator('cont')
+                                            
+                                            setSortBy('createdAt')
+                                            setOrderBy('desc')
+                                            setFilterName('')
+                                            setFilterNameOperator('cont')
+                                            setFilterCompanyName('')
+                                            setFilterCompanyNameOperator('cont')
+                                            setFilterCpf('')
+                                            setFilterCpfOperator('cont')
+                                            setFilterEmail('')
+                                            setFilterEmailOperator('cont')
+                                            setCurrentPage(1)
+                                            setIsFilterOpen(false)
+                                        }}>
+                                            Limpar tudo
+                                        </Button>
+                                        <Button size="sm" className="flex-1" onClick={() => {
+                                            setSortBy(localSortBy)
+                                            setOrderBy(localOrderBy)
+                                            setFilterName(localFilterName)
+                                            setFilterNameOperator(localFilterNameOperator)
+                                            setFilterCompanyName(localFilterCompanyName)
+                                            setFilterCompanyNameOperator(localFilterCompanyNameOperator)
+                                            setFilterCpf(localFilterCpf)
+                                            setFilterCpfOperator(localFilterCpfOperator)
+                                            setFilterEmail(localFilterEmail)
+                                            setFilterEmailOperator(localFilterEmailOperator)
+                                            setCurrentPage(1)
+                                            setIsFilterOpen(false)
+                                        }}>
+                                            Aplicar
+                                        </Button>
                                     </div>
                                 </div>
                             </PopoverContent>
                         </Popover>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                        <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }}>
-                            {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
-                        </Button>
 
                         {selected.length === 1 ? (
                             <DeleteCustomerDialog customerId={selected[0]} onDeleted={() => { setSelected([]); refetch() }} />

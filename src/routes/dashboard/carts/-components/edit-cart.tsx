@@ -509,8 +509,8 @@ export function EditCartSheet({
                   />
                 </div>
 
-                <div className="h-full min-h-0 overflow-y-auto lg:pl-0">
-                  <div className="mb-3">
+                <div className="h-full min-h-0 flex flex-col lg:pl-0">
+                  <div className="mb-3 shrink-0">
                     <CartCustomerInfoCard cart={cartBasic} customerId={customerId} isLoadingCartBasic={isLoadingCartBasic} />
                   </div>
                   <CartSummaryCard

@@ -172,12 +172,26 @@ export function DataTable<T extends { id?: number | string }>({
                         const fixedCellWidthPx = col.id === 'select' ? 60 : undefined
 
                         const pxMatch = (col.width ?? '').match(/(\d+)/)
-                        const base = pxMatch ? Math.min(parseInt(pxMatch[1]), 220) : 160
+                        let base = 160
+                        if (col.width) {
+                          if (col.width.includes('rem')) {
+                            base = parseFloat(col.width) * 16
+                          } else if (pxMatch) {
+                            base = parseInt(pxMatch[1])
+                          }
+                        }
+                        base = Math.min(base, 220)
                         const variance = 0.6 + ((rIdx + cIdx) % 5) * 0.08
                         const dynamicWidth = Math.round(base * variance)
 
                         let cellContent: React.ReactNode
-                        if (col.id === 'select') {
+                        if (col.id === 'id') {
+                          cellContent = (
+                            <div className='flex items-center justify-center w-full'>
+                              <Skeleton className='h-4 w-6 rounded' />
+                            </div>
+                          )
+                        } else if (col.id === 'select') {
                           cellContent = (
                             <div className='flex items-center justify-center'>
                               <Skeleton className='h-4 w-4 rounded-[4px]' />
@@ -190,6 +204,12 @@ export function DataTable<T extends { id?: number | string }>({
                             </div>
                           )
                         } else if (col.id === 'name') {
+                          cellContent = (
+                            <div className='flex items-center w-full'>
+                              <Skeleton className='h-4 w-[70%]' />
+                            </div>
+                          )
+                        } else if (col.id === 'name-with-avatar') {
                           cellContent = (
                             <div className='flex items-center gap-2'>
                               <Skeleton className='h-6 w-6 rounded-full' />
@@ -208,7 +228,13 @@ export function DataTable<T extends { id?: number | string }>({
                               <Skeleton className='h-4 w-[120px]' />
                             </div>
                           )
-                        } else if (col.id === 'created_at') {
+                        } else if (col.id === 'created_at' || col.id === 'createdAt' || col.id === 'updated_at' || col.id === 'updatedAt') {
+                          cellContent = (
+                            <div className='flex items-center w-full'>
+                              <Skeleton className='h-4 w-[75%]' />
+                            </div>
+                          )
+                        } else if (col.id === 'created_at_old') {
                           cellContent = (
                             <div className='flex items-center'>
                               <Skeleton className='h-4 w-32' />
@@ -332,12 +358,26 @@ export function DataTable<T extends { id?: number | string }>({
                         const fixedCellWidthPx = col.id === 'select' ? 60 : undefined
 
                         const pxMatch = (col.width ?? '').match(/(\d+)/)
-                        const base = pxMatch ? Math.min(parseInt(pxMatch[1]), 220) : 160
+                        let base = 160
+                        if (col.width) {
+                          if (col.width.includes('rem')) {
+                            base = parseFloat(col.width) * 16
+                          } else if (pxMatch) {
+                            base = parseInt(pxMatch[1])
+                          }
+                        }
+                        base = Math.min(base, 220)
                         const variance = 0.6 + ((rIdx + cIdx) % 5) * 0.08
                         const dynamicWidth = Math.round(base * variance)
 
                         let cellContent: React.ReactNode
-                        if (col.id === 'select') {
+                        if (col.id === 'id') {
+                          cellContent = (
+                            <div className='flex items-center justify-center w-full'>
+                              <Skeleton className='h-4 w-6 rounded' />
+                            </div>
+                          )
+                        } else if (col.id === 'select') {
                           cellContent = (
                             <div className='flex items-center justify-center'>
                               <Skeleton className='h-4 w-4 rounded-[4px]' />
@@ -350,6 +390,12 @@ export function DataTable<T extends { id?: number | string }>({
                             </div>
                           )
                         } else if (col.id === 'name') {
+                          cellContent = (
+                            <div className='flex items-center w-full'>
+                              <Skeleton className='h-4 w-[70%]' />
+                            </div>
+                          )
+                        } else if (col.id === 'name-with-avatar') {
                           cellContent = (
                             <div className='flex items-center gap-2'>
                               <Skeleton className='h-6 w-6 rounded-full' />
@@ -368,7 +414,13 @@ export function DataTable<T extends { id?: number | string }>({
                               <Skeleton className='h-4 w-[120px]' />
                             </div>
                           )
-                        } else if (col.id === 'created_at') {
+                        } else if (col.id === 'created_at' || col.id === 'createdAt' || col.id === 'updated_at' || col.id === 'updatedAt') {
+                          cellContent = (
+                            <div className='flex items-center w-full'>
+                              <Skeleton className='h-4 w-[75%]' />
+                            </div>
+                          )
+                        } else if (col.id === 'created_at_old') {
                           cellContent = (
                             <div className='flex items-center'>
                               <Skeleton className='h-4 w-32' />

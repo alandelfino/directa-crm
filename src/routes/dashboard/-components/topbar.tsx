@@ -64,7 +64,7 @@ function TopbarCarts() {
     )
 }
 
-export function Topbar({ title, breadcrumbs }: { title: string, breadcrumbs: BreadcrumbItem[] }) {
+export function Topbar({ title: _title, breadcrumbs }: { title: string, breadcrumbs: BreadcrumbItem[] }) {
     const [user, setUser] = useState<any | null>(null)
 
     useEffect(() => {
@@ -108,10 +108,6 @@ export function Topbar({ title, breadcrumbs }: { title: string, breadcrumbs: Bre
             <div className='border-b h-16 w-full flex items-center px-2 bg-white dark:bg-neutral-900 sticky top-0 z-10 gap-4'>
 
                 <SidebarTrigger />
-
-                <h1 className='font-semibold'>{title}</h1>
-
-                <div className='w-px h-6 border-l'></div>
 
                 <Breadcrumb>
                     <BreadcrumbList>

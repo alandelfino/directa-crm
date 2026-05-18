@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Edit, Funnel, RefreshCw, Trash, Tag, ArrowUpDown, ArrowDownAZ, ArrowUpZA } from 'lucide-react'
+import { Edit, Funnel, RefreshCw, Trash, Tag, ArrowUpDown, ArrowDownAZ, ArrowUpZA, ArrowUpRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ import { DeleteBrand } from './-components/delete-brand'
 import { DataTable } from '@/components/data-table'
 import type { ColumnDef } from '@/components/data-table'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty'
+import { dataTime } from '@/lib/format'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -92,12 +93,7 @@ function RouteComponent() {
       id: 'select',
       width: '60px',
       header: () => (
-        <div className='flex justify-center items-center'>
-          <Checkbox
-            checked={brands.length > 0 && selectedBrands.length === brands.length}
-            onCheckedChange={toggleSelectAll}
-          />
-        </div>
+        <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
       cell: (brand) => (
         <div className='flex justify-center items-center'>
@@ -107,25 +103,39 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (brand) => <span className="font-mono text-xs">{brand.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'name',
       header: 'Nome',
-      cell: (brand) => <span className='block truncate min-w-0' title={brand.name}>{brand.name}</span>,
-      headerClassName: 'min-w-[280px] border-r',
-      className: 'min-w-[280px] p-2!'
+      cell: (brand) => <span className='block truncate min-w-0 font-semibold text-foreground' title={brand.name}>{brand.name}</span>,
+      headerClassName: 'border-r border-neutral-200 px-4 py-2.5',
+      className: 'border-r border-neutral-200 !px-4 py-3'
     },
     {
       id: 'createdAt',
       header: 'Criado em',
-      cell: (brand) => (
-        <span className='text-sm'>{brand.createdAt ? new Date(brand.createdAt).toLocaleDateString('pt-BR') : '-'}</span>
-      ),
-      width: '180px',
-      headerClassName: 'w-[180px] min-w-[180px] border-r',
-      className: 'w-[180px] min-w-[180px] p-2!'
+      cell: (brand) => <div>{dataTime(brand.createdAt)}</div>,
+      width: '12.5rem',
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
+    },
+    {
+      id: 'updatedAt',
+      header: 'Atualizado em',
+      cell: (brand) => <div>{dataTime(brand.updatedAt)}</div>,
+      width: '12.5rem',
+      headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     },
   ]
 
@@ -168,36 +178,30 @@ function RouteComponent() {
   }, [totalPages, currentPage])
 
 
-  // Gerenciar seleção de itens
-  const toggleSelectAll = () => {
-    if (selectedBrands.length === brands.length) {
-      setSelectedBrands([])
-    } else {
-      setSelectedBrands(brands.map(brand => brand.id))
-    }
-  }
+
 
   const toggleSelectBrand = (brandId: number) => {
     if (selectedBrands.includes(brandId)) {
-      setSelectedBrands(selectedBrands.filter(id => id !== brandId))
+      setSelectedBrands([])
     } else {
-      setSelectedBrands([...selectedBrands, brandId])
+      setSelectedBrands([brandId])
     }
   }
 
   return (
     <div className='flex flex-col w-full h-full'>
-
       <Topbar title="Marcas" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Marcas', href: '/dashboard/brands', isLast: true }]} />
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Marcas</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie as marcas de produtos do sistema.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
+              {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
+            </Button>
 
-      {/* Content */}
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
-
-        {/* Actions */}
-        <div className='flex w-full items-center p-2 gap-4'>
-
-          {/* Filters */}
-          <div className='flex items-center gap-2 flex-1'>
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
@@ -213,7 +217,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -305,7 +309,7 @@ function RouteComponent() {
                       setOrderBy(localOrderBy)
                       setFilterName(localFilterName)
                       setFilterNameOperator(localFilterNameOperator)
-                      setCurrentPage(1) // Reset page on filter apply
+                      setCurrentPage(1)
                       setIsFilterOpen(false)
                     }}>
                       Aplicar
@@ -315,16 +319,13 @@ function RouteComponent() {
               </PopoverContent>
             </Popover>
 
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
-              {
-                (isLoading || isRefetching)
-                  ? <RefreshCw className='animate-spin size-[0.85rem]' />
-                  : <RefreshCw className="size-[0.85rem]" />
-              }
-            </Button>
+            {selectedBrands.length === 1 ? (
+              <EditBrandSheet brandId={selectedBrands[0]} />
+            ) : (
+              <Button variant={'outline'} disabled size="sm">
+                <Edit className="size-[0.85rem]" /> Editar
+              </Button>
+            )}
 
             {selectedBrands.length === 1 ? (
               <DeleteBrand brandId={selectedBrands[0]} />
@@ -334,55 +335,55 @@ function RouteComponent() {
               </Button>
             )}
 
-            {selectedBrands.length === 1 ? (
-              <EditBrandSheet brandId={selectedBrands[0]} />
-            ) : (
-              <Button variant={'outline'} disabled size="sm">
-                <Edit className="size-[0.85rem]" /> Editar
-              </Button>
-            )}
             <NewBrandSheet />
           </div>
-
         </div>
 
-        {/* Table */}
-        <DataTable
-          columns={columns}
-          data={brands}
-          loading={isLoading || isRefetching}
-          page={currentPage}
-          perPage={perPage}
-          totalItems={totalItems}
-          emptyMessage='Nenhuma marca encontrada'
-          emptySlot={(
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Tag className='h-6 w-6' />
-                </EmptyMedia>
-                <EmptyTitle>Nenhuma marca ainda</EmptyTitle>
-                <EmptyDescription>
-                  Você ainda não criou nenhuma marca. Comece criando sua primeira marca.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <div className='flex gap-2'>
-                  <NewBrandSheet />
-                  <Button variant={'ghost'} size="sm" disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }}>
-                    {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
+        <div className='flex flex-col w-full h-full flex-1 overflow-hidden'>
+          <div className='overflow-hidden h-full flex flex-col flex-1'>
+            <DataTable
+              columns={columns}
+              data={brands}
+              loading={isLoading || isRefetching}
+              skeletonCount={5}
+              page={currentPage}
+              perPage={perPage}
+              totalItems={totalItems}
+              rowClassName='h-12 hover:bg-muted/30 transition-colors'
+              emptyMessage='Nenhuma marca encontrada'
+              emptySlot={(
+                <Empty className="py-12 border-dashed">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon" className="bg-primary/5 text-primary">
+                      <Tag className='h-8 w-8' />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-lg font-bold tracking-tight">Nenhuma marca ainda</EmptyTitle>
+                    <EmptyDescription className="text-sm max-w-sm text-muted-foreground">
+                      Você ainda não criou nenhuma marca. Comece criando sua primeira marca.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent className="mt-4">
+                    <div className='flex gap-2 items-center justify-center'>
+                      <NewBrandSheet />
+                      <Button variant={'ghost'} size='sm' disabled={isLoading || isRefetching} onClick={() => { setSelectedBrands([]); refetch() }} className="h-8">
+                        {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
+                      </Button>
+                    </div>
+                  </EmptyContent>
+                  <Button variant='link' asChild className='text-muted-foreground mt-2 text-xs font-semibold'>
+                    <a href='#'>
+                      Saiba mais <ArrowUpRight className='inline-block ml-1 h-3 w-3' />
+                    </a>
                   </Button>
-                </div>
-              </EmptyContent>
-            </Empty>
-          )}
-          onChange={({ page, perPage }) => {
-            if (typeof page === 'number') setCurrentPage(page)
-            if (typeof perPage === 'number') setPerPage(perPage)
-            // Disparar refetch quando houver mudança
-            refetch()
-          }} />
-
+                </Empty>
+              )}
+              onChange={({ page, perPage }) => {
+                if (typeof page === 'number') setCurrentPage(page)
+                if (typeof perPage === 'number') setPerPage(perPage)
+                refetch()
+              }} />
+          </div>
+        </div>
       </div>
     </div>
   )

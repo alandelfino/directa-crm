@@ -42,6 +42,7 @@ import { Route as DashboardSettingsStoresIndexRouteImport } from './routes/dashb
 import { Route as DashboardSettingsProfilesIndexRouteImport } from './routes/dashboard/settings/profiles/index'
 import { Route as DashboardSettingsPriceTablesIndexRouteImport } from './routes/dashboard/settings/price-tables/index'
 import { Route as DashboardSettingsPaymentMethodsIndexRouteImport } from './routes/dashboard/settings/payment-methods/index'
+import { Route as DashboardSettingsOrderStatusIndexRouteImport } from './routes/dashboard/settings/order-status/index'
 import { Route as DashboardSettingsMenusIndexRouteImport } from './routes/dashboard/settings/menus/index'
 import { Route as DashboardSettingsMediaSizesIndexRouteImport } from './routes/dashboard/settings/media-sizes/index'
 import { Route as DashboardSettingsIntegrationsIndexRouteImport } from './routes/dashboard/settings/integrations/index'
@@ -225,6 +226,12 @@ const DashboardSettingsPaymentMethodsIndexRoute =
     path: '/payment-methods/',
     getParentRoute: () => DashboardSettingsRouteRoute,
   } as any)
+const DashboardSettingsOrderStatusIndexRoute =
+  DashboardSettingsOrderStatusIndexRouteImport.update({
+    id: '/order-status/',
+    path: '/order-status/',
+    getParentRoute: () => DashboardSettingsRouteRoute,
+  } as any)
 const DashboardSettingsMenusIndexRoute =
   DashboardSettingsMenusIndexRouteImport.update({
     id: '/menus/',
@@ -295,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/menus': typeof DashboardSettingsMenusIndexRoute
+  '/dashboard/settings/order-status': typeof DashboardSettingsOrderStatusIndexRoute
   '/dashboard/settings/payment-methods': typeof DashboardSettingsPaymentMethodsIndexRoute
   '/dashboard/settings/price-tables': typeof DashboardSettingsPriceTablesIndexRoute
   '/dashboard/settings/profiles': typeof DashboardSettingsProfilesIndexRoute
@@ -334,6 +342,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings/integrations': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/menus': typeof DashboardSettingsMenusIndexRoute
+  '/dashboard/settings/order-status': typeof DashboardSettingsOrderStatusIndexRoute
   '/dashboard/settings/payment-methods': typeof DashboardSettingsPaymentMethodsIndexRoute
   '/dashboard/settings/price-tables': typeof DashboardSettingsPriceTablesIndexRoute
   '/dashboard/settings/profiles': typeof DashboardSettingsProfilesIndexRoute
@@ -376,6 +385,7 @@ export interface FileRoutesById {
   '/dashboard/settings/integrations/': typeof DashboardSettingsIntegrationsIndexRoute
   '/dashboard/settings/media-sizes/': typeof DashboardSettingsMediaSizesIndexRoute
   '/dashboard/settings/menus/': typeof DashboardSettingsMenusIndexRoute
+  '/dashboard/settings/order-status/': typeof DashboardSettingsOrderStatusIndexRoute
   '/dashboard/settings/payment-methods/': typeof DashboardSettingsPaymentMethodsIndexRoute
   '/dashboard/settings/price-tables/': typeof DashboardSettingsPriceTablesIndexRoute
   '/dashboard/settings/profiles/': typeof DashboardSettingsProfilesIndexRoute
@@ -419,6 +429,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/menus'
+    | '/dashboard/settings/order-status'
     | '/dashboard/settings/payment-methods'
     | '/dashboard/settings/price-tables'
     | '/dashboard/settings/profiles'
@@ -458,6 +469,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/integrations'
     | '/dashboard/settings/media-sizes'
     | '/dashboard/settings/menus'
+    | '/dashboard/settings/order-status'
     | '/dashboard/settings/payment-methods'
     | '/dashboard/settings/price-tables'
     | '/dashboard/settings/profiles'
@@ -499,6 +511,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings/integrations/'
     | '/dashboard/settings/media-sizes/'
     | '/dashboard/settings/menus/'
+    | '/dashboard/settings/order-status/'
     | '/dashboard/settings/payment-methods/'
     | '/dashboard/settings/price-tables/'
     | '/dashboard/settings/profiles/'
@@ -752,6 +765,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsPaymentMethodsIndexRouteImport
       parentRoute: typeof DashboardSettingsRouteRoute
     }
+    '/dashboard/settings/order-status/': {
+      id: '/dashboard/settings/order-status/'
+      path: '/order-status'
+      fullPath: '/dashboard/settings/order-status'
+      preLoaderRoute: typeof DashboardSettingsOrderStatusIndexRouteImport
+      parentRoute: typeof DashboardSettingsRouteRoute
+    }
     '/dashboard/settings/menus/': {
       id: '/dashboard/settings/menus/'
       path: '/menus'
@@ -805,6 +825,7 @@ interface DashboardSettingsRouteRouteChildren {
   DashboardSettingsIntegrationsIndexRoute: typeof DashboardSettingsIntegrationsIndexRoute
   DashboardSettingsMediaSizesIndexRoute: typeof DashboardSettingsMediaSizesIndexRoute
   DashboardSettingsMenusIndexRoute: typeof DashboardSettingsMenusIndexRoute
+  DashboardSettingsOrderStatusIndexRoute: typeof DashboardSettingsOrderStatusIndexRoute
   DashboardSettingsPaymentMethodsIndexRoute: typeof DashboardSettingsPaymentMethodsIndexRoute
   DashboardSettingsPriceTablesIndexRoute: typeof DashboardSettingsPriceTablesIndexRoute
   DashboardSettingsProfilesIndexRoute: typeof DashboardSettingsProfilesIndexRoute
@@ -826,6 +847,8 @@ const DashboardSettingsRouteRouteChildren: DashboardSettingsRouteRouteChildren =
     DashboardSettingsMediaSizesIndexRoute:
       DashboardSettingsMediaSizesIndexRoute,
     DashboardSettingsMenusIndexRoute: DashboardSettingsMenusIndexRoute,
+    DashboardSettingsOrderStatusIndexRoute:
+      DashboardSettingsOrderStatusIndexRoute,
     DashboardSettingsPaymentMethodsIndexRoute:
       DashboardSettingsPaymentMethodsIndexRoute,
     DashboardSettingsPriceTablesIndexRoute:

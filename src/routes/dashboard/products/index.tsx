@@ -155,7 +155,7 @@ function RouteComponent() {
   const columns: ColumnDef<Product>[] = useMemo(() => [
     {
       id: 'select',
-      width: '40px',
+      width: '60px',
       header: () => (
         <div className='flex justify-center items-center text-xs text-neutral-500'>Sel.</div>
       ),
@@ -167,35 +167,77 @@ function RouteComponent() {
           />
         </div>
       ),
-      headerClassName: 'w-[60px] min-w-[60px] border-r',
-      className: 'w-[60px] min-w-[60px] font-medium border-r p-2!'
+      headerClassName: 'w-[60px] min-w-[60px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[60px] min-w-[60px] border-r border-neutral-200 !px-4 py-3'
     },
-    { id: 'sku', header: 'SKU', width: '60px', maxWidth: '60px', cell: (p) => (<span className='block truncate px-2' title={p.sku ?? '—'}>{p.sku ?? '—'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
-    { id: 'name', header: 'Nome', width: '280px', cell: (p) => (<span className='block truncate px-2' title={p.name ?? '—'}>{p.name ?? '—'}</span>), headerClassName: 'w-[280px] min-w-[280px] border-r', className: 'w-[280px] min-w-[280px] p-2! min-w-0' },
-    
-    { id: 'managedInventory', header: 'Ger. estoque', width: '100px', maxWidth: '100px', cell: (p) => (<span className='block truncate px-2' title={p.managedInventory ? 'Sim' : 'Não'}>{p.managedInventory ? 'Sim' : 'Não'}</span>), headerClassName: 'w-[160px] min-w-[160px] border-r', className: 'w-[160px] min-w-[160px] p-2! min-w-0' },
-    { id: 'stock', header: 'Estoque', width: '120px', maxWidth: '120px', cell: (p) => {
-      const raw = (p as any)?.stock
-      const cents = (typeof raw === 'string' || typeof raw === 'number') ? Number(raw) : NaN
-      const qtyType = Number.isFinite(cents) && cents % 100 === 0 ? 'int' : 'decimal'
-      const formatted = formatStockQuantity(qtyType, cents)
-      return (<span className='block px-2 text-right tabular-nums' title={formatted}>{formatted}</span>)
-    }, headerClassName: 'w-[140px] min-w-[140px] border-r text-right', className: 'w-[140px] min-w-[140px] p-2! text-right' },
-    { id: 'active', header: 'Status', width: '80px', maxWidth: '80px', cell: (p) => {
-      const active = p.active === true
-      return (
-        <span
-          className={
-            active
-              ? 'inline-flex items-center gap-1 px-2 py-0 rounded-lg bg-green-50 text-green-600'
-              : 'inline-flex items-center gap-1 px-2 py-0 rounded-lg bg-gray-100 text-gray-700'
-          }
-        >
-          <span className={active ? 'h-1.5 w-1.5 rounded-full bg-green-600' : 'h-1.5 w-1.5 rounded-full bg-gray-500'} />
-          {active ? 'Ativo' : 'Inativo'}
-        </span>
-      )
-    }, headerClassName: 'w-[120px] min-w-[120px] border-r', className: 'w-[120px] min-w-[120px] p-2!' },
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (p) => <span className="font-mono text-xs">{p.id}</span>,
+      width: '40px',
+      headerClassName: 'w-[40px] min-w-[40px] border-r border-neutral-200 px-4 py-2.5',
+      className: 'w-[40px] min-w-[40px] border-r border-neutral-200 !px-4 py-3'
+    },
+    { 
+      id: 'sku', 
+      header: 'SKU', 
+      cell: (p) => <span className='block truncate text-xs font-mono' title={p.sku ?? '—'}>{p.sku ?? '—'}</span>, 
+      width: '160px',
+      headerClassName: 'w-[160px] min-w-[160px] border-r border-neutral-200 px-4 py-2.5', 
+      className: 'w-[160px] min-w-[160px] border-r border-neutral-200 !px-4 py-3' 
+    },
+    { 
+      id: 'name', 
+      header: 'Nome', 
+      cell: (p) => <span className='block truncate font-semibold text-foreground' title={p.name ?? '—'}>{p.name ?? '—'}</span>, 
+      width: '280px',
+      headerClassName: 'w-[280px] min-w-[280px] border-r border-neutral-200 px-4 py-2.5', 
+      className: 'w-[280px] min-w-[280px] border-r border-neutral-200 !px-4 py-3' 
+    },
+    { 
+      id: 'managedInventory', 
+      header: 'Ger. estoque', 
+      cell: (p) => <span>{p.managedInventory ? 'Sim' : 'Não'}</span>, 
+      width: '160px',
+      headerClassName: 'w-[160px] min-w-[160px] border-r border-neutral-200 px-4 py-2.5', 
+      className: 'w-[160px] min-w-[160px] border-r border-neutral-200 !px-4 py-3' 
+    },
+    { 
+      id: 'stock', 
+      header: 'Estoque', 
+      cell: (p) => {
+        const raw = (p as any)?.stock
+        const cents = (typeof raw === 'string' || typeof raw === 'number') ? Number(raw) : NaN
+        const qtyType = Number.isFinite(cents) && cents % 100 === 0 ? 'int' : 'decimal'
+        const formatted = formatStockQuantity(qtyType, cents)
+        return <span className='block text-right tabular-nums w-full font-semibold text-neutral-700'>{formatted}</span>
+      }, 
+      width: '140px',
+      headerClassName: 'w-[140px] min-w-[140px] border-r border-neutral-200 px-4 py-2.5 text-right', 
+      className: 'w-[140px] min-w-[140px] border-r border-neutral-200 !px-4 py-3 text-right' 
+    },
+    { 
+      id: 'active', 
+      header: 'Status', 
+      cell: (p) => {
+        const active = p.active === true
+        return (
+          <span
+            className={
+              active
+                ? 'inline-flex items-center gap-1 px-2 py-0 rounded bg-green-50 text-green-600 text-xs font-semibold'
+                : 'inline-flex items-center gap-1 px-2 py-0 rounded bg-gray-100 text-gray-700 text-xs font-semibold'
+            }
+          >
+            <span className={active ? 'h-1.5 w-1.5 rounded-full bg-green-600 animate-pulse' : 'h-1.5 w-1.5 rounded-full bg-gray-500'} />
+            {active ? 'Ativo' : 'Inativo'}
+          </span>
+        )
+      }, 
+      width: '120px',
+      headerClassName: 'w-[120px] min-w-[120px] border-r border-neutral-200 px-4 py-2.5', 
+      className: 'w-[120px] min-w-[120px] border-r border-neutral-200 !px-4 py-3' 
+    },
   ], [selected, toggleSelect])
 
   useEffect(() => {
@@ -224,9 +266,17 @@ function RouteComponent() {
   return (
     <div className='flex flex-col w-full h-full overflow-x-hidden'>
       <Topbar title="Produtos" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard', isLast: false }, { label: 'Produtos', href: '/dashboard/products', isLast: true }]} />
-      <div className='flex flex-col w-full h-full flex-1 overflow-hidden min-w-0'>
-        <div className='flex w-full items-center p-2 gap-4 max-w-full overflow-hidden'>
-          <div className='flex items-center gap-2 flex-1'>
+      <div className='flex flex-col w-full h-full p-6 space-y-6 flex-1 overflow-hidden min-w-0'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col space-y-1'>
+            <h2 className='text-2xl font-bold tracking-tight text-foreground'>Produtos</h2>
+            <p className='text-sm text-muted-foreground'>Gerencie o catálogo de produtos simples e com derivações do sistema.</p>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }} size={'sm'}>
+              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
+            </Button>
+
             <Popover open={isFilterOpen} onOpenChange={(open) => {
               if (open) {
                 setLocalSortBy(sortBy)
@@ -246,7 +296,7 @@ function RouteComponent() {
                   {activeFilterCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeFilterCount}</Badge>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-5" align="start">
+              <PopoverContent className="w-[340px] p-5" align="end">
                 <div className="flex flex-col gap-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -362,7 +412,6 @@ function RouteComponent() {
                           </Select>
                         </div>
                       </div>
-
                     </div>
                   </div>
 
@@ -408,11 +457,6 @@ function RouteComponent() {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-          <div className='flex items-center gap-2'>
-            <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => { setSelected([]); refetch() }} size={'sm'}>
-              {(isLoading || isRefetching) ? (<RefreshCw className='animate-spin size-[0.85rem]' />) : (<RefreshCw className="size-[0.85rem]" />)}
-            </Button>
 
             {selected.length === 1 ? (
               <Suspense fallback={<Button variant={'outline'} disabled size={'sm'}><Archive className="size-[0.85rem]" /> Estoque</Button>}>

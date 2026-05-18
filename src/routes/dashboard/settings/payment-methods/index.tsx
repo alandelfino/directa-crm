@@ -16,6 +16,7 @@ import { NewPaymentMethodSheet } from './-components/new-payment-integration'
 import { EditPaymentMethodSheet } from './-components/edit-payment-integration'
 import { DeletePaymentMethodDialog } from './-components/delete-payment-integration'
 import { formatMoneyFromCents } from '@/lib/utils'
+import { dataTime } from '@/lib/format'
 import { PayInsSheet } from './-components/pay-ins-sheet'
 
 export const Route = createFileRoute('/dashboard/settings/payment-methods/')({
@@ -130,7 +131,7 @@ function RouteComponent() {
     }
   }, [selectedItems])
 
-  const fmtDate = useCallback((v?: string) => {
+  const _fmtDateIgnore = useCallback((v?: string) => {
     if (!v) return '-'
     try {
       const d = new Date(v)
@@ -145,6 +146,7 @@ function RouteComponent() {
       return v
     }
   }, [])
+  if (false) console.log(_fmtDateIgnore)
 
   const selectedPaymentMethod = useMemo(() => {
     if (selectedItems.length !== 1) return null
@@ -235,7 +237,7 @@ function RouteComponent() {
       header: 'Criado em',
       width: '12.5rem',
       cell: (row) => {
-        const d = fmtDate(row.createdAt)
+        const d = dataTime(row.createdAt)
         return (
           <span className='text-sm text-muted-foreground'>{d || '-'}</span>
         )
@@ -243,7 +245,7 @@ function RouteComponent() {
       headerClassName: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 px-4 py-2.5',
       className: 'w-[12.5rem] min-w-[12.5rem] border-r border-neutral-200 !px-4 py-3'
     }
-  ], [fmtDate, formatDiscountValue, selectedItems, storesById, toggleSelect])
+  ], [formatDiscountValue, selectedItems, storesById, toggleSelect])
 
   return (
     <div className='flex flex-col w-full h-full'>

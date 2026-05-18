@@ -38,7 +38,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: 'Nome é obrigatório' }),
   storeId: z.number().int().min(1, { message: 'Loja é obrigatória' }),
   paymentGatewayId: z.number().int().min(1, { message: 'Gateway é obrigatório' }),
-  activeDiscount: z.boolean().default(false),
+  activeDiscount: z.boolean(),
   discountType: z.enum(['percent', 'fixed']).optional(),
   discountAmount: discountAmountSchema,
 }).superRefine((data, ctx) => {

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { privateInstance } from '@/lib/auth'
 import { Topbar } from '../-components/topbar'
 import { Button } from '@/components/ui/button'
-import { Images, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash } from 'lucide-react'
+import { Images, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash, UploadCloud } from 'lucide-react'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -40,6 +40,7 @@ function RouteComponent() {
   const [perPage, setPerPage] = useState<number>(20)
   const [selectedIds, setSelectedIds] = useState<(number)[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['medias', page, perPage],
@@ -140,7 +141,9 @@ function RouteComponent() {
             <Button variant={'outline'} onClick={handleBulkDelete} disabled={selectedIds.length === 0} size={'sm'}>
               <Trash className='size-[0.85rem]' /> Excluir
             </Button>
-            <MultiUploadSheet />
+            <Button size={'sm'} variant={'default'} onClick={() => setUploadOpen(true)}>
+              <UploadCloud className="size-[0.85rem]" /> Upload
+            </Button>
           </div>
         </div>
 
@@ -171,7 +174,9 @@ function RouteComponent() {
               </EmptyHeader>
               <EmptyContent>
                 <div className='flex gap-2'>
-                  <MultiUploadSheet />
+                  <Button size={'sm'} variant={'default'} onClick={() => setUploadOpen(true)}>
+                    <UploadCloud className="size-[0.85rem]" /> Upload
+                  </Button>
                   <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => refetch()} size="sm">
                     {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                   </Button>
@@ -265,6 +270,7 @@ function RouteComponent() {
         {/* Dialog de edição / detalhes */}
         <EditMediaDialog media={selected} onClose={() => setSelected(null)} onSaved={() => refetch()} />
         <BulkDeleteMediasSheet open={bulkDeleteOpen} onOpenChange={(v) => { setBulkDeleteOpen(v); if (!v) { setSelectedIds([]) } }} ids={selectedIds} onDeleted={() => { setSelectedIds([]); refetch() }} />
+        <MultiUploadSheet open={uploadOpen} onOpenChange={setUploadOpen} />
 
       </div>
     </div>

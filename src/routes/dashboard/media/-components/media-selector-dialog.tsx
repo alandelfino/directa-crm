@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { privateInstance } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
-import { Images, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash, Check } from 'lucide-react'
+import { Images, RefreshCw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash, Check, UploadCloud } from 'lucide-react'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -38,6 +38,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
   const [perPage, setPerPage] = useState<number>(20)
   const [selectedIds, setSelectedIds] = useState<(number)[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const { data, isLoading, isRefetching, refetch, isPending } = useQuery({
     queryKey: ['medias', page, perPage, toFilter],
@@ -163,7 +164,9 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
               <Button variant={'outline'} onClick={handleBulkDelete} disabled={selectedIds.length === 0} size={'sm'}>
                 <Trash className='size-[0.85rem]' /> Excluir
               </Button>
-              <MultiUploadSheet />
+              <Button size={'sm'} variant={'default'} onClick={() => setUploadOpen(true)}>
+                <UploadCloud className="size-[0.85rem]" /> Upload
+              </Button>
             </div>
           </div>
 
@@ -194,7 +197,9 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
                 </EmptyHeader>
                 <EmptyContent>
                   <div className='flex gap-2'>
-                    <MultiUploadSheet />
+                    <Button size={'sm'} variant={'default'} onClick={() => setUploadOpen(true)}>
+                      <UploadCloud className="size-[0.85rem]" /> Upload
+                    </Button>
                     <Button variant={'ghost'} disabled={isLoading || isRefetching} onClick={() => refetch()} size="sm">
                       {(isLoading || isRefetching) ? <RefreshCw className='animate-spin size-[0.85rem]' /> : <RefreshCw className="size-[0.85rem]" />}
                     </Button>
@@ -299,6 +304,7 @@ export function MediaSelectorDialog({ open: controlledOpen, onOpenChange: setCon
 
           <EditMediaDialog media={selected} onClose={() => setSelected(null)} onSaved={() => refetch()} />
           <BulkDeleteMediasSheet open={bulkDeleteOpen} onOpenChange={(v) => { setBulkDeleteOpen(v); if (!v) { setSelectedIds([]) } }} ids={selectedIds} onDeleted={() => { setSelectedIds([]); refetch() }} />
+          <MultiUploadSheet open={uploadOpen} onOpenChange={setUploadOpen} />
         </div>
       </DialogContent>
     </Dialog>

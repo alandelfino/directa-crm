@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MediaSelectorDialog } from '@/routes/dashboard/media/-components/media-selector-dialog'
 import type { MediaItem } from '@/routes/dashboard/media'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { parseUnitValue, ThemeFieldBooleanToggle, ThemeFieldLongText, ThemeFieldNumberInput, ThemeFieldTextInput, ThemeFieldUnitInput, type UnitOption } from '@/components/theme-field-inputs'
 import {
   DndContext,
@@ -1140,16 +1141,27 @@ export function StoreThemeFieldsSheet({
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-[1100px] p-0">
-        <SheetHeader className="px-4 py-4">
-          <SheetTitle>Ajustes do tema</SheetTitle>
+      <SheetContent className="flex flex-col overflow-hidden w-full sm:max-w-[770px]">
+        <SheetHeader>
+          <div className="flex items-center gap-2 flex-wrap">
+            <SheetTitle>Ajustes do tema</SheetTitle>
+            {storeName ? (
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {storeName}
+              </span>
+            ) : (
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                Loja #{storeId}
+              </span>
+            )}
+          </div>
           <SheetDescription>
-            {storeName ? `Loja: ${storeName}` : `Loja #${storeId}`}
+            Personalize a aparência, cores, fontes e configurações gerais do tema para esta loja.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="px-4 pb-3 flex items-center justify-end gap-2">
+        <div className="flex items-center px-4 py-3 border-b">
+          <div className="ml-auto flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -1160,49 +1172,62 @@ export function StoreThemeFieldsSheet({
               Atualizar
             </Button>
           </div>
+        </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6">
-            <div className="flex flex-col gap-6">
-              {isLoading ? (
-                <GroupSkeleton />
-              ) : (
-                groups.map((g) => (
-                  <div key={g.id} className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="text-sm font-semibold">{g.name}</div>
-                      {g.description ? <div className="text-xs text-muted-foreground">{g.description}</div> : null}
-                    </div>
-                    <Separator />
-                    <div className="flex flex-col gap-3">
-                      {(g.storeFields ?? []).map((f) => (
-                        <ThemeFieldEditor
-                          key={f.id}
-                          field={f}
-                          storeMenus={storeMenus ?? []}
-                          mediaById={mediaById}
-                          value={Object.prototype.hasOwnProperty.call(localById, f.id) ? localById[f.id] : parseThemeFieldLocal(f)}
-                          onChange={(next) => setLocalById((prev) => ({ ...prev, [f.id]: next }))}
-                          disabled={uiDisabled}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+          <div className="flex flex-col gap-6 pb-8">
+            {isLoading ? (
+              <GroupSkeleton />
+            ) : (
+              <Accordion
+                type="multiple"
+                defaultValue={groups.map((g) => String(g.id))}
+                className="space-y-4"
+              >
+                {groups.map((g) => (
+                  <AccordionItem
+                    key={g.id}
+                    value={String(g.id)}
+                    className="border rounded-xl overflow-hidden bg-card transition-all duration-300 last:border-b"
+                  >
+                    <AccordionTrigger className="px-4 py-3 bg-muted/20 hover:bg-muted/30 hover:no-underline text-left">
+                      <div className="flex flex-col gap-0.5 pr-4">
+                        <div className="text-sm font-semibold text-foreground">{g.name}</div>
+                        {g.description ? (
+                          <div className="text-xs text-muted-foreground font-normal leading-normal">{g.description}</div>
+                        ) : null}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 pt-0">
+                      <div className="flex flex-col gap-4 pt-4">
+                        {(g.storeFields ?? []).map((f) => (
+                          <ThemeFieldEditor
+                            key={f.id}
+                            field={f}
+                            storeMenus={storeMenus ?? []}
+                            mediaById={mediaById}
+                            value={Object.prototype.hasOwnProperty.call(localById, f.id) ? localById[f.id] : parseThemeFieldLocal(f)}
+                            onChange={(next) => setLocalById((prev) => ({ ...prev, [f.id]: next }))}
+                            disabled={uiDisabled}
+                          />
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
           </div>
         </div>
 
-        <SheetFooter className="border-t">
-          <div className="flex w-full items-center justify-end gap-2 px-4 py-3">
-            <SheetClose asChild>
-              <Button variant="outline" size="sm" disabled={uiDisabled}>Cancelar</Button>
-            </SheetClose>
-            <Button size="sm" onClick={() => saveChanged()} disabled={!hasChanges || uiDisabled}>
-              {savingChanges ? <Loader className="size-4 animate-spin mr-2" /> : null}
-              Salvar alterações
-            </Button>
-          </div>
+        <SheetFooter className="border-t p-4 flex-row justify-end gap-2">
+          <SheetClose asChild>
+            <Button variant="outline" size="sm" disabled={uiDisabled}>Cancelar</Button>
+          </SheetClose>
+          <Button size="sm" onClick={() => saveChanged()} disabled={!hasChanges || uiDisabled}>
+            {savingChanges ? <Loader className="size-4 animate-spin mr-2" /> : null}
+            Salvar alterações
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
